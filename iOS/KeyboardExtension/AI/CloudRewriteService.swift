@@ -1,0 +1,120 @@
+import Foundation
+import JapaneseKeyboardUI
+import KeyboardPreferences
+
+struct CloudRewriteConfiguration: Sendable {
+    let endpoint: URL
+    let supabaseURL: URL
+    let publishableKey: String
+    let appVersion: String
+
+    var isUsable: Bool { true }
+
+    static func current() -> CloudRewriteConfiguration {
+        let supabaseURL = URL(string: "https://eercsucvxnszqletxued.supabase.co")!
+        let publishableKey = "sb_publishable_S8rEoVqCOV8iVGfDEErI6w_Slb79nCO"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        return CloudRewriteConfiguration(
+            endpoint: supabaseURL.appendingPathComponent("functions/v1/keyboard-rewrite"),
+            supabaseURL: supabaseURL,
+            publishableKey: publishableKey,
+            appVersion: version
+        )
+    }
+}
+
+final class CloudRewriteService: RewriteService, @unchecked Sendable {
+    private let configuration: CloudRewriteConfiguration
+    private let session: URLSession
+
+    init(configuration: CloudRewriteConfiguration, session: URLSession = .shared) {
+        self.configuration = configuration
+        self.session = session
+    }
+
+    func rewrite(_ request: RewriteRequest) async throws -> RewriteResult {
+        let accessToken = try await ensureFreshAccessToken()
+
+        var urlRequest = URLRequest(url: configuration.endpoint)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        urlRequest.timeoutInterval = 20
+        urlRequest.httpBody = try JSONEncoder().encode(request)
+
+        let (data, response) = try await session.data(for: urlRequest)
+        guard let http = response as? HTTPURLResponse else {
+            throw CloudRewriteError.invalidResponse
+        }
+
+        if (200..<300).contains(http.statusCode) {
+            return try JSONDecoder().decode(RewriteResult.self, from: data)
+        }
+
+        if let payload = try? JSONDecoder().decode(CloudRewriteErrorPayload.self, from: data) {
+            throw CloudRewriteError.backend(payload.error.message)
+        }
+
+        throw CloudRewriteError.backend("AI rewrite failed.")
+    }
+
+    private func ensureFreshAccessToken() async throws -> String {
+        guard let accessToken = AIAuthStore.readAccessToken() else {
+            throw CloudRewriteError.notSignedIn
+        }
+        let expiresAt = AIAuthStore.readExpiresAt() ?? .distantPast
+        if Date().addingTimeInterval(30) < expiresAt {
+            return accessToken
+        }
+        guard let refreshToken = AIAuthStore.readRefreshToken() else {
+            return accessToken
+        }
+        return (try? await refreshAccessToken(refreshToken: refreshToken)) ?? accessToken
+    }
+
+    private func refreshAccessToken(refreshToken: String) async throws -> String {
+        let url = configuration.supabaseURL.appendingPathComponent("auth/v1/token")
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "grant_type", value: "refresh_token")]
+
+        var req = URLRequest(url: components.url!)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(configuration.publishableKey)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["refresh_token": refreshToken])
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw CloudRewriteError.notSignedIn
+        }
+        let payload = try JSONDecoder().decode(RefreshResponse.self, from: data)
+        AIAuthStore.writeTokens(
+            accessToken: payload.access_token,
+            refreshToken: payload.refresh_token,
+            expiresAt: Date().addingTimeInterval(TimeInterval(payload.expires_in))
+        )
+        return payload.access_token
+    }
+}
+
+enum CloudRewriteError: Error {
+    case notSignedIn
+    case invalidResponse
+    case backend(String)
+}
+
+private struct CloudRewriteErrorPayload: Decodable {
+    struct Body: Decodable {
+        let code: String
+        let message: String
+    }
+    let error: Body
+}
+
+private struct RefreshResponse: Decodable {
+    let access_token: String
+    let refresh_token: String
+    let expires_in: Int
+}

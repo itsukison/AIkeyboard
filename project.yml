@@ -1,0 +1,130 @@
+name: BikeyJP
+options:
+  bundleIdPrefix: co.gastroduce-japan.bikey.japanese
+  deploymentTarget:
+    iOS: "16.4"
+  developmentLanguage: en
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.1"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.4"
+    DEVELOPMENT_TEAM: "4KS6YS23KT"
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_CXX_INTEROPERABILITY_MODE: default
+    CLANG_CXX_LANGUAGE_STANDARD: "gnu++17"
+    CLANG_CXX_LIBRARY: libc++
+    OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default -Xcc -std=gnu++17
+
+packages:
+  JapaneseKeyboard:
+    path: .
+  KeyboardKit:
+    url: https://github.com/KeyboardKit/KeyboardKit.git
+    from: 10.4.1
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.5.1
+
+targets:
+  BikeyJP:
+    type: application
+    platform: iOS
+    sources:
+      - path: iOS/Container
+        excludes:
+          - Resources/Info.plist
+      - path: iOS/Shared
+      - path: public/applogo.png
+      - path: public/gradientwithglobe.png
+      - path: public/gradient2.png
+      - path: public/globebg.png
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.gastroduce-japan.bikey.japanese
+        INFOPLIST_FILE: iOS/Container/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: iOS/Container/Container.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - target: KeyboardExtension
+      - package: JapaneseKeyboard
+        product: JapaneseKeyboardCore
+      - package: JapaneseKeyboard
+        product: JapaneseKeyboardUI
+      - package: JapaneseKeyboard
+        product: KeyboardPreferences
+      - package: KeyboardKit
+        product: KeyboardKit
+      - package: Supabase
+        product: Supabase
+
+  KeyboardExtension:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Config/Local.xcconfig
+      Release: Config/Local.xcconfig
+    sources:
+      - path: iOS/KeyboardExtension
+        excludes:
+          - Resources/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.gastroduce-japan.bikey.japanese.keyboard
+        PRODUCT_MODULE_NAME: KeyboardExtension
+        INFOPLIST_FILE: iOS/KeyboardExtension/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: iOS/KeyboardExtension/KeyboardExtension.entitlements
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../Frameworks"
+    dependencies:
+      - package: JapaneseKeyboard
+        product: JapaneseKeyboardCore
+      - package: JapaneseKeyboard
+        product: JapaneseKeyboardUI
+      - package: JapaneseKeyboard
+        product: KeyboardPreferences
+      - package: KeyboardKit
+        product: KeyboardKit
+
+  JapaneseKeyboardCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/JapaneseKeyboardCoreTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.gastroduce-japan.bikey.japanese.core-tests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: JapaneseKeyboard
+        product: JapaneseKeyboardCore
+
+  JapaneseKeyboardUITests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/JapaneseKeyboardUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.gastroduce-japan.bikey.japanese.ui-tests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: JapaneseKeyboard
+        product: JapaneseKeyboardUI
+
+schemes:
+  BikeyJP:
+    build:
+      targets:
+        BikeyJP: all
+        KeyboardExtension: all
+    test:
+      targets:
+        - JapaneseKeyboardCoreTests
+        - JapaneseKeyboardUITests
+  KeyboardExtension:
+    build:
+      targets:
+        KeyboardExtension: all
