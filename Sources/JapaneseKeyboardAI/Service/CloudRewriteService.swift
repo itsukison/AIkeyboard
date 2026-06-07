@@ -1,38 +1,43 @@
 import Foundation
-import JapaneseKeyboardUI
 import KeyboardPreferences
 
-struct CloudRewriteConfiguration: Sendable {
-    let endpoint: URL
-    let supabaseURL: URL
-    let publishableKey: String
-    let appVersion: String
+public struct CloudRewriteConfiguration: Sendable {
+    public static let defaultSupabaseURL = URL(string: "https://eercsucvxnszqletxued.supabase.co")!
+    public static let defaultPublishableKey = "sb_publishable_S8rEoVqCOV8iVGfDEErI6w_Slb79nCO"
 
-    var isUsable: Bool { true }
+    public let endpoint: URL
+    public let supabaseURL: URL
+    public let publishableKey: String
+    public let appVersion: String
 
-    static func current() -> CloudRewriteConfiguration {
-        let supabaseURL = URL(string: "https://eercsucvxnszqletxued.supabase.co")!
-        let publishableKey = "sb_publishable_S8rEoVqCOV8iVGfDEErI6w_Slb79nCO"
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
-        return CloudRewriteConfiguration(
-            endpoint: supabaseURL.appendingPathComponent("functions/v1/keyboard-rewrite"),
-            supabaseURL: supabaseURL,
-            publishableKey: publishableKey,
-            appVersion: version
-        )
+    public init(
+        supabaseURL: URL = CloudRewriteConfiguration.defaultSupabaseURL,
+        publishableKey: String = CloudRewriteConfiguration.defaultPublishableKey,
+        appVersion: String
+    ) {
+        self.endpoint = supabaseURL.appendingPathComponent("functions/v1/keyboard-rewrite")
+        self.supabaseURL = supabaseURL
+        self.publishableKey = publishableKey
+        self.appVersion = appVersion
     }
 }
 
-final class CloudRewriteService: RewriteService, @unchecked Sendable {
+public enum CloudRewriteError: Error, Equatable {
+    case notSignedIn
+    case invalidResponse
+    case backend(String)
+}
+
+public final class CloudRewriteService: RewriteService, @unchecked Sendable {
     private let configuration: CloudRewriteConfiguration
     private let session: URLSession
 
-    init(configuration: CloudRewriteConfiguration, session: URLSession = .shared) {
+    public init(configuration: CloudRewriteConfiguration, session: URLSession = .shared) {
         self.configuration = configuration
         self.session = session
     }
 
-    func rewrite(_ request: RewriteRequest) async throws -> RewriteResult {
+    public func rewrite(_ request: RewriteRequest) async throws -> RewriteResult {
         let accessToken = try await ensureFreshAccessToken()
 
         var urlRequest = URLRequest(url: configuration.endpoint)
@@ -97,12 +102,6 @@ final class CloudRewriteService: RewriteService, @unchecked Sendable {
         )
         return payload.access_token
     }
-}
-
-enum CloudRewriteError: Error {
-    case notSignedIn
-    case invalidResponse
-    case backend(String)
 }
 
 private struct CloudRewriteErrorPayload: Decodable {

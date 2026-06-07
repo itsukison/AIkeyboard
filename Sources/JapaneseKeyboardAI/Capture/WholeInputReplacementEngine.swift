@@ -1,16 +1,15 @@
-import JapaneseKeyboardUI
-import UIKit
+import Foundation
 
-enum ReplacementError: Error {
+public enum ReplacementError: Error, Equatable {
     case contextChanged
 }
 
-enum WholeInputReplacementEngine {
+public enum WholeInputReplacementEngine {
     @MainActor
-    static func replace(
+    public static func replace(
         capture: WholeInputCapture,
         with replacement: String,
-        proxy: UITextDocumentProxy
+        proxy: TextDocumentProxying
     ) throws {
         let currentTarget = (proxy.documentContextBeforeInput ?? "")
             + (proxy.selectedText ?? "")

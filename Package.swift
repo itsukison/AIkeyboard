@@ -11,6 +11,7 @@ let package = Package(
     products: [
         .library(name: "JapaneseKeyboardCore", targets: ["JapaneseKeyboardCore"]),
         .library(name: "JapaneseKeyboardUI", targets: ["JapaneseKeyboardUI"]),
+        .library(name: "JapaneseKeyboardAI", targets: ["JapaneseKeyboardAI"]),
         .library(name: "KeyboardPreferences", targets: ["KeyboardPreferences"]),
     ],
     dependencies: [
@@ -48,6 +49,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "JapaneseKeyboardAI",
+            dependencies: [
+                "KeyboardPreferences",
+            ]
+        ),
+        .target(
             name: "JapaneseKeyboardUI",
             dependencies: [
                 "JapaneseKeyboardCore",
@@ -60,10 +67,14 @@ let package = Package(
         ),
         .testTarget(
             name: "JapaneseKeyboardCoreTests",
-            dependencies: ["JapaneseKeyboardCore"],
+            dependencies: ["JapaneseKeyboardCore", "KeyboardPreferences"],
             swiftSettings: [
                 .interoperabilityMode(.Cxx),
             ]
+        ),
+        .testTarget(
+            name: "JapaneseKeyboardAITests",
+            dependencies: ["JapaneseKeyboardAI", "KeyboardPreferences"]
         ),
         .testTarget(
             name: "JapaneseKeyboardUITests",

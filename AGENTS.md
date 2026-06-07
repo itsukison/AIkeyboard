@@ -57,20 +57,21 @@ them gets users killed by jetsam or rejected by App Review.
 ├── AGENTS.md                         ← you are here
 ├── CLAUDE.md                         ← behavioral guidelines for agents
 ├── README.md                         ← short build/run for humans
-├── Package.swift                     ← SPM manifest (3 library products)
+├── Package.swift                     ← SPM manifest (4 library products)
 ├── project.yml                       ← XcodeGen config (container + extension)
 ├── Config/
 │   ├── Local.example.xcconfig        ← copy to Local.xcconfig
 │   └── Local.xcconfig                ← gitignored, optional dev settings
 ├── Sources/                          ← SPM-testable Swift
 │   ├── JapaneseKeyboardCore/         ← IME logic (no UI, no UIKit)
-│   ├── JapaneseKeyboardUI/           ← SwiftUI keyboard views
+│   ├── JapaneseKeyboardUI/           ← SwiftUI keyboard views (KeyboardKit-dependent)
+│   ├── JapaneseKeyboardAI/           ← AI rewrite domain (capture, replace, service)
 │   └── KeyboardPreferences/          ← App Group settings + auth token cache
 ├── iOS/
 │   ├── Container/                    ← main app target (BikeyJP)
 │   │   └── Design/                   ← Bikey Design System (container-only)
-│   ├── KeyboardExtension/            ← UIInputViewController + AI/
-│   │   └── AI/                       ← AI rewrite UI glue (extension-only)
+│   ├── KeyboardExtension/            ← UIInputViewController + UIKit glue
+│   │   └── AI/                       ← AIKeyboardController, toolbar view, proxy adapter
 │   └── Shared/                       ← types used by both targets
 ├── Tests/                            ← swift test
 ├── supabase/
@@ -212,10 +213,6 @@ public launch.
 
 - DB-backed daily quota in the Edge Function (currently in-memory per warm
   runtime).
-- Move AI logic out of `iOS/KeyboardExtension/AI/` into a new SPM target
-  `JapaneseKeyboardAI/` so `WholeInputReplacementEngine`, `InputCapture`,
-  `CloudRewriteService`, and `AIKeyboardState` become unit-testable from
-  `swift test`. See `docs/architecture.md` §"Planned restructure".
 - Split `AIKeyboardToolbarView.swift` (currently 720+ lines hosting the
   toolbar, overlay, snap carousel, cards, shimmer, and refinement chips).
 - Split `Sources/KeyboardPreferences/Preferences.swift` into

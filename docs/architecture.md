@@ -4,7 +4,7 @@ Last verified against code: 2026-06-07. If you see drift, the code wins.
 
 ## Targets
 
-There are two product targets and three SPM library products.
+There are two product targets and four SPM library products.
 
 | Target | Type | Where |
 |---|---|---|
@@ -12,10 +12,11 @@ There are two product targets and three SPM library products.
 | `KeyboardExtension` | iOS app extension (`com.apple.keyboard-service`) | `iOS/KeyboardExtension/` + `iOS/Shared/` |
 | `JapaneseKeyboardCore` | SPM library | `Sources/JapaneseKeyboardCore/` |
 | `JapaneseKeyboardUI` | SPM library | `Sources/JapaneseKeyboardUI/` |
+| `JapaneseKeyboardAI` | SPM library | `Sources/JapaneseKeyboardAI/` |
 | `KeyboardPreferences` | SPM library | `Sources/KeyboardPreferences/` |
 
-`BikeyJP` depends on all three SPM products plus `KeyboardKit` and
-`Supabase`. `KeyboardExtension` depends on all three SPM products plus
+`BikeyJP` depends on all four SPM products plus `KeyboardKit` and
+`Supabase`. `KeyboardExtension` depends on all four SPM products plus
 `KeyboardKit` (no Supabase — the extension uses raw `URLSession`).
 
 ## Why the split
@@ -25,22 +26,26 @@ There are two product targets and three SPM library products.
 - `JapaneseKeyboardCore` — `InputManager`, `RomajiInputBuffer`,
   `KanaKanjiAdapter`, `Candidate`, `ConversionPreferenceStore`. Pure IME
   state machine.
-- `JapaneseKeyboardUI` — SwiftUI views. Imports `KeyboardKit`. Also hosts
-  the AI domain models (`RewriteRequest`, `RewriteResult`,
-  `WholeInputCapture`) and `RefinementIntent` — see "Planned restructure"
-  below; these models do not actually belong in a UI module.
+- `JapaneseKeyboardUI` — SwiftUI views. Imports `KeyboardKit`. Pure
+  presentation, no AI domain logic.
+- `JapaneseKeyboardAI` — AI rewrite domain. `RewriteModels`,
+  `AIKeyboardState`, `InputCapture`, `WholeInputReplacementEngine`,
+  `RewriteService` (protocol), `CloudRewriteService`. No UIKit; uses
+  the in-package `TextDocumentProxying` protocol where the real keyboard
+  passes a thin `UITextDocumentProxy` adapter.
 - `KeyboardPreferences` — App Group `UserDefaults` wrappers
   (`KeyboardSettingsStore`, `UserPromptStore`, `AIAuthStore`).
 
-`iOS/KeyboardExtension/AI/` is everything that needs `UITextDocumentProxy`
+`iOS/KeyboardExtension/` is everything that needs `UITextDocumentProxy`
 or the keyboard's `UIInputViewController` lifecycle:
 
 - `KeyboardViewController` (`KeyboardInputViewController` subclass)
 - `JapaneseActionHandler` (KeyboardKit subclass)
-- `AIKeyboardController` (owns rewrite state, talks to the proxy)
-- `InputCapture`, `WholeInputReplacementEngine`,
-  `CloudRewriteService` — currently here, planned to move to a new
-  SPM target.
+- `AI/AIKeyboardController` (owns rewrite state, talks to the proxy)
+- `AI/AIKeyboardToolbarView` (toolbar + result overlay, currently 720
+  lines — see open items in `AGENTS.md` §8 for the planned split)
+- `AI/UITextDocumentProxy+TextDocumentProxying` (thin adapter so
+  `JapaneseKeyboardAI` doesn't need UIKit)
 
 ## Critical state machines
 
@@ -116,35 +121,41 @@ consumer of the cached token. Token refresh runs inside the extension
 when the cached token is within 30 s of expiry — see
 `CloudRewriteService.ensureFreshAccessToken`.
 
-## Planned restructure
-
-The single biggest production-readiness gap is that AI domain logic lives
-in the extension target, so `swift test` can't reach it. Target shape:
+## `JapaneseKeyboardAI` structure
 
 ```
-Sources/
-  JapaneseKeyboardCore/            ← unchanged
-  JapaneseKeyboardUI/              ← unchanged, minus AI/ models
-  KeyboardPreferences/             ← split into per-store files
-  JapaneseKeyboardAI/              ← NEW
-    Models/                        ← moved from JapaneseKeyboardUI/AI/
-      RewriteModels.swift
-      AIKeyboardState.swift
-      RefinementIntent.swift
-    Capture/
-      WholeInputCapture.swift
-      WholeInputReplacementEngine.swift  ← UIKit boundary as a protocol
-    Service/
-      RewriteService.swift
-      CloudRewriteService.swift
-      CloudRewriteConfiguration.swift    ← endpoint via build setting
+Sources/JapaneseKeyboardAI/
+  Models/
+    RewriteModels.swift              ← RewriteRequest/Result/Candidate,
+                                       WholeInputCapture, RefinementIntent
+    AIKeyboardState.swift
+  Capture/
+    TextDocumentProxying.swift       ← protocol the engine consumes
+    InputCapture.swift
+    WholeInputReplacementEngine.swift
+  Service/
+    RewriteService.swift             ← protocol
+    CloudRewriteService.swift        ← + CloudRewriteConfiguration
+                                       + CloudRewriteError
 ```
 
-`AIKeyboardController` stays in the extension because it depends on
-`UIInputViewController`, but it shrinks to coordination only — capture and
-replacement become protocol calls against `Sources/JapaneseKeyboardAI/`.
+The keyboard extension provides a single adapter
+(`iOS/KeyboardExtension/AI/UITextDocumentProxy+TextDocumentProxying.swift`)
+that wraps a `UITextDocumentProxy` and exposes it as
+`TextDocumentProxying`. Call sites use `proxy.ai` to get the adapter:
 
-This is not done yet. Track in the open items list in `AGENTS.md` §8.
+```swift
+let capture = try InputCapture.capture(from: controller.textDocumentProxy.ai)
+try WholeInputReplacementEngine.replace(
+    capture: capture,
+    with: replacement,
+    proxy: controller.textDocumentProxy.ai
+)
+```
+
+This is what makes both the capture and replacement engines testable
+from `Tests/JapaneseKeyboardAITests/` with a fake proxy — see
+`WholeInputReplacementEngineTests.swift`'s `FakeProxy`.
 
 ## Performance and memory
 

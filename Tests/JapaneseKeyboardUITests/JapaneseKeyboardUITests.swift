@@ -8,89 +8,8 @@ final class JapaneseKeyboardUITests: XCTestCase {
         _ = QwertyKeyboardView.self
     }
 
-    func testWholeInputCaptureBeforeOnly() throws {
-        let capture = try WholeInputCapture.make(
-            beforeCursor: "これはテストです",
-            selectedText: "",
-            afterCursor: "",
-            documentIdentifierString: "doc",
-            maxCharacters: 2_000
-        )
-
-        XCTAssertEqual(capture.targetText, "これはテストです")
-        XCTAssertEqual(capture.moveToEndCharacterCount, 0)
-        XCTAssertEqual(capture.deleteBackwardCharacterCount, 8)
-    }
-
-    func testWholeInputCaptureCursorInMiddle() throws {
-        let capture = try WholeInputCapture.make(
-            beforeCursor: "今日は",
-            selectedText: "",
-            afterCursor: "晴れです",
-            documentIdentifierString: "doc",
-            maxCharacters: 2_000
-        )
-
-        XCTAssertEqual(capture.targetText, "今日は晴れです")
-        XCTAssertEqual(capture.moveToEndCharacterCount, 4)
-        XCTAssertEqual(capture.deleteBackwardCharacterCount, 7)
-    }
-
-    func testWholeInputCaptureIncludesSelection() throws {
-        let capture = try WholeInputCapture.make(
-            beforeCursor: "今日は",
-            selectedText: "とても",
-            afterCursor: "晴れです",
-            documentIdentifierString: "doc",
-            maxCharacters: 2_000
-        )
-
-        XCTAssertEqual(capture.targetText, "今日はとても晴れです")
-        XCTAssertEqual(capture.moveToEndCharacterCount, 4)
-        XCTAssertEqual(capture.deleteBackwardCharacterCount, 10)
-    }
-
-    func testWholeInputCaptureRejectsWhitespace() {
-        XCTAssertThrowsError(
-            try WholeInputCapture.make(
-                beforeCursor: "  ",
-                selectedText: "\n",
-                afterCursor: "",
-                documentIdentifierString: "doc",
-                maxCharacters: 2_000
-            )
-        ) { error in
-            XCTAssertEqual(error as? WholeInputCaptureError, .empty)
-        }
-    }
-
-    func testWholeInputCaptureRejectsTooLongInput() {
-        XCTAssertThrowsError(
-            try WholeInputCapture.make(
-                beforeCursor: String(repeating: "あ", count: 2_001),
-                selectedText: "",
-                afterCursor: "",
-                documentIdentifierString: "doc",
-                maxCharacters: 2_000
-            )
-        ) { error in
-            XCTAssertEqual(error as? WholeInputCaptureError, .tooLong)
-        }
-    }
-
-    func testWholeInputCaptureCountsComposedCharacters() throws {
-        let capture = try WholeInputCapture.make(
-            beforeCursor: "は",
-            selectedText: "が",
-            afterCursor: "😀",
-            documentIdentifierString: "doc",
-            maxCharacters: 2_000
-        )
-
-        XCTAssertEqual(capture.targetText, "はが😀")
-        XCTAssertEqual(capture.moveToEndCharacterCount, 1)
-        XCTAssertEqual(capture.deleteBackwardCharacterCount, 3)
-    }
+    // WholeInputCapture tests moved to JapaneseKeyboardAITests/WholeInputCaptureTests.swift
+    // when the AI domain models migrated out of JapaneseKeyboardUI.
 
     @MainActor
     func testLongVowelKeyInsertedAfterLowercaseL() {
@@ -117,6 +36,7 @@ final class JapaneseKeyboardUITests: XCTestCase {
         context.keyboardType = .alphabetic
         var layout = KeyboardLayout.standard(for: context)
         layout.forceLowercasedAlphabeticCharacters(for: context.keyboardType)
+        layout.forceInactiveAlphabeticShift(for: context.keyboardType)
 
         let actions = Self.alphabeticCharacterActions(in: layout)
         XCTAssertTrue(actions.contains("a"))
@@ -125,6 +45,17 @@ final class JapaneseKeyboardUITests: XCTestCase {
                 scalar.value >= 65 && scalar.value <= 90
             }
         })
+        XCTAssertEqual(Self.shiftCase(in: layout), .lowercased)
+    }
+
+    @MainActor
+    func testUppercaseAlphabeticActionsRemainAvailableForManualShift() {
+        let context = KeyboardContext()
+        context.keyboardCase = .uppercased
+        context.keyboardType = .alphabetic
+        let layout = KeyboardLayout.standard(for: context)
+
+        XCTAssertTrue(Self.alphabeticCharacterActions(in: layout).contains("A"))
     }
 
     @MainActor
@@ -196,6 +127,15 @@ final class JapaneseKeyboardUITests: XCTestCase {
                 return value
             }
         }
+    }
+
+    private static func shiftCase(in layout: KeyboardLayout) -> Keyboard.KeyboardCase? {
+        for item in layout.itemRows.flatMap({ $0 }) {
+            if case .shift(let keyboardCase) = item.action {
+                return keyboardCase
+            }
+        }
+        return nil
     }
 
     private static func punctuationActionRows(in layout: KeyboardLayout) -> [[String]] {

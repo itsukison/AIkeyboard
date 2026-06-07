@@ -1,7 +1,6 @@
-import JapaneseKeyboardUI
 import KeyboardPreferences
 
-enum AIKeyboardState: Equatable {
+public enum AIKeyboardState: Equatable {
     case hidden
     case overflow
     case generating(prompt: UserPrompt, capture: WholeInputCapture, refinement: RefinementIntent?, existing: [RewriteCandidate])

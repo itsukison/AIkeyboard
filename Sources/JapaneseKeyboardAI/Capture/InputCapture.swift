@@ -1,11 +1,10 @@
-import JapaneseKeyboardUI
-import UIKit
+import Foundation
 
-enum InputCapture {
-    static let maxCharacters = 2_000
+public enum InputCapture {
+    public static let maxCharacters = 2_000
 
     @MainActor
-    static func capture(from proxy: UITextDocumentProxy) throws -> WholeInputCapture {
+    public static func capture(from proxy: TextDocumentProxying) throws -> WholeInputCapture {
         try WholeInputCapture.make(
             beforeCursor: proxy.documentContextBeforeInput ?? "",
             selectedText: proxy.selectedText ?? "",

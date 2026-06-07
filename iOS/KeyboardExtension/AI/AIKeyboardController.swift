@@ -1,5 +1,5 @@
+import JapaneseKeyboardAI
 import JapaneseKeyboardCore
-import JapaneseKeyboardUI
 import KeyboardPreferences
 import KeyboardKit
 import SwiftUI
@@ -35,7 +35,7 @@ final class AIKeyboardController: ObservableObject {
     func canOpenAI() -> Bool {
         guard !inputManager.isComposing else { return true }
         guard let controller else { return false }
-        return (try? InputCapture.capture(from: controller.textDocumentProxy)) != nil
+        return (try? InputCapture.capture(from: controller.textDocumentProxy.ai)) != nil
     }
 
     func close() {
@@ -100,7 +100,7 @@ final class AIKeyboardController: ObservableObject {
             try WholeInputReplacementEngine.replace(
                 capture: capture,
                 with: replacement,
-                proxy: controller.textDocumentProxy
+                proxy: controller.textDocumentProxy.ai
             )
             state = .hidden
         } catch {
@@ -145,7 +145,7 @@ final class AIKeyboardController: ObservableObject {
 
         let capture: WholeInputCapture
         do {
-            capture = try InputCapture.capture(from: controller.textDocumentProxy)
+            capture = try InputCapture.capture(from: controller.textDocumentProxy.ai)
         } catch WholeInputCaptureError.tooLong {
             state = .error(prompt: prompt, message: "入力が長すぎます")
             return
@@ -180,7 +180,7 @@ final class AIKeyboardController: ObservableObject {
             return
         }
 
-        let configuration = CloudRewriteConfiguration.current()
+        let configuration = CloudRewriteConfiguration(appVersion: Self.appVersion)
         let request = RewriteRequest(
             prompt: prompt.prompt,
             text: inputText,
@@ -220,6 +220,9 @@ final class AIKeyboardController: ObservableObject {
             }
         }
     }
+
+    private static let appVersion: String =
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
 
     private static func locale(for prompt: UserPrompt) -> String {
         switch prompt.builtinKey {
