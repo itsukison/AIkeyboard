@@ -1,3 +1,2 @@
-// Copy to Config/Local.xcconfig and set the shared TestFlight rewrite token.
-// Do not put OPENAI_API_KEY in the iOS app.
-AI_KEYBOARD_REWRITE_TOKEN =
+// Copy to Config/Local.xcconfig. Currently no required keys —
+// kept as a hook for future per-developer build settings.

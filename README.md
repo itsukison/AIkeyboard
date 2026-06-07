@@ -1,91 +1,49 @@
 # AIキーボード
 
-Japanese AI keyboard for iOS. The product starts as a reliable Japanese keyboard and grows into a keyboard-native writing assistant for proofreading, natural rewrites, polite/business tone, concise rewrites, and translation.
+A Japanese iOS keyboard with an optional AI rewrite mode. Pure local
+kana-to-kanji conversion by default; AI rewrites only when the user
+explicitly taps a prompt button.
 
-The user-facing product name is `AIキーボード`. Some internal targets, schemes, and legacy project files may still use `BikeyJP` while the app is being renamed.
+User-facing product name is `AIキーボード`. Some internal targets, schemes,
+and project files still use the legacy name `BikeyJP`.
 
-## Product Direction
+**New here? Read [`AGENTS.md`](./AGENTS.md) first.** Everything else
+under `docs/` is reference material that `AGENTS.md` indexes.
 
-`AIキーボード` should feel like a normal Japanese keyboard until the user explicitly asks for AI help:
-
-- normal Japanese input by default
-- an AI button at the left side of the candidate bar
-- a compact command strip with `校正`, `自然に`, `丁寧に`, `短く`, `英訳`, and `日訳`
-- a generated result card inside the keyboard
-- a primary `置き換え` action that replaces the captured input
-
-For v1, AI rewrites the whole available input text captured through `UITextDocumentProxy`, not an arbitrary highlighted subsection. If the cursor is in the middle of the text, replacement moves to the end of the captured input, deletes that captured text, and inserts the rewrite.
-
-## AI And Privacy Model
-
-The keyboard must not send every keystroke. Text is sent only when the user taps an AI command.
-
-AI provider strategy:
-
-- Cloud AI is the first real provider for v1, guarded by explicit opt-in and iOS `Allow Full Access`.
-- The OpenAI API key stays on the backend, never in the iOS app or keyboard extension.
-- Foundation Models can be added later as an on-device provider where iOS, device support, locale support, and keyboard-extension compatibility allow it.
-- Normal Japanese typing must continue to work without Full Access and without Cloud AI.
-
-Current backend:
-
-- Supabase Edge Function: `keyboard-rewrite`
-- URL: `https://eercsucvxnszqletxued.supabase.co/functions/v1/keyboard-rewrite`
-- Auth: early TestFlight shared client token via `X-AI-Keyboard-Client-Token`
-- Device bucketing: `X-AI-Keyboard-Device-Id`
-- Current known limitation: daily quota is an in-memory first cut and should become database-backed before public launch.
-
-See `docs/ai-writing-keyboard-research.md`, `docs/ai-writing-keyboard-implementation.md`, and `docs/supabase-keyboard-rewrite-backend.md` for details.
-
-## Requirements
-
-- macOS with Xcode 16+
-- Swift 6.1+
-- `xcodegen` (`brew install xcodegen`)
-- iOS 16.4+ deployment target
-
-## Build
+## Quick start
 
 ```bash
-cd Japanese
+brew install xcodegen
 xcodegen generate
 open BikeyJP.xcodeproj
 ```
 
-Build the `BikeyJP` scheme. The keyboard extension is built and embedded automatically. The scheme name is still legacy naming; the product direction and user-facing name are `AIキーボード`.
-
-## Run on simulator
-
-1. Run the `BikeyJP` scheme on a simulator.
-2. In the simulator, open `Settings > General > Keyboard > Keyboards > Add New Keyboard` and select the keyboard. It may still appear as `BikeyJP` until the rename is complete.
-3. In any text field, long-press the globe key and switch to the keyboard.
-
-Cloud AI cannot run from a third-party keyboard unless the app requests Open Access and the user enables `Allow Full Access`. The base keyboard should still work without this setting.
-
-## Run package tests
+Build and run the `BikeyJP` scheme. See [`docs/development.md`](./docs/development.md)
+for simulator setup and the keyboard-enable walkthrough.
 
 ```bash
 swift test
 ```
 
-## Project layout
+Runs the SPM unit tests for the IME core.
 
-- `Sources/JapaneseKeyboardCore/` — IME logic (romaji to kana, kana to kanji)
-- `Sources/JapaneseKeyboardUI/` — SwiftUI keyboard views
-- `Sources/KeyboardPreferences/` — settings + App Group identifier
-- `iOS/Container/` — container SwiftUI app
-- `iOS/KeyboardExtension/` — `UIInputViewController` subclass
-- `supabase/functions/keyboard-rewrite/` — Cloud AI rewrite backend
-- `docs/` — AI keyboard research, implementation plan, and backend notes
-- `Tests/` — package unit tests
+## Repository map
 
-## Near-Term Implementation Order
+- `Sources/JapaneseKeyboardCore/` — IME state machine (romaji → kana → kanji)
+- `Sources/JapaneseKeyboardUI/` — SwiftUI keyboard views + AI domain models
+- `Sources/KeyboardPreferences/` — App Group settings, prompts, auth token cache
+- `iOS/Container/` — main app (Bikey Design System, onboarding, settings)
+- `iOS/KeyboardExtension/` — `UIInputViewController` subclass + AI glue
+- `supabase/functions/keyboard-rewrite/` — Edge Function backing Cloud AI
 
-1. Keep the pure Japanese keyboard stable.
-2. Add the AI button and command strip with a fake local rewrite.
-3. Implement whole-input capture and replacement through `UITextDocumentProxy`.
-4. Add the result card and stable loading/error states.
-5. Connect `CloudRewriteService` to the Supabase rewrite endpoint.
-6. Add Full Access, Cloud AI, and privacy settings in the container app.
-7. Add Foundation Models later as a privacy-friendly on-device enhancement.
-# AIkeyboard
+## Docs
+
+| File | Purpose |
+|---|---|
+| [`AGENTS.md`](./AGENTS.md) | Single canonical onboarding doc |
+| [`CLAUDE.md`](./CLAUDE.md) | Behavioral guidelines for agents |
+| [`docs/architecture.md`](./docs/architecture.md) | Module boundaries, state machines, planned restructure |
+| [`docs/backend.md`](./docs/backend.md) | Supabase Edge Function contract |
+| [`docs/ai-rewrite.md`](./docs/ai-rewrite.md) | Product UX, prompt model, replacement algorithm |
+| [`docs/development.md`](./docs/development.md) | Build, test, common gotchas |
+| [`docs/archive/`](./docs/archive/) | Historical plans — not current truth |
