@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: xcodebuild test
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Cache derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('Package.resolved', 'project.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project BikeyJP.xcodeproj \
+            -scheme BikeyJP
+
+      - name: Run AI tests
+        run: |
+          xcodebuild test \
+            -project BikeyJP.xcodeproj \
+            -scheme BikeyJP \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -only-testing:JapaneseKeyboardAITests \
+            -resultBundlePath build/ai-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run Core tests
+        run: |
+          xcodebuild test \
+            -project BikeyJP.xcodeproj \
+            -scheme BikeyJP \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -only-testing:JapaneseKeyboardCoreTests \
+            -resultBundlePath build/core-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build keyboard extension
+        run: |
+          xcodebuild build \
+            -project BikeyJP.xcodeproj \
+            -scheme BikeyJP \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test result bundles
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresults
+          path: build/*.xcresult
+
+  edge-function-typecheck:
+    name: Supabase Edge Function typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      - name: Type-check keyboard-rewrite
+        run: deno check supabase/functions/keyboard-rewrite/index.ts

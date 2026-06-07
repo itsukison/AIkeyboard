@@ -177,7 +177,8 @@ Authoritative docs (other docs in `docs/` should be considered noise):
 | `docs/architecture.md` | Module boundaries, state machines, why things live where |
 | `docs/backend.md` | Supabase Edge Function contract, secrets, deployment |
 | `docs/ai-rewrite.md` | Product UX, prompt design, replacement algorithm |
-| `docs/development.md` | Build, test, simulator setup, common gotchas |
+| `docs/privacy.md` | Privacy promise, App Store nutrition label, auditing checks |
+| `docs/development.md` | Build, test, simulator setup, common gotchas, memory profiling, CI |
 | `docs/archive/` | Historical plans — do not treat as current truth |
 
 Read in that order if you are new. If a fact in any doc contradicts the
@@ -213,16 +214,16 @@ public launch.
 
 - DB-backed daily quota in the Edge Function (currently in-memory per warm
   runtime).
-- Split `AIKeyboardToolbarView.swift` (currently 720+ lines hosting the
-  toolbar, overlay, snap carousel, cards, shimmer, and refinement chips).
-- Split `Sources/KeyboardPreferences/Preferences.swift` into
-  `KeyboardSettingsStore`, `UserPrompts`, `AIAuthStore` files.
-- CI: `.github/workflows/ci.yml` running `swift test` + `xcodebuild` + a
-  format/lint check.
-- App Store privacy nutrition label and `docs/privacy.md` written for
-  review.
-- Memory profile on iPhone 12: confirm < 40 MB peak with the AI overlay
-  rendered.
+- DB-backed daily quota in the Edge Function (currently in-memory per
+  warm runtime).
+- Environment-specific Supabase URL + publishable key (currently hard-
+  coded as defaults in `CloudRewriteConfiguration`). Should read from
+  Info.plist via xcconfig so dev/staging/prod can diverge.
+- Real-device memory profile run: confirm < 40 MB peak with the AI
+  overlay rendered. Checklist in `docs/development.md` §Memory profiling.
+- Submit the App Store privacy nutrition label per `docs/privacy.md`.
+- Structured-log export to Sentry / Logflare for the Edge Function
+  (currently console-log only).
 
 ---
 

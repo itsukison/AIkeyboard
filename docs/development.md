@@ -109,6 +109,52 @@ Verify with the curl recipes in `docs/backend.md`. Required secret:
   biggest single cost — make sure nothing else holds a reference that
   prevents release.
 
+## Memory profiling
+
+The keyboard extension's hard ceiling is jetsam (around 30–60 MB on
+recent devices). Target peak: < 40 MB. Profile before any release.
+
+Manual checklist on a real device (iPhone 12 or older):
+
+1. Build the `BikeyJP` scheme to a real device, Release configuration.
+2. Enable the keyboard in Settings → General → Keyboard → Keyboards.
+3. Allow Full Access (so Cloud AI is testable).
+4. Open Xcode → Debug → Attach to Process → `KeyboardExtension`.
+5. In Xcode → Debug Navigator → Memory, watch the resident size as you
+   exercise these flows in Notes:
+   - Cold open the keyboard.
+   - Type a 30-character Japanese sentence with conversion.
+   - Cycle through candidates 10 times.
+   - Tap the main AI prompt; wait for result; tap 置き換え.
+   - Repeat the AI flow 5 times in a row.
+   - Open the `…` overflow drawer; tap each sub-prompt.
+6. Record peak resident memory after each phase. Fail the release if
+   peak exceeds 40 MB at any point.
+
+When a peak exceeds 40 MB, the usual suspects:
+
+- AzooKey dictionary loaded twice (check `KanaKanjiAdapter`).
+- A SwiftUI `@StateObject` retained across keyboard dismissal (check
+  `KeyboardViewController.viewDidLoad` for strong references).
+- A `URLSession` shared instance accumulating in-flight tasks
+  (`CloudRewriteService` should always cancel via `rewriteTask?.cancel()`).
+- A `UIHostingController` not torn down between sessions (see
+  `SnapCarouselView`).
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push and PR to `main`:
+
+- macOS-15 runner, Xcode 16
+- `xcodegen generate` + `xcodebuild -resolvePackageDependencies`
+- `JapaneseKeyboardAITests` + `JapaneseKeyboardCoreTests` via xcodebuild
+- Release-config build of the keyboard extension (catches Release-only
+  Swift settings drift)
+- `deno check` on the Supabase Edge Function
+
+Add new test targets to the CI workflow when you add them to
+`project.yml`.
+
 ## Code style
 
 Per `CLAUDE.md`:
