@@ -81,7 +81,8 @@ supabase functions deploy keyboard-rewrite
 ```
 
 Verify with the curl recipes in `docs/backend.md`. Required secret:
-`GROQ_API_KEY`. All other secrets are optional with sensible defaults.
+`CEREBRAS_API_KEY` or `GROQ_API_KEY`. For production abuse protection, apply
+the usage-guard migration and set `USAGE_GUARD_MODE=db`.
 
 ## Common gotchas
 

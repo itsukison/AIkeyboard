@@ -11,25 +11,31 @@
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>AIキーボード</string>
+    <string>敬語ボタン</string>
     <key>CFBundleDisplayName</key>
-    <string>AIキーボード</string>
+    <string>敬語ボタン</string>
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>1.0.0</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>このアプリではマイクを使用しません。</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>このアプリでは音声認識を使用しません。</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
             <key>CFBundleURLName</key>
-            <string>co.gastroduce-japan.bikey.japanese.deeplink</string>
+            <string>com.core7.keigobutton.deeplink</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>aikeyboard</string>
+                <string>keigobutton</string>
             </array>
         </dict>
     </array>

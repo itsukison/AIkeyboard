@@ -13,7 +13,7 @@ final class RomajiInputBufferTests: XCTestCase {
 
     func testAppendBuildsKonnichiha() {
         let buf = RomajiInputBuffer()
-        for ch in "konnichiha" {
+        for ch in "kon'nichiha" {
             buf.append(ch)
         }
         XCTAssertEqual(buf.finalKana, "こんにちは")
@@ -30,7 +30,9 @@ final class RomajiInputBufferTests: XCTestCase {
         buf.append("n")
         XCTAssertEqual(buf.displayKana, "こん")
         buf.append("i")
-        XCTAssertEqual(buf.displayKana, "こんに")
+        // Strict nn rule: the second `n` already committed ん, so the trailing
+        // `i` starts a fresh syllable — `い`, not `に`.
+        XCTAssertEqual(buf.displayKana, "こんい")
     }
 
     // "ko" → "こ" (one kana from two romaji). Backspace deletes the whole
@@ -57,14 +59,14 @@ final class RomajiInputBufferTests: XCTestCase {
         XCTAssertEqual(buf.displayKana, "こ")
     }
 
-    // Smart-n: "konni" → "こんに". Backspace deletes "に", and the buffer
-    // shrinks to "konn" so the remaining ん stays rendered.
-    func testBackspacePreservesSmartN() {
+    // Strict nn: "konni" → "こんい". Backspace deletes the trailing kana and
+    // the buffer shrinks to "konn", so the committed ん stays rendered.
+    func testBackspaceAfterNNCommit() {
         let buf = RomajiInputBuffer()
         for ch in "konni" {
             buf.append(ch)
         }
-        XCTAssertEqual(buf.displayKana, "こんに")
+        XCTAssertEqual(buf.displayKana, "こんい")
         XCTAssertTrue(buf.backspace())
         XCTAssertEqual(buf.pendingRomaji, "konn")
         XCTAssertEqual(buf.displayKana, "こん")

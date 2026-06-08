@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "thesvg": {
+      "source": "glincker/thesvg",
+      "sourceType": "github",
+      "skillPath": "skills/thesvg/SKILL.md",
+      "computedHash": "b92c70f977841e8ab228e08ee01b26db2e032ad0f7fdbc86e66b34f1557b3868"
+    }
+  }
+}

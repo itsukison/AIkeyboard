@@ -75,6 +75,9 @@ public enum Romaji {
 
     static let consonants = Set("bcdfghjklmnpqrstvwxyz")
     static let vowels: Set<Character> = ["a", "i", "u", "e", "o"]
+    private static let kanaPrefixes: Set<String> = Set(kanaTable.keys.flatMap { key in
+        key.indices.dropFirst().map { String(key[..<$0]) }
+    })
 
     public static func toKana(_ raw: String) -> String {
         let chars = Array(raw.lowercased())
@@ -84,7 +87,6 @@ public enum Romaji {
         while index < chars.count {
             let current = chars[index]
             let next: Character = index + 1 < chars.count ? chars[index + 1] : "\0"
-            let nextNext: Character = index + 2 < chars.count ? chars[index + 2] : "\0"
 
             if current == "-" {
                 output += "ー"
@@ -104,17 +106,12 @@ public enum Romaji {
                 continue
             }
 
-            // Smart "nn" handling: if followed by a vowel or y, treat the first n
-            // as ん and leave the second n to combine with the following vowel.
-            // Otherwise (end of input or non-vowel/y consonant), consume both as ん.
+            // Strict "nn" handling: `nn` always commits ん and consumes both
+            // characters, regardless of what follows. The next character starts
+            // a fresh syllable. Users who want ん+母音 (e.g. んい) type `n'i`.
             if current == "n", next == "n" {
-                if vowels.contains(nextNext) || nextNext == "y" {
-                    output += "ん"
-                    index += 1
-                } else {
-                    output += "ん"
-                    index += 2
-                }
+                output += "ん"
+                index += 2
                 continue
             }
 
@@ -158,7 +155,6 @@ public enum Romaji {
         while index < chars.count {
             let current = chars[index]
             let next: Character = index + 1 < chars.count ? chars[index + 1] : "\0"
-            let nextNext: Character = index + 2 < chars.count ? chars[index + 2] : "\0"
             let remaining = String(chars[index...])
 
             if current == "-" {
@@ -179,14 +175,11 @@ public enum Romaji {
                 continue
             }
 
+            // Strict "nn" handling: `nn` always commits ん and consumes both
+            // characters. See `toKana` for the rationale.
             if current == "n", next == "n" {
-                if vowels.contains(nextNext) || nextNext == "y" {
-                    output += "ん"
-                    index += 1
-                } else {
-                    output += "ん"
-                    index += 2
-                }
+                output += "ん"
+                index += 2
                 continue
             }
 
@@ -240,6 +233,6 @@ public enum Romaji {
     private static func remainingCouldBecomeKana(_ remaining: String) -> Bool {
         guard !remaining.isEmpty else { return false }
         guard kanaTable[remaining] == nil else { return false }
-        return kanaTable.keys.contains { $0.hasPrefix(remaining) }
+        return kanaPrefixes.contains(remaining)
     }
 }

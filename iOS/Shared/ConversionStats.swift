@@ -4,7 +4,7 @@ import Foundation
 final class ConversionStats: ObservableObject {
     static let shared = ConversionStats()
 
-    private static let suiteName = "group.co.gastroduce-japan.bikey.japanese"
+    private static let suiteName = "group.com.core7.keigobutton"
     private static let totalKey = "stats.conversionsTotal"
     private static let lastDayKey = "stats.lastConversionDay"
     private static let streakKey = "stats.streakDays"

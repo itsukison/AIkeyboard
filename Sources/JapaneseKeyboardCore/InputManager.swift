@@ -1,4 +1,5 @@
 import Foundation
+import KeyboardPreferences
 
 @MainActor
 public final class InputManager: ObservableObject {
@@ -25,17 +26,30 @@ public final class InputManager: ObservableObject {
     public var onMarkedTextDidChange: ((String) -> Void)?
 
     private let buffer = RomajiInputBuffer()
+    private let conversionPreferenceEntries: () -> [ConversionPreferenceEntry]
+    private var cachedConversionPreferenceEntries: [ConversionPreferenceEntry]
     private var adapter: KanaKanjiAdapter?
     private var conversionTask: Task<Void, Never>?
     private var lastNotifiedMarkedText: String = ""
 
-    public init() {}
+    public init(
+        conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
+            ConversionPreferenceStore.readEntries()
+        }
+    ) {
+        self.conversionPreferenceEntries = conversionPreferenceEntries
+        self.cachedConversionPreferenceEntries = conversionPreferenceEntries()
+    }
 
     public func setAdapter(_ adapter: KanaKanjiAdapter) {
         self.adapter = adapter
         if !buffer.isEmpty {
             refresh()
         }
+    }
+
+    public func refreshConversionPreferenceEntries() {
+        cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
 
     /// Live preview shown as marked text in the host. Default: kana being
@@ -59,6 +73,10 @@ public final class InputManager: ObservableObject {
             return candidates[i].text
         }
         return buffer.finalKana
+    }
+
+    public var currentConversionInput: String {
+        leadingKanaPrefix(of: displayKana)
     }
 
     /// 次候補 (next-candidate). First call selects index 0; subsequent calls
@@ -156,7 +174,11 @@ public final class InputManager: ObservableObject {
             guard !Task.isCancelled else { return }
             guard let self else { return }
             guard self.buffer.displayKana == bufferSnapshot else { return }
-            self.candidates = results
+            self.candidates = Self.rerankCandidates(
+                results,
+                input: kanaPrefix,
+                entries: self.cachedConversionPreferenceEntries
+            )
             self.notifyMarkedTextChange()
         }
     }
@@ -175,5 +197,28 @@ public final class InputManager: ObservableObject {
             prefix.append(c)
         }
         return prefix
+    }
+
+    private static func rerankCandidates(
+        _ candidates: [Candidate],
+        input: String,
+        entries: [ConversionPreferenceEntry]
+    ) -> [Candidate] {
+        guard candidates.count > 1 else { return candidates }
+
+        var candidateByText: [String: Candidate] = [:]
+        var candidateTexts: [String] = []
+        for candidate in candidates {
+            guard candidateByText[candidate.text] == nil else { continue }
+            candidateByText[candidate.text] = candidate
+            candidateTexts.append(candidate.text)
+        }
+
+        return ConversionPreferenceStore.rerank(
+            scope: .japanese,
+            input: input,
+            candidates: candidateTexts,
+            entries: entries
+        ).compactMap { candidateByText[$0] }
     }
 }

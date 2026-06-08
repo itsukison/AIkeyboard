@@ -7,7 +7,7 @@ public actor KanaKanjiAdapter {
 
     public init(supportDirectoryURL: URL? = nil) {
         self.supportURL = supportDirectoryURL
-            ?? FileManager.default.temporaryDirectory.appendingPathComponent("BikeyJP", isDirectory: true)
+            ?? FileManager.default.temporaryDirectory.appendingPathComponent("KeigoButton", isDirectory: true)
         try? FileManager.default.createDirectory(at: supportURL, withIntermediateDirectories: true)
         self.converter = KanaKanjiConverter.withDefaultDictionary()
     }
@@ -35,7 +35,7 @@ public actor KanaKanjiAdapter {
             textReplacer: .withDefaultEmojiDictionary(),
             specialCandidateProviders: KanaKanjiConverter.defaultSpecialCandidateProviders,
             zenzaiMode: .off,
-            metadata: .init(versionString: "BikeyJP/0.1")
+            metadata: .init(versionString: "KeigoButton/1.0")
         ))
 
         let texts = Array(results.mainResults.prefix(maxCandidates).map(\.text))

@@ -28,7 +28,7 @@ struct SignUpForm: View {
     var body: some View {
         AuthFormScaffold(
             title: "アカウントを\n作成する",
-            subtitle: "プロンプトと履歴を端末間で同期します。",
+            subtitle: "よく使うプロンプトを保存できます。",
             progress: 0.32,
             ctaTitle: "アカウントを作成",
             isCtaEnabled: canSubmit,
@@ -88,7 +88,7 @@ struct SignUpForm: View {
                 )
                 pendingPostAuthOnboarding = true
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = japaneseAuthErrorMessage(for: error)
             }
         }
     }
@@ -112,7 +112,7 @@ struct SignInForm: View {
     var body: some View {
         AuthFormScaffold(
             title: "おかえりなさい",
-            subtitle: "サインインしてプロンプトを引き継ぎます。",
+            subtitle: "保存したプロンプトを引き継ぎます。",
             progress: 0.32,
             ctaTitle: "サインイン",
             isCtaEnabled: canSubmit,
@@ -161,7 +161,7 @@ struct SignInForm: View {
                 )
                 pendingPostAuthOnboarding = true
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = japaneseAuthErrorMessage(for: error)
             }
         }
     }
@@ -360,4 +360,43 @@ private struct AuthErrorLabel: View {
         }
         .padding(.horizontal, 4)
     }
+}
+
+/// Maps Supabase / network auth errors to user-facing Japanese strings.
+/// Matches on the raw English message because the Supabase SDK surfaces errors
+/// as opaque `Error`s whose `localizedDescription` carries the upstream copy.
+func japaneseAuthErrorMessage(for error: Error) -> String {
+    let raw = error.localizedDescription.lowercased()
+
+    if (error as NSError).domain == NSURLErrorDomain {
+        return "通信エラーが発生しました。インターネット接続を確認してください。"
+    }
+    if raw.contains("invalid login credentials") || raw.contains("invalid_credentials") {
+        return "メールアドレスまたはパスワードが正しくありません。"
+    }
+    if raw.contains("user already registered") || raw.contains("already been registered") || raw.contains("user_already_exists") {
+        return "このメールアドレスはすでに登録されています。サインインしてください。"
+    }
+    if raw.contains("email not confirmed") {
+        return "メール認証が完了していません。受信トレイの確認メールをご確認ください。"
+    }
+    if raw.contains("email rate limit") || raw.contains("over_email_send_rate_limit") {
+        return "短時間にリクエストが集中しました。しばらく時間をおいて再度お試しください。"
+    }
+    if raw.contains("for security purposes") || raw.contains("you can only request this") {
+        return "セキュリティ保護のため、しばらく時間をおいて再度お試しください。"
+    }
+    if raw.contains("password should be at least") || raw.contains("weak_password") {
+        return "パスワードは6文字以上で入力してください。"
+    }
+    if raw.contains("unable to validate email") || raw.contains("invalid format") || raw.contains("invalid email") {
+        return "メールアドレスの形式が正しくありません。"
+    }
+    if raw.contains("signup is disabled") || raw.contains("signup_disabled") {
+        return "現在、新規登録を一時停止しています。しばらくしてから再度お試しください。"
+    }
+    if raw.contains("user not found") {
+        return "アカウントが見つかりません。メールアドレスをご確認ください。"
+    }
+    return "サインインに失敗しました。時間をおいて再度お試しください。"
 }

@@ -1,13 +1,5 @@
 import KeyboardKit
-import KeyboardPreferences
 import UIKit
-
-@MainActor
-private let tapHaptic: UIImpactFeedbackGenerator = {
-    let gen = UIImpactFeedbackGenerator(style: .light)
-    gen.prepare()
-    return gen
-}()
 
 final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
     private weak var jpController: KeyboardViewController?
@@ -47,16 +39,8 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
     }
 
     override func handle(_ gesture: Keyboard.Gesture, on action: KeyboardAction) {
-        if gesture == .press {
-            MainActor.assumeIsolated {
-                if KeyboardSettingsStore.readHapticsEnabled() {
-                    tapHaptic.impactOccurred()
-                    tapHaptic.prepare()
-                }
-            }
-            if case .backspace = action {
-                backspaceSequenceConsumed = false
-            }
+        if gesture == .press, case .backspace = action {
+            backspaceSequenceConsumed = false
         }
 
         // Composing-time backspace must run on press / repeatPress, not release.
@@ -114,9 +98,23 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
                         return true
                     }
                     return false
+                case .shift:
+                    return controller.handleShift(gesture)
                 default:
                     return false
                 }
+            }
+            if handled { return }
+        }
+
+        if gesture == .doubleTap {
+            let controller = jpController
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                guard let controller else { return false }
+                if case .shift = action {
+                    return controller.handleShift(gesture)
+                }
+                return false
             }
             if handled { return }
         }

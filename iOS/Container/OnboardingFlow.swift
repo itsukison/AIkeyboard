@@ -3,7 +3,7 @@ import UIKit
 
 enum OnboardingGradientAsset: String {
     case globe = "gradientwithglobe"
-    case welcome = "gradient2"
+    case welcome = "homebg"
 }
 
 struct OnboardingFlow: View {
@@ -79,7 +79,7 @@ struct OnboardingFlow: View {
                         }
                     } label: {
                         OnboardingCapsuleLabel(
-                            title: pageIndex == 1 ? "追加しました" : "AIキーボードをはじめる",
+                            title: pageIndex == 1 ? "追加しました" : "敬語ボタンをはじめる",
                             foreground: .white,
                             background: AppColor.charcoalAction
                         )
@@ -168,12 +168,12 @@ private struct EnableKeyboardCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
             VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.s + 2) {
-                Text("AIキーボードを追加します")
+                Text("敬語ボタンを追加します")
                     .bikeyFont(28, weight: .semibold, relativeTo: .largeTitle)
                     .foregroundStyle(AppColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("iOSの設定で一度追加すると、地球儀キーからいつでも切り替えられます。")
+                Text("一度追加すると、LINEやメールの入力中にいつでも切り替えられます。")
                     .bikeyFont(15, weight: .regular, relativeTo: .body)
                     .foregroundStyle(AppColor.secondaryInk)
                     .lineSpacing(4)
@@ -211,12 +211,12 @@ private struct HowItWorksCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
             VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.s + 2) {
-                Text("普通に入力。必要な時だけAI。")
+                Text("送る前に、敬語へ整える。")
                     .bikeyFont(28, weight: .semibold, relativeTo: .largeTitle)
                     .foregroundStyle(AppColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("普段は日本語キーボードとして使い、文章を整えたい時だけAIコマンドを選びます。")
+                Text("AIボタンを押すと、今の文章に合う自然な候補をすぐ選べます。")
                     .bikeyFont(15, weight: .regular, relativeTo: .body)
                     .foregroundStyle(AppColor.secondaryInk)
                     .lineSpacing(4)
@@ -239,7 +239,7 @@ private struct SettingsBreadcrumb: View {
         "キーボード",
         "キーボード",
         "新しいキーボードを追加",
-        "AIキーボード"
+        "敬語ボタン"
     ]
 
     var body: some View {
@@ -251,11 +251,11 @@ private struct SettingsBreadcrumb: View {
                         .foregroundStyle(AppColor.softText)
                         .frame(height: 26)
                 }
-                BreadcrumbChip(text: segment, isTarget: segment == "AIキーボード")
+                BreadcrumbChip(text: segment, isTarget: segment == "敬語ボタン")
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("設定、一般、キーボード、キーボード、新しいキーボードを追加、AIキーボード")
+        .accessibilityLabel("設定、一般、キーボード、キーボード、新しいキーボードを追加、敬語ボタン")
     }
 }
 
@@ -303,7 +303,7 @@ private struct KeyboardDemoBlock: View {
                 .padding(.vertical, 2)
             }
 
-            Text("候補をタップして確定。文章を整えたい時はAIボタンを使います。")
+            Text("送る前にAIボタンを押して、相手に合う文面を選びます。")
                 .bikeyFont(12, weight: .regular, relativeTo: .caption)
                 .foregroundStyle(AppColor.secondaryInk)
                 .lineLimit(2)
@@ -411,7 +411,7 @@ struct OnboardingBrandMark<S: ShapeStyle>: View {
         HStack(spacing: 6) {
             Image(systemName: "sparkle")
                 .font(.system(size: 10, weight: .medium))
-            Text("AIキーボード")
+            Text("敬語ボタン")
                 .bikeyFont(12, weight: .medium, relativeTo: .footnote)
         }
         .foregroundStyle(foregroundStyle)

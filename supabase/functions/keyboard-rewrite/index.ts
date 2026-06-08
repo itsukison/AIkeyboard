@@ -21,6 +21,13 @@ type RewriteResult = {
   language: "ja" | "en" | "ko" | "zh" | "mixed";
 };
 
+type ProviderName = "cerebras" | "groq";
+
+type ProviderResult = {
+  provider: ProviderName;
+  result: RewriteResult;
+};
+
 type ApiErrorCode =
   | "method_not_allowed"
   | "unauthorized"
@@ -30,7 +37,27 @@ type ApiErrorCode =
   | "text_too_long"
   | "rate_limited"
   | "configuration_missing"
+  | "content_blocked"
+  | "provider_rate_limited"
   | "provider_error";
+
+type UsageBucket = {
+  units: number;
+  requests: number;
+};
+
+class ProviderError extends Error {
+  constructor(
+    public readonly provider: ProviderName,
+    public readonly code: "content_blocked" | "provider_rate_limited" | "provider_error",
+    public readonly userMessage: string,
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ProviderError";
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,7 +77,7 @@ const MAX_CANDIDATES = 5;
 const DEFAULT_CANDIDATES = 3;
 const MAX_PROMPT_CHARS = 1000;
 
-const dailyUsage = new Map<string, number>();
+const localUsage = new Map<string, UsageBucket>();
 
 Deno.serve(async (req) => {
   const startedAt = Date.now();
@@ -86,19 +113,23 @@ Deno.serve(async (req) => {
     return jsonError("prompt_too_long", "Prompt is too long.", 413);
   }
 
-  if (!(await consumeDailyQuota(userId, request.candidateCount ?? DEFAULT_CANDIDATES))) {
-    return jsonError("rate_limited", "Daily rewrite limit reached.", 429);
+  const providers = configuredProviders();
+  if (providers.length === 0) {
+    return jsonError("configuration_missing", "No rewrite provider API key is configured.", 503);
   }
 
-  const openAIKey = Deno.env.get("OPENAI_API_KEY");
-  if (!openAIKey) {
-    return jsonError("configuration_missing", "OPENAI_API_KEY is not configured.", 503);
+  const usage = await reserveUsage(userId, request.candidateCount ?? DEFAULT_CANDIDATES);
+  if (!usage.allowed) {
+    return jsonError("rate_limited", usage.message, 429);
   }
 
   try {
-    const result = await rewriteWithOpenAI(openAIKey, request);
+    const rewrite = await rewriteWithProviders(providers, request);
+    const result = rewrite.result;
+    const latencyMs = Date.now() - startedAt;
     console.log(JSON.stringify({
       event: "keyboard_rewrite",
+      provider: rewrite.provider,
       userId,
       commandKey: request.commandKey,
       refinement: request.refinement,
@@ -109,21 +140,42 @@ Deno.serve(async (req) => {
         (sum, c) => sum + [...c.replacement].length,
         0,
       ),
-      latencyMs: Date.now() - startedAt,
+      latencyMs,
       status: "ok",
     }));
-    return json(result);
+    const eventId = crypto.randomUUID();
+    // Fire-and-forget: keep the worker alive long enough to finish the
+    // insert, but don't make the user wait for it.
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil(
+      logRewriteEvent(eventId, {
+        userId,
+        request,
+        result,
+        provider: rewrite.provider,
+        latencyMs,
+      }),
+    );
+    return json({ ...result, eventId });
   } catch (error) {
+    const providerError = error instanceof ProviderError ? error : null;
     console.error(JSON.stringify({
       event: "keyboard_rewrite",
+      provider: providerError?.provider,
       userId,
       commandKey: request.commandKey,
       inputLength: [...request.text].length,
       latencyMs: Date.now() - startedAt,
-      status: "provider_error",
+      status: providerError?.code ?? "provider_error",
       message: error instanceof Error ? error.message : "unknown error",
     }));
-    return jsonError("provider_error", "Rewrite provider failed.", 502);
+    if (providerError) {
+      const status = providerError.code === "content_blocked" ? 422
+        : providerError.code === "provider_rate_limited" ? 429
+        : 502;
+      return jsonError(providerError.code, providerError.userMessage, status);
+    }
+    return jsonError("provider_error", "AIの処理に失敗しました。少し待ってからもう一度お試しください。", 502);
   }
 });
 
@@ -186,84 +238,380 @@ async function parseRewriteRequest(req: Request): Promise<
   };
 }
 
-async function consumeDailyQuota(userId: string, units: number): Promise<boolean> {
-  const limit = envInt("DAILY_REWRITE_LIMIT", 50);
-  const today = new Date().toISOString().slice(0, 10);
-  const key = `${today}:${userId}`;
-  const used = dailyUsage.get(key) ?? 0;
-  if (used + units > limit) return false;
-  dailyUsage.set(key, used + units);
-  return true;
+async function reserveUsage(userId: string, units: number): Promise<{ allowed: boolean; message: string }> {
+  const now = new Date();
+  const dayBucket = now.toISOString().slice(0, 10);
+  const hourBucket = now.toISOString().slice(0, 13);
+  const minuteBucket = now.toISOString().slice(0, 16);
+
+  if ((Deno.env.get("USAGE_GUARD_MODE") ?? "local") === "db") {
+    return await reserveDatabaseUsage(userId, units, dayBucket, hourBucket, minuteBucket);
+  }
+
+  return reserveLocalUsage(userId, units, dayBucket, hourBucket, minuteBucket);
 }
 
-async function rewriteWithOpenAI(
-  apiKey: string,
-  request: RewriteRequest,
-): Promise<RewriteResult> {
-  const model = Deno.env.get("OPENAI_MODEL") ?? "gpt-5.1";
-  const candidateCount = request.candidateCount ?? DEFAULT_CANDIDATES;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), envInt("OPENAI_TIMEOUT_MS", 15000));
+async function reserveDatabaseUsage(
+  userId: string,
+  units: number,
+  dayBucket: string,
+  hourBucket: string,
+  minuteBucket: string,
+): Promise<{ allowed: boolean; message: string }> {
+  const supabaseURL = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseURL || !serviceRoleKey) {
+    return {
+      allowed: false,
+      message: "AIの利用制限を確認できませんでした。少し待ってからもう一度お試しください。",
+    };
+  }
 
-  const baseTokens = envInt("OPENAI_MAX_OUTPUT_TOKENS", 800);
-  const maxOutputTokens = baseTokens * candidateCount;
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch(`${supabaseURL}/rest/v1/rpc/reserve_ai_rewrite_usage`, {
     method: "POST",
-    signal: controller.signal,
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      "Authorization": `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
+      "apikey": serviceRoleKey,
     },
     body: JSON.stringify({
-      model,
-      instructions: systemInstructions(candidateCount),
-      input: [{
-        role: "user",
-        content: [{
-          type: "input_text",
-          text: userPrompt(request),
-        }],
-      }],
-      reasoning: { effort: Deno.env.get("OPENAI_REASONING_EFFORT") ?? "low" },
-      max_output_tokens: maxOutputTokens,
-      store: false,
-      text: {
-        format: {
-          type: "json_schema",
-          name: "keyboard_rewrite_response",
-          strict: true,
-          schema: rewriteSchema(candidateCount),
-        },
-      },
+      p_user_id: userId,
+      p_units: units,
+      p_day_bucket: dayBucket,
+      p_hour_bucket: hourBucket,
+      p_minute_bucket: minuteBucket,
+      p_user_daily_unit_limit: envInt("USER_DAILY_REWRITE_UNITS", 900),
+      p_user_hourly_request_limit: envInt("USER_HOURLY_REWRITE_REQUESTS", 120),
+      p_user_minute_request_limit: envInt("USER_MINUTE_REWRITE_REQUESTS", 12),
+      p_global_daily_unit_limit: envInt("GLOBAL_DAILY_REWRITE_UNITS", 100000),
+      p_global_minute_request_limit: envInt("GLOBAL_MINUTE_REWRITE_REQUESTS", 300),
     }),
-  }).finally(() => clearTimeout(timeout));
+  });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`OpenAI ${response.status}: ${message.slice(0, 400)}`);
+    console.error(JSON.stringify({
+      event: "keyboard_rewrite_usage_guard",
+      status: "error",
+      httpStatus: response.status,
+      message: (await response.text()).slice(0, 400),
+    }));
+    return {
+      allowed: false,
+      message: "AIの利用制限を確認できませんでした。少し待ってからもう一度お試しください。",
+    };
   }
 
   const payload = await response.json();
-  const text = extractOutputText(payload);
+  return {
+    allowed: payload?.allowed === true,
+    message: typeof payload?.message === "string"
+      ? payload.message
+      : "AIの利用が一時的に制限されています。少し待ってからもう一度お試しください。",
+  };
+}
+
+function reserveLocalUsage(
+  userId: string,
+  units: number,
+  dayBucket: string,
+  hourBucket: string,
+  minuteBucket: string,
+): { allowed: boolean; message: string } {
+  const checks: Array<[string, number, keyof UsageBucket, string]> = [
+    [`user:${userId}:day:${dayBucket}`, envInt("USER_DAILY_REWRITE_UNITS", 900), "units", "本日のAI利用上限に達しました。明日もう一度お試しください。"],
+    [`user:${userId}:hour:${hourBucket}`, envInt("USER_HOURLY_REWRITE_REQUESTS", 120), "requests", "短時間のAI利用が多すぎます。少し待ってからもう一度お試しください。"],
+    [`user:${userId}:minute:${minuteBucket}`, envInt("USER_MINUTE_REWRITE_REQUESTS", 12), "requests", "短時間のAI利用が多すぎます。少し待ってからもう一度お試しください。"],
+    [`global:day:${dayBucket}`, envInt("GLOBAL_DAILY_REWRITE_UNITS", 100000), "units", "本日のAI利用上限に達しました。時間をおいてもう一度お試しください。"],
+    [`global:minute:${minuteBucket}`, envInt("GLOBAL_MINUTE_REWRITE_REQUESTS", 300), "requests", "AIが混み合っています。少し待ってからもう一度お試しください。"],
+  ];
+
+  for (const [key, limit, field, message] of checks) {
+    const bucket = localUsage.get(key) ?? { units: 0, requests: 0 };
+    const next = bucket[field] + (field === "units" ? units : 1);
+    if (next > limit) {
+      return { allowed: false, message };
+    }
+  }
+
+  for (const [key] of checks) {
+    const bucket = localUsage.get(key) ?? { units: 0, requests: 0 };
+    bucket.units += units;
+    bucket.requests += 1;
+    localUsage.set(key, bucket);
+  }
+
+  return { allowed: true, message: "" };
+}
+
+async function logRewriteEvent(
+  eventId: string,
+  input: {
+    userId: string;
+    request: RewriteRequest;
+    result: RewriteResult;
+    provider: ProviderName;
+    latencyMs: number;
+  },
+): Promise<void> {
+  if ((Deno.env.get("EVENT_LOGGING_ENABLED") ?? "true") === "false") {
+    return;
+  }
+  const supabaseURL = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseURL || !serviceRoleKey) return;
+
+  const payload = {
+    prompt: input.request.prompt,
+    input: input.request.text,
+    candidates: input.result.candidates,
+    language: input.result.language,
+    command_key: input.request.commandKey ?? null,
+    title: input.request.title ?? null,
+    refinement: input.request.refinement ?? null,
+    locale: input.request.locale ?? null,
+    app_version: input.request.appVersion ?? null,
+    candidate_count: input.request.candidateCount ?? DEFAULT_CANDIDATES,
+    provider: input.provider,
+    input_length: [...input.request.text].length,
+    prompt_length: [...input.request.prompt].length,
+    output_length: input.result.candidates.reduce(
+      (sum, c) => sum + [...c.replacement].length,
+      0,
+    ),
+    latency_ms: input.latencyMs,
+  };
+
+  try {
+    const response = await fetch(`${supabaseURL}/rest/v1/ai_rewrite_events`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceRoleKey}`,
+        "apikey": serviceRoleKey,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({
+        id: eventId,
+        user_id: input.userId,
+        payload,
+      }),
+    });
+    if (!response.ok) {
+      console.error(JSON.stringify({
+        event: "ai_rewrite_event_log_failed",
+        httpStatus: response.status,
+        message: (await response.text()).slice(0, 400),
+      }));
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "ai_rewrite_event_log_failed",
+      message: error instanceof Error ? error.message : "unknown error",
+    }));
+  }
+}
+
+function configuredProviders(): ProviderName[] {
+  const primary = Deno.env.get("REWRITE_PROVIDER") === "groq" ? "groq" : "cerebras";
+  const fallbackEnabled = (Deno.env.get("REWRITE_PROVIDER_FALLBACK") ?? "true") !== "false";
+  const providers: ProviderName[] = primary === "cerebras" ? ["cerebras", "groq"] : ["groq", "cerebras"];
+  return providers.filter((provider, index) => {
+    if (index > 0 && !fallbackEnabled) return false;
+    return provider === "cerebras"
+      ? !!Deno.env.get("CEREBRAS_API_KEY")
+      : !!Deno.env.get("GROQ_API_KEY");
+  });
+}
+
+async function rewriteWithProviders(
+  providers: ProviderName[],
+  request: RewriteRequest,
+): Promise<ProviderResult> {
+  let lastError: unknown;
+  for (const provider of providers) {
+    try {
+      return {
+        provider,
+        result: await rewriteWithProvider(provider, request),
+      };
+    } catch (error) {
+      lastError = error;
+      const providerError = error instanceof ProviderError ? error : null;
+      console.error(JSON.stringify({
+        event: "keyboard_rewrite_provider_attempt",
+        provider,
+        status: providerError?.code ?? "provider_error",
+        message: error instanceof Error ? error.message : "unknown error",
+      }));
+      if (providerError && providerError.code === "content_blocked") {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function rewriteWithProvider(
+  provider: ProviderName,
+  request: RewriteRequest,
+): Promise<RewriteResult> {
+  const apiKey = provider === "cerebras"
+    ? Deno.env.get("CEREBRAS_API_KEY")
+    : Deno.env.get("GROQ_API_KEY");
+  if (!apiKey) {
+    throw new ProviderError(
+      provider,
+      "provider_error",
+      "AIの設定が不足しています。",
+      `${provider} API key is not configured.`,
+    );
+  }
+
+  const model = provider === "cerebras"
+    ? Deno.env.get("CEREBRAS_MODEL") ?? "gpt-oss-120b"
+    : Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-120b";
+  const candidateCount = request.candidateCount ?? DEFAULT_CANDIDATES;
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    provider === "cerebras" ? envInt("CEREBRAS_TIMEOUT_MS", 8000) : envInt("GROQ_TIMEOUT_MS", 8000),
+  );
+
+  const baseTokens = provider === "cerebras"
+    ? envInt("CEREBRAS_MAX_OUTPUT_TOKENS", 600)
+    : envInt("GROQ_MAX_OUTPUT_TOKENS", 600);
+  const maxCompletionTokens = baseTokens * candidateCount;
+  const reasoningEffort = provider === "cerebras"
+    ? Deno.env.get("CEREBRAS_REASONING_EFFORT")
+    : Deno.env.get("GROQ_REASONING_EFFORT");
+
+  const body: Record<string, unknown> = {
+    model,
+    messages: [
+      { role: "system", content: systemInstructions(candidateCount) },
+      { role: "user", content: userPrompt(request) },
+    ],
+    max_completion_tokens: maxCompletionTokens,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "keyboard_rewrite_response",
+        strict: true,
+        schema: rewriteSchema(candidateCount),
+      },
+    },
+  };
+
+  if (reasoningEffort) {
+    body.reasoning_effort = reasoningEffort;
+  }
+
+  const endpoint = provider === "cerebras"
+    ? Deno.env.get("CEREBRAS_CHAT_COMPLETIONS_URL") ?? "https://api.cerebras.ai/v1/chat/completions"
+    : Deno.env.get("GROQ_CHAT_COMPLETIONS_URL") ?? "https://api.groq.com/openai/v1/chat/completions";
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new ProviderError(
+      provider,
+      "provider_error",
+      "AIの処理に失敗しました。少し待ってからもう一度お試しください。",
+      error instanceof Error ? error.message : "unknown provider request error",
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw providerErrorFromResponse(provider, response.status, message);
+  }
+
+  const payload = await response.json();
+  const finishReason = payload?.choices?.[0]?.finish_reason;
+  if (finishReason === "content_filter") {
+    throw new ProviderError(
+      provider,
+      "content_blocked",
+      "この内容はAIで書き換えできません。内容を変えてもう一度お試しください。",
+      `${provider} content_filter`,
+      422,
+    );
+  }
+  const text = extractMessageContent(payload, provider);
   const result = JSON.parse(text) as RewriteResult;
   return normalizeResult(result, request);
 }
 
-function extractOutputText(payload: any): string {
-  if (typeof payload.output_text === "string") return payload.output_text;
+function providerErrorFromResponse(provider: ProviderName, status: number, body: string): ProviderError {
+  const lower = body.toLowerCase();
+  if (status === 429) {
+    return new ProviderError(
+      provider,
+      "provider_rate_limited",
+      "AIが混み合っています。少し待ってからもう一度お試しください。",
+      `${provider} ${status}: ${body.slice(0, 400)}`,
+      status,
+    );
+  }
+  if (
+    (status === 400 || status === 403 || status === 422) &&
+    (lower.includes("content_filter") ||
+      lower.includes("safety") ||
+      lower.includes("policy") ||
+      lower.includes("moderation"))
+  ) {
+    return new ProviderError(
+      provider,
+      "content_blocked",
+      "この内容はAIで書き換えできません。内容を変えてもう一度お試しください。",
+      `${provider} ${status}: ${body.slice(0, 400)}`,
+      status,
+    );
+  }
+  return new ProviderError(
+    provider,
+    "provider_error",
+    "AIの処理に失敗しました。少し待ってからもう一度お試しください。",
+    `${provider} ${status}: ${body.slice(0, 400)}`,
+    status,
+  );
+}
 
-  const pieces: string[] = [];
-  for (const item of payload.output ?? []) {
-    for (const content of item.content ?? []) {
-      if (typeof content.text === "string") pieces.push(content.text);
-      if (typeof content.output_text === "string") pieces.push(content.output_text);
-    }
+function extractMessageContent(payload: any, provider: ProviderName): string {
+  const choice = payload?.choices?.[0];
+  const content = choice?.message?.content;
+  if (typeof content === "string" && content.trim().length > 0) {
+    return content;
   }
 
-  const text = pieces.join("").trim();
-  if (!text) throw new Error("OpenAI response did not contain output text.");
-  return text;
+  // Some providers return content as an array of parts.
+  if (Array.isArray(content)) {
+    const text = content
+      .map((part: any) =>
+        typeof part?.text === "string" ? part.text : "",
+      )
+      .join("")
+      .trim();
+    if (text) return text;
+  }
+
+  throw new ProviderError(
+    provider,
+    "provider_error",
+    "AIの処理に失敗しました。少し待ってからもう一度お試しください。",
+    `${provider} response did not contain message content.`,
+  );
 }
 
 function normalizeResult(result: RewriteResult, request: RewriteRequest): RewriteResult {
@@ -338,8 +686,6 @@ function rewriteSchema(candidateCount: number): Record<string, unknown> {
     properties: {
       candidates: {
         type: "array",
-        minItems: candidateCount,
-        maxItems: candidateCount,
         items: {
           type: "object",
           additionalProperties: false,

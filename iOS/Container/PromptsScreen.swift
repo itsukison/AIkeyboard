@@ -35,10 +35,10 @@ struct PromptsScreen: View {
                             )
                         }
 
-                        sectionTitle("メイン")
+                        sectionTitle("メインボタン")
                         mainCard
 
-                        sectionTitle("サブボタン")
+                        sectionTitle("追加ボタン")
                         subCard
 
                         Spacer(minLength: BikeyMetrics.Sizing.tabBarHeight + 100)
@@ -106,7 +106,7 @@ struct PromptsScreen: View {
     private var subCard: some View {
         if subEntries.isEmpty {
             VStack(spacing: BikeyMetrics.Spacing.s) {
-                Text("サブボタンを追加すると、AIキーボードの「…」から呼び出せます。")
+                Text("よく使うプロンプトを追加すると、キーボードの「…」から呼び出せます。")
                     .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                     .foregroundStyle(AppColor.muted)
                     .multilineTextAlignment(.center)

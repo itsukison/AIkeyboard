@@ -55,9 +55,11 @@ final class RomajiTests: XCTestCase {
         XCTAssertEqual(Romaji.toKana("ko-hi-"), "こーひー")
     }
 
-    // Smart "n" handling: "konnichiha" must produce "こんにちは"
+    // Strict "nn" rule: `nn` always commits ん and consumes both characters.
+    // To type ん followed by a syllable that starts with a vowel/y, use the
+    // apostrophe form `n'`.
     func testKonnichiha() {
-        XCTAssertEqual(Romaji.toKana("konnichiha"), "こんにちは")
+        XCTAssertEqual(Romaji.toKana("kon'nichiha"), "こんにちは")
     }
 
     func testKonbanha() {
@@ -69,7 +71,7 @@ final class RomajiTests: XCTestCase {
     }
 
     func testGomennasai() {
-        XCTAssertEqual(Romaji.toKana("gomennasai"), "ごめんなさい")
+        XCTAssertEqual(Romaji.toKana("gomen'nasai"), "ごめんなさい")
     }
 
     func testSayounara() {
@@ -77,8 +79,15 @@ final class RomajiTests: XCTestCase {
     }
 
     func testAnna() {
-        // "anna" with smart n-rule: first n becomes ん, second n combines with a → な
-        XCTAssertEqual(Romaji.toKana("anna"), "あんな")
+        XCTAssertEqual(Romaji.toKana("an'na"), "あんな")
+    }
+
+    // Strict nn rule: `nn` consumes both n's as ん and the following character
+    // starts a fresh syllable (e.g. tikinno → ちきんお, not ちきんの).
+    func testStrictNNDoesNotBleedIntoNextSyllable() {
+        XCTAssertEqual(Romaji.toKana("tikinno"), "ちきんお")
+        XCTAssertEqual(Romaji.toKana("anna"), "あんあ")
+        XCTAssertEqual(Romaji.toKana("nni"), "んい")
     }
 
     func testNDisambiguation() {
@@ -104,16 +113,18 @@ final class RomajiTests: XCTestCase {
     }
 
     func testLiveKanaProgressive() {
-        // Incrementally building "konnichi". Trailing lone `n` defers to latin
-        // (native IME behavior); `nn` commits ん.
+        // Incrementally building "kon'nichi". Trailing lone `n` defers to latin
+        // (native IME behavior); `nn` commits ん; the apostrophe form `n'` is
+        // needed when ん is followed by a syllable starting with a vowel/y.
         XCTAssertEqual(Romaji.toLiveKana("k"), "k")
         XCTAssertEqual(Romaji.toLiveKana("ko"), "こ")
         XCTAssertEqual(Romaji.toLiveKana("kon"), "こn")
-        XCTAssertEqual(Romaji.toLiveKana("konn"), "こん")
-        XCTAssertEqual(Romaji.toLiveKana("konni"), "こんに")
-        XCTAssertEqual(Romaji.toLiveKana("konnic"), "こんにc")
-        XCTAssertEqual(Romaji.toLiveKana("konnich"), "こんにch")
-        XCTAssertEqual(Romaji.toLiveKana("konnichi"), "こんにち")
+        XCTAssertEqual(Romaji.toLiveKana("kon'"), "こん")
+        XCTAssertEqual(Romaji.toLiveKana("kon'n"), "こんn")
+        XCTAssertEqual(Romaji.toLiveKana("kon'ni"), "こんに")
+        XCTAssertEqual(Romaji.toLiveKana("kon'nic"), "こんにc")
+        XCTAssertEqual(Romaji.toLiveKana("kon'nich"), "こんにch")
+        XCTAssertEqual(Romaji.toLiveKana("kon'nichi"), "こんにち")
     }
 
     // Trailing lone `n` stays latin in live preview; doubling or adding a

@@ -8,22 +8,18 @@ struct HomeScreen: View {
 
     private let tips: [Tip] = [
         .init(
-            label: "いつもの入力",
-            title: "普段は日本語キーボードとして使えます",
-            sourceText: "きょうのよてい",
-            convertedText: "今日の予定"
+            label: "その場で敬語",
+            title: "チャットを離れずに書き直せます",
+            sourceText: "確認お願いします",
+            convertedText: "ご確認お願いいたします",
+            icon: "keyboard.badge.ellipsis"
         ),
         .init(
-            label: "必要な時だけAI",
-            title: "候補バー左のAIボタンから呼び出します",
-            sourceText: "校正・自然に",
-            convertedText: "置き換え"
-        ),
-        .init(
-            label: "送信は明示操作時だけ",
-            title: "AIコマンドを押した文章だけ扱います",
-            sourceText: "本文全体",
-            convertedText: "校正結果"
+            label: "相手に合わせる",
+            title: "上司・取引先向けの自然な文面に",
+            sourceText: "了解です",
+            convertedText: "承知しました",
+            icon: "person.text.rectangle"
         )
     ]
 
@@ -40,7 +36,7 @@ struct HomeScreen: View {
                     HeroCard(onTryDemo: { showDemo = true })
                         .padding(.top, BikeyMetrics.Spacing.m - 2)
 
-                    TipsHeader(title: "使い方")
+                    TipsHeader(title: "できること")
                         .padding(.top, BikeyMetrics.Spacing.m)
 
                     VStack(spacing: BikeyMetrics.Spacing.m - 2) {
@@ -92,7 +88,7 @@ private struct HomeHeader: View {
                 AppLogoTile()
                     .frame(width: 26, height: 26)
 
-                Text("AIキーボード")
+                Text("敬語ボタン")
                     .bikeyFont(20, weight: .medium, relativeTo: .title3)
                     .foregroundStyle(AppColor.ink)
             }
@@ -178,7 +174,7 @@ private struct KeyboardEnabledBanner: View {
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(AppColor.purple.opacity(0.76))
 
-            Text("通常の日本語入力は端末内で使えます")
+            Text("AIボタンを押した文章だけ書き直します")
                 .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                 .foregroundStyle(AppColor.ink.opacity(0.78))
 
@@ -202,13 +198,13 @@ private struct HeroCard: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("ふだんは普通に。\n必要な時だけAI。")
+                    Text("送る前に、\n失礼じゃない言葉へ。")
                         .bikeyFont(24, weight: .regular, relativeTo: .title2)
                         .foregroundStyle(AppColor.ink.opacity(0.92))
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("日本語入力、校正、自然な言い換えを\nひとつのキーボードで。")
+                    Text("LINEもメールも、キーボード上で\n敬語・ビジネス文面に整えます。")
                         .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                         .foregroundStyle(AppColor.muted)
                         .lineSpacing(2)
@@ -257,7 +253,7 @@ private struct HeroBackgroundImage: View {
 private struct ConversionPreviewPill: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("きょうのよてい")
+            Text("明日いけますか")
                 .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                 .foregroundStyle(AppColor.ink)
                 .lineLimit(1)
@@ -268,7 +264,7 @@ private struct ConversionPreviewPill: View {
                     .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(AppColor.softText)
 
-                Text("今日の予定")
+                Text("明日ご都合いかがでしょうか")
                     .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                     .foregroundStyle(AppColor.ink)
                     .lineLimit(1)
@@ -295,7 +291,7 @@ private struct TryDemoButton: View {
                 .background(AppColor.charcoalAction, in: Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("AIキーボードを試す")
+        .accessibilityLabel("敬語ボタンを試す")
     }
 }
 
@@ -322,6 +318,7 @@ private struct Tip: Identifiable {
     let title: String
     let sourceText: String
     let convertedText: String
+    let icon: String
 }
 
 private struct TipCard: View {
@@ -363,7 +360,7 @@ private struct TipCard: View {
 
             Spacer(minLength: 0)
 
-            Image(systemName: "lightbulb")
+            Image(systemName: tip.icon)
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(AppColor.purple.opacity(0.6))
                 .frame(width: 32, height: 32)
@@ -408,11 +405,11 @@ private struct BikeyDemoSheet: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("AIキーボードを試す")
+                        Text("敬語ボタンを試す")
                             .bikeyFont(24, weight: .medium, relativeTo: .title2)
                             .foregroundStyle(AppColor.ink)
 
-                        Text("下の入力欄をタップし、地球儀キーからAIキーボードを選んでください。候補バー左のAIボタンから校正や言い換えを試せます。")
+                        Text("下の入力欄をタップし、地球儀キーからキーボードを切り替えてください。送る前にAIボタンを押すと、敬語やビジネス向けの候補を選べます。")
                             .bikeyFont(14, weight: .regular, relativeTo: .footnote)
                             .foregroundStyle(AppColor.muted)
                             .lineSpacing(3)
@@ -443,7 +440,7 @@ private struct DemoTextField: View {
     var isFocused: FocusState<Bool>.Binding
 
     var body: some View {
-        TextField("明日の予定を確認お願いします", text: $text, axis: .vertical)
+        TextField("明日までに確認お願いします", text: $text, axis: .vertical)
             .focused(isFocused)
             .bikeyFont(16, weight: .regular, relativeTo: .body)
             .foregroundStyle(AppColor.ink)
@@ -486,7 +483,7 @@ private struct HomeSkeletonView: View {
                     .padding(.top, BikeyMetrics.Spacing.m)
 
                 VStack(spacing: BikeyMetrics.Spacing.m - 2) {
-                    ForEach(0..<3, id: \.self) { _ in
+                    ForEach(0..<2, id: \.self) { _ in
                         SkeletonTipCard()
                     }
                 }

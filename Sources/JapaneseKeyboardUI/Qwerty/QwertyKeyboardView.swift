@@ -14,6 +14,8 @@ public struct QwertyKeyboardView: View {
     public let onSelectCandidate: (Candidate) -> Void
     public let toolbarContent: AnyView?
     public let overlayContent: AnyView?
+    public let shouldForceLowercaseAlphabeticCharacters: () -> Bool
+    public let manualKeyboardCase: () -> Keyboard.KeyboardCase?
 
     public init(
         services: Keyboard.Services,
@@ -21,7 +23,9 @@ public struct QwertyKeyboardView: View {
         inputManager: InputManager,
         onSelectCandidate: @escaping (Candidate) -> Void,
         toolbarContent: AnyView? = nil,
-        overlayContent: AnyView? = nil
+        overlayContent: AnyView? = nil,
+        shouldForceLowercaseAlphabeticCharacters: @escaping () -> Bool = { false },
+        manualKeyboardCase: @escaping () -> Keyboard.KeyboardCase? = { nil }
     ) {
         self.services = services
         self.keyboardContext = keyboardContext
@@ -29,6 +33,8 @@ public struct QwertyKeyboardView: View {
         self.onSelectCandidate = onSelectCandidate
         self.toolbarContent = toolbarContent
         self.overlayContent = overlayContent
+        self.shouldForceLowercaseAlphabeticCharacters = shouldForceLowercaseAlphabeticCharacters
+        self.manualKeyboardCase = manualKeyboardCase
     }
 
     public var body: some View {
@@ -53,6 +59,8 @@ public struct QwertyKeyboardView: View {
                         Text("ー")
                             .font(.system(size: 22, weight: .regular))
                             .foregroundStyle(.primary)
+                    case .shift:
+                        ShiftKeyLabel(keyboardCase: manualKeyboardCase())
                     case .space:
                         SpaceKeyLabel(inputManager: inputManager)
                     case .primary:
@@ -82,12 +90,37 @@ public struct QwertyKeyboardView: View {
     private var keyboardLayout: KeyboardLayout {
         var layout = KeyboardLayout.standard(for: keyboardContext)
         layout.deviceConfiguration.inputToolbarHeight = KeyboardChromeMetrics.toolbarHeight
-        layout.forceLowercasedAlphabeticCharacters(for: keyboardContext.keyboardType)
+        if shouldForceLowercaseAlphabeticCharacters() {
+            layout.forceLowercasedAlphabeticCharacters(for: keyboardContext.keyboardType)
+            layout.forceInactiveAlphabeticShift(for: keyboardContext.keyboardType)
+        }
         layout.insertInputModeSwitchKeyBeforeSpace()
         layout.insertLongVowelKeyOnHomeRow()
         layout.replaceEnglishPunctuationWithJapanese(for: keyboardContext.keyboardType)
-        layout.forceLowercasedShift()
         return layout
+    }
+}
+
+private struct ShiftKeyLabel: View {
+    let keyboardCase: Keyboard.KeyboardCase?
+
+    var body: some View {
+        image
+            .resizable()
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(.primary)
+    }
+
+    private var image: Image {
+        switch keyboardCase {
+        case .uppercased:
+            return .keyboardShiftUppercased
+        case .capsLocked:
+            return .keyboardShiftCapslockActive
+        default:
+            return .keyboardShiftLowercased
+        }
     }
 }
 
@@ -191,18 +224,6 @@ extension KeyboardLayout {
         itemRows[rowIndex] = row
     }
 
-    mutating func forceLowercasedShift() {
-        for rowIndex in itemRows.indices {
-            var row = itemRows[rowIndex]
-            for itemIndex in row.indices {
-                if case .shift = row[itemIndex].action {
-                    row[itemIndex] = row[itemIndex].copy(withAction: .shift(.lowercased))
-                }
-            }
-            itemRows[rowIndex] = row
-        }
-    }
-
     mutating func forceLowercasedAlphabeticCharacters(for keyboardType: Keyboard.KeyboardType) {
         guard keyboardType == .alphabetic else { return }
         for rowIndex in itemRows.indices {
@@ -217,15 +238,28 @@ extension KeyboardLayout {
         }
     }
 
+    mutating func forceInactiveAlphabeticShift(for keyboardType: Keyboard.KeyboardType) {
+        guard keyboardType == .alphabetic else { return }
+        for rowIndex in itemRows.indices {
+            var row = itemRows[rowIndex]
+            for itemIndex in row.indices {
+                if case .shift = row[itemIndex].action {
+                    row[itemIndex] = row[itemIndex].copy(withAction: .shift(.lowercased))
+                }
+            }
+            itemRows[rowIndex] = row
+        }
+    }
+
     private static let japaneseNumericPageCharacters = [
         ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
         ["-", "/", ":", "@", "(", ")", "「", "」", "¥", "&"],
-        ["。", "、", "?", "!", "^_^"],
+        ["。", "、", "？", "！", "^_^"],
     ]
 
     private static let japaneseSymbolicPageCharacters = [
         ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
         ["_", "\\", ";", "|", "<", ">", "\"", "'", "$", "€"],
-        [".", ",", "?", "!", "・"],
+        [".", ",", "？", "！", "・"],
     ]
 }

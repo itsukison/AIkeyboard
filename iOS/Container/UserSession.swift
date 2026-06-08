@@ -70,6 +70,7 @@ final class UserSession: ObservableObject {
     }
 
     func deleteAccount() async throws {
+        try await supabase.functions.invoke("delete-account")
         try? await supabase.auth.signOut()
         clearTokens()
         UserPromptStore.writeEntries([])

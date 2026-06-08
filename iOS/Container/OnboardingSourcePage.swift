@@ -155,12 +155,12 @@ struct OnboardingSourcePage: View {
             canGoBack: onBack != nil,
             onBack: onBack,
             onSkip: nil,
-            ctaTitle: "AIキーボードをはじめる",
+            ctaTitle: "敬語ボタンをはじめる",
             isCtaEnabled: selected != nil,
             onCta: { onContinue(selected) }
         ) {
             VStack(alignment: .center, spacing: 0) {
-                Text("AIキーボードを\nどこで知りましたか？")
+                Text("敬語ボタンを\nどこで知りましたか？")
                     .font(.system(size: 31, weight: .medium))
                     .foregroundStyle(OnboardingPalette.ink)
                     .multilineTextAlignment(.center)
@@ -288,101 +288,24 @@ enum OnboardingPalette {
 
 // MARK: - Brand badges
 //
-// Real brand glyphs are bundled in Assets.xcassets as SVGs sourced from
-// Simple Icons (https://simpleicons.org, CC0). The SVGs ship with their brand
-// fill color, but we render most of them with `.template` so we can place the
-// white glyph on a brand-colored badge background. Google + YouTube keep their
-// original fill on a white background to match the widely recognized lockup.
+// Brand glyphs are bundled in Assets.xcassets as full-color SVGs sourced from
+// theSVG (https://thesvg.org). Each icon renders in its native brand color on
+// a white circular tile with a hairline border.
 
 private struct SourceBrandBadge: View {
     let option: SourceOption
 
     var body: some View {
         switch option {
-        case .google:
-            BrandIconBadge(
-                asset: "BrandGoogle",
-                tint: nil,
-                background: .white,
-                shape: .circle,
-                inset: 5,
-                hairline: true
-            )
-        case .twitter:
-            BrandIconBadge(
-                asset: "BrandX",
-                tint: .white,
-                background: Color.black,
-                shape: .circle,
-                inset: 7
-            )
-        case .reddit:
-            BrandIconBadge(
-                asset: "BrandReddit",
-                tint: .white,
-                background: Color(red: 1.0, green: 0.27, blue: 0.0),
-                shape: .circle,
-                inset: 5
-            )
-        case .instagram:
-            BrandIconBadge(
-                asset: "BrandInstagram",
-                tint: .white,
-                background: AnyShapeStyle(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.98, green: 0.65, blue: 0.21),
-                            Color(red: 0.93, green: 0.27, blue: 0.36),
-                            Color(red: 0.57, green: 0.22, blue: 0.78)
-                        ],
-                        startPoint: .bottomLeading,
-                        endPoint: .topTrailing
-                    )
-                ),
-                shape: .roundedRect(8),
-                inset: 6
-            )
-        case .facebook:
-            BrandIconBadge(
-                asset: "BrandFacebook",
-                tint: .white,
-                background: Color(red: 0.10, green: 0.46, blue: 0.93),
-                shape: .circle,
-                inset: 4
-            )
-        case .tiktok:
-            BrandIconBadge(
-                asset: "BrandTiktok",
-                tint: .white,
-                background: Color.black,
-                shape: .circle,
-                inset: 6
-            )
-        case .youtube:
-            BrandIconBadge(
-                asset: "BrandYoutube",
-                tint: nil,
-                background: .white,
-                shape: .circle,
-                inset: 4,
-                hairline: true
-            )
-        case .linkedin:
-            BrandIconBadge(
-                asset: "BrandLinkedin",
-                tint: .white,
-                background: Color(red: 0.04, green: 0.40, blue: 0.65),
-                shape: .roundedRect(6),
-                inset: 5
-            )
-        case .productHunt:
-            BrandIconBadge(
-                asset: "BrandProducthunt",
-                tint: .white,
-                background: Color(red: 0.94, green: 0.39, blue: 0.20),
-                shape: .circle,
-                inset: 5
-            )
+        case .google:      BrandTile(asset: "BrandGoogle",      inset: 5)
+        case .twitter:     BrandTile(asset: "BrandX",           inset: 7)
+        case .reddit:      BrandTile(asset: "BrandReddit",      inset: 4)
+        case .instagram:   BrandTile(asset: "BrandInstagram",   inset: 4)
+        case .facebook:    BrandTile(asset: "BrandFacebook",    inset: 4)
+        case .tiktok:      BrandTile(asset: "BrandTiktok",      inset: 5)
+        case .youtube:     BrandTile(asset: "BrandYoutube",     inset: 4)
+        case .linkedin:    BrandTile(asset: "BrandLinkedin",    inset: 4)
+        case .productHunt: BrandTile(asset: "BrandProducthunt", inset: 5)
         case .friend:      FriendBadge()
         case .newsletter:  NewsletterBadge()
         case .other:       OtherBadge()
@@ -390,53 +313,19 @@ private struct SourceBrandBadge: View {
     }
 }
 
-private struct BrandIconBadge<BG: ShapeStyle>: View {
-    enum BadgeShape {
-        case circle
-        case roundedRect(CGFloat)
-    }
-
+private struct BrandTile: View {
     let asset: String
-    let tint: Color?           // nil = use original SVG color
-    let background: BG
-    let shape: BadgeShape
     var inset: CGFloat = 5
-    var hairline: Bool = false
 
     var body: some View {
         ZStack {
-            backgroundShape.fill(background)
-            iconImage
+            Circle().fill(Color.white)
+            Image(asset)
+                .resizable()
+                .scaledToFit()
                 .padding(inset)
         }
-        .overlay {
-            if hairline {
-                backgroundShape.stroke(Color.black.opacity(0.04), lineWidth: 0.5)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var iconImage: some View {
-        if let tint {
-            Image(asset)
-                .resizable()
-                .scaledToFit()
-                .colorMultiply(tint)
-        } else {
-            Image(asset)
-                .resizable()
-                .scaledToFit()
-        }
-    }
-
-    private var backgroundShape: AnyShape {
-        switch shape {
-        case .circle:
-            return AnyShape(Circle())
-        case .roundedRect(let r):
-            return AnyShape(RoundedRectangle(cornerRadius: r, style: .continuous))
-        }
+        .overlay(Circle().stroke(Color.black.opacity(0.06), lineWidth: 0.5))
     }
 }
 

@@ -1,6 +1,8 @@
 import SwiftUI
+import UIKit
 
 struct AboutScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var activeURL: IdentifiedURL?
 
@@ -33,7 +35,7 @@ struct AboutScreen: View {
                 )
                 .padding(.top, BikeyMetrics.Spacing.l)
 
-                Text("© 2026 AIキーボード")
+                Text("© 2026 敬語ボタン")
                     .bikeyFont(11, weight: .regular, relativeTo: .caption)
                     .foregroundStyle(AppColor.muted)
                     .padding(.top, BikeyMetrics.Spacing.xl)
@@ -46,6 +48,26 @@ struct AboutScreen: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("このアプリについて")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 36, height: 36)
+                            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 3)
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppColor.ink)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("戻る")
+            }
+        }
         .sheet(item: $activeURL) { SafariView(url: $0.url) }
     }
 }
@@ -60,27 +82,10 @@ private struct AboutHeader: View {
 
     var body: some View {
         VStack(spacing: BikeyMetrics.Spacing.s) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.552, green: 0.458, blue: 0.795),
-                                Color(red: 0.720, green: 0.656, blue: 0.895)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 72, height: 72)
-                    .shadow(color: AppColor.purple.opacity(0.22), radius: 12, x: 0, y: 6)
+            AboutLogoTile()
+                .frame(width: 72, height: 72)
 
-                Image(systemName: "sparkle")
-                    .font(.system(size: 28, weight: .medium))
-                    .foregroundStyle(.white)
-            }
-
-            Text("AIキーボード")
+            Text("敬語ボタン")
                 .bikeyFont(20, weight: .medium, relativeTo: .title3)
                 .foregroundStyle(AppColor.ink)
                 .padding(.top, BikeyMetrics.Spacing.s)
@@ -90,6 +95,37 @@ private struct AboutHeader: View {
                 .foregroundStyle(AppColor.muted)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private struct AboutLogoTile: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(AppColor.paleLavender)
+            .overlay {
+                if let image = AboutBundledImage.load("applogo") {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: AppColor.purple.opacity(0.22), radius: 12, x: 0, y: 6)
+    }
+}
+
+private enum AboutBundledImage {
+    static func load(_ name: String) -> UIImage? {
+        if let url = Bundle.main.url(forResource: name, withExtension: "png"),
+           let image = UIImage(contentsOfFile: url.path) {
+            return image
+        }
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let repoRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("public/\(name).png").path)
     }
 }
 

@@ -44,11 +44,45 @@ struct AIKeyboardToolbarView: View {
         }
     }
 
-    /// Unified bar for `.hidden` and `.overflow`. The `…` pill is unconditional
-    /// so SwiftUI preserves its identity across the toggle; its position shifts
-    /// implicitly when sibling conditional children appear/disappear inside the
-    /// `withAnimation` block in `AIKeyboardController.toggleOverflow()`.
+    /// Unified bar for `.hidden` and `.overflow`. Signed-out users get a single
+    /// login CTA; signed-in users get the prompt / overflow controls.
+    @ViewBuilder
     private func mainBar(isOverflow: Bool) -> some View {
+        if !aiController.isSignedInForAI() {
+            signedOutBar
+        } else {
+            signedInMainBar(isOverflow: isOverflow)
+        }
+    }
+
+    private var signedOutBar: some View {
+        HStack(spacing: 0) {
+            pillButton(label: "ログイン", isSelected: false) {
+                aiController.openLogin()
+            }
+            .accessibilityLabel("ログインまたは登録")
+
+            Spacer()
+                .frame(width: 3)
+
+            Divider()
+                .frame(height: KeyboardChromeMetrics.toolbarDividerHeight)
+                .opacity(0.35)
+
+            Spacer()
+                .frame(width: 3)
+
+            CandidateBar(
+                inputManager: inputManager,
+                horizontalPadding: 0,
+                firstCandidateLeadingPadding: 7,
+                onSelect: onSelectCandidate
+            )
+        }
+        .padding(.horizontal, 6)
+    }
+
+    private func signedInMainBar(isOverflow: Bool) -> some View {
         HStack(spacing: 0) {
             if !isOverflow {
                 pillButton(label: aiController.mainPrompt?.title ?? "AI", isSelected: false) {

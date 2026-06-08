@@ -166,4 +166,5 @@ from `Tests/JapaneseKeyboardAITests/` with a fake proxy — see
   in-flight tasks on every keystroke.
 - AI request timeout (client side): 20 s
   (`CloudRewriteService.urlRequest.timeoutInterval`).
-- AI request timeout (server side): 8 s default (`GROQ_TIMEOUT_MS`).
+- AI request timeout (server side): 8 s default (`CEREBRAS_TIMEOUT_MS` /
+  `GROQ_TIMEOUT_MS`).

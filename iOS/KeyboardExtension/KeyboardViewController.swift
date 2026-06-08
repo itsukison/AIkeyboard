@@ -7,6 +7,9 @@ import UIKit
 
 final class KeyboardViewController: KeyboardInputViewController {
     let inputManager = InputManager()
+    private var manualKeyboardCase: Keyboard.KeyboardCase?
+    private var hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+    private var lastSyncedFullAccessStatus: Bool?
     private lazy var aiKeyboardController = AIKeyboardController(
         controller: self,
         inputManager: inputManager
@@ -57,7 +60,13 @@ final class KeyboardViewController: KeyboardInputViewController {
                 ),
                 overlayContent: AnyView(
                     AIResultOverlayView(aiController: self.aiKeyboardController)
-                )
+                ),
+                shouldForceLowercaseAlphabeticCharacters: { [weak self] in
+                    self?.shouldForceLowercaseAlphabeticCharacters ?? false
+                },
+                manualKeyboardCase: { [weak self] in
+                    self?.manualKeyboardCase
+                }
             )
         }
     }
@@ -70,6 +79,7 @@ final class KeyboardViewController: KeyboardInputViewController {
     /// runs is what makes the first render lowercase.
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
         configureJapaneseKeyboardBehavior()
         aiKeyboardController.refreshPrompts()
     }
@@ -91,6 +101,22 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func handleRomajiInput(_ character: Character) {
         inputManager.appendRomaji(character)
+        resetOneShotShiftIfNeeded()
+    }
+
+    @MainActor
+    func handleShift(_ gesture: Keyboard.Gesture) -> Bool {
+        switch gesture {
+        case .release:
+            let next: Keyboard.KeyboardCase = manualKeyboardCase == nil ? .uppercased : .lowercased
+            setManualKeyboardCase(next == .lowercased ? nil : next)
+            return true
+        case .doubleTap:
+            setManualKeyboardCase(.capsLocked)
+            return true
+        default:
+            return false
+        }
     }
 
     @MainActor
@@ -114,6 +140,7 @@ final class KeyboardViewController: KeyboardInputViewController {
     func commitCandidate(_ candidate: Candidate) {
         guard inputManager.isComposing else { return }
         finalizeMarkedText(replacement: candidate.text)
+        recordConversionSelection(input: candidate.reading, replacement: candidate.text)
         inputManager.reset()
     }
 
@@ -123,14 +150,20 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func commitComposingForReturn() {
         guard inputManager.isComposing else { return }
-        finalizeMarkedText(replacement: inputManager.commitText)
+        let input = inputManager.currentConversionInput
+        let replacement = inputManager.commitText
+        finalizeMarkedText(replacement: replacement)
+        recordConversionSelection(input: input, replacement: replacement)
         inputManager.reset()
     }
 
     @MainActor
     func flushBufferToHost() {
         guard inputManager.isComposing else { return }
-        finalizeMarkedText(replacement: inputManager.commitText)
+        let input = inputManager.currentConversionInput
+        let replacement = inputManager.commitText
+        finalizeMarkedText(replacement: replacement)
+        recordConversionSelection(input: input, replacement: replacement)
         inputManager.reset()
     }
 
@@ -152,28 +185,61 @@ final class KeyboardViewController: KeyboardInputViewController {
         textDocumentProxy.insertText(replacement)
     }
 
+    private func recordConversionSelection(input: String, replacement: String) {
+        ConversionPreferenceStore.recordSelection(
+            scope: .japanese,
+            input: input,
+            candidate: replacement
+        )
+        inputManager.refreshConversionPreferenceEntries()
+    }
+
     private func configureJapaneseKeyboardBehavior() {
+        manualKeyboardCase = nil
         state.keyboardContext.autocapitalizationTypeOverride = .some(.none)
         state.keyboardContext.settings.isAutocapitalizationEnabled = false
         state.keyboardContext.keyboardCase = .lowercased
         state.keyboardContext.keyboardType = .alphabetic
+        // iOS's "Settings → Sounds & Haptics → Keyboard Feedback → Haptic"
+        // preference is private to UIKit and unreadable from a sandboxed
+        // keyboard extension, so we can't mirror it directly. KeyboardKit
+        // otherwise fires a haptic on every gesture by default; mirror Apple's
+        // native default (haptic OFF) and let the user opt in via our setting.
+        state.feedbackContext.hapticConfiguration = hapticsEnabled ? .standard : .disabled
+    }
+
+    private var shouldForceLowercaseAlphabeticCharacters: Bool {
+        state.keyboardContext.keyboardType == .alphabetic && manualKeyboardCase == nil
+    }
+
+    private func setManualKeyboardCase(_ keyboardCase: Keyboard.KeyboardCase?) {
+        manualKeyboardCase = keyboardCase
+        state.keyboardContext.keyboardCase = keyboardCase ?? .lowercased
+    }
+
+    private func resetOneShotShiftIfNeeded() {
+        guard manualKeyboardCase == .uppercased else { return }
+        setManualKeyboardCase(nil)
     }
 
     private func syncFullAccessStatus() {
-        KeyboardSettingsStore.writeLastKnownFullAccessEnabled(state.keyboardContext.hasFullAccess)
+        let hasFullAccess = state.keyboardContext.hasFullAccess
+        guard lastSyncedFullAccessStatus != hasFullAccess else { return }
+        lastSyncedFullAccessStatus = hasFullAccess
+        KeyboardSettingsStore.writeLastKnownFullAccessEnabled(hasFullAccess)
     }
 }
 
 private extension KeyboardApp {
     static var bikeyJP: KeyboardApp {
         .init(
-            name: "AIキーボード",
+            name: "敬語ボタン",
             licenseKey: nil,
-            appGroupId: "group.co.gastroduce-japan.bikey.japanese",
+            appGroupId: "group.com.core7.keigobutton",
             locales: [Locale(identifier: "ja_JP")],
             autocomplete: .init(nextWordPredictionRequest: nil),
             deepLinks: nil,
-            keyboardSettingsKeyPrefix: "BikeyJP"
+            keyboardSettingsKeyPrefix: "KeigoButton"
         )
     }
 }

@@ -53,7 +53,10 @@ public enum KeyboardSettingsStore {
     }
 
     public static func readCloudAIEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
-        defaults?.bool(forKey: cloudAIEnabledKey) ?? false
+        if let value = defaults?.object(forKey: cloudAIEnabledKey) as? Bool {
+            return value
+        }
+        return true
     }
 
     public static func writeCloudAIEnabled(

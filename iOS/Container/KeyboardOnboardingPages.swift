@@ -24,14 +24,14 @@ struct KeyboardSetupPage: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 24) {
                     VStack(spacing: 14) {
-                        Text("AIキーボードを\n追加します")
+                        Text("敬語ボタンを\nキーボードに追加")
                             .font(.system(size: 31, weight: .medium))
                             .foregroundStyle(OnboardingPalette.ink)
                             .multilineTextAlignment(.center)
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("設定 → 一般 → キーボード → キーボードから追加します。通常の日本語入力は端末内で動き、AI機能はあなたが選んだ文章だけ扱います。")
+                        Text("一度追加すると、LINEやメールの入力中にそのまま使えます。AIはボタンを押した時だけ、今の文章を書き直します。")
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(OnboardingPalette.subInk)
                             .multilineTextAlignment(.center)
@@ -143,14 +143,14 @@ private struct SettingsKeyboardsMock: View {
 
             // Toggle rows
             VStack(spacing: 0) {
-                SettingsToggleRow(label: "AIキーボード", isOn: true, showDivider: true)
+                SettingsToggleRow(label: "敬語ボタン", isOn: true, showDivider: true)
                 SettingsToggleRow(label: "フルアクセスを許可", isOn: true, showDivider: false, iconName: "keyboard")
             }
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .padding(.horizontal, 14)
 
-            Text("フルアクセスはクラウドAIを使う時だけ必要です。通常の日本語入力はオフのままでも使えます。")
+            Text("AIで書き直すために必要です。通常の入力中に勝手に送信されることはありません。")
                 .font(.system(size: 9, weight: .regular))
                 .foregroundStyle(.black.opacity(0.5))
                 .padding(.horizontal, 22)
@@ -159,11 +159,11 @@ private struct SettingsKeyboardsMock: View {
 
             // Permission dialog
             VStack(alignment: .leading, spacing: 6) {
-                Text("“AIキーボード”に\nフルアクセスを許可しますか？")
+                Text("“敬語ボタン”に\nフルアクセスを許可しますか？")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.black)
                     .lineSpacing(1)
-                Text("AIによる校正や言い換えを使う時だけ、選んだ文章を送信します。")
+                Text("AIボタンを押した時だけ、今の文章を敬語に書き直します。")
                     .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(.black.opacity(0.6))
                     .lineSpacing(1)
@@ -254,14 +254,14 @@ struct KeyboardUsagePage: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 24) {
                     VStack(spacing: 14) {
-                        Text("普通に入力。\n必要な時だけAI。")
+                        Text("送信前に\n3つの敬語候補。")
                             .font(.system(size: 30, weight: .medium))
                             .foregroundStyle(OnboardingPalette.ink)
                             .multilineTextAlignment(.center)
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("候補バー左のAIボタンから、校正・自然に・丁寧に・短く・英訳・日訳を選べます。普段の入力中に勝手に送信されることはありません。")
+                        Text("候補バー左のAIボタンを押すだけ。上司、取引先、教授、採用担当に送る前に、自然な敬語へ整えます。")
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(OnboardingPalette.subInk)
                             .multilineTextAlignment(.center)
@@ -310,7 +310,7 @@ private struct ChatInputMock: View {
             .overlay(Circle().stroke(Color.black.opacity(0.05), lineWidth: 0.5))
 
             HStack {
-                Text("明日の予定を確認お願いします")
+                Text("明日までに確認お願いします")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(OnboardingPalette.ink)
                 Rectangle()
@@ -333,7 +333,7 @@ private struct ChatInputMock: View {
 }
 
 private struct KeyboardMock: View {
-    private let suggestions = ["校正", "自然に", "丁寧に", "短く"]
+    private let suggestions = ["敬語", "ビジネス", "メール", "やわらかく"]
     private let row1 = ["q","w","e","r","t","y","u","i","o","p"]
     private let row2 = ["a","s","d","f","g","h","j","k","l"]
     private let row3 = ["z","x","c","v","b","n","m"]

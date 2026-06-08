@@ -1,6 +1,29 @@
 import SwiftUI
 import UIKit
 
+@MainActor
+final class AppOverlay: ObservableObject {
+    enum Modal: Equatable {
+        case signOut
+        case deleteAccount
+    }
+
+    @Published var modal: Modal?
+    @Published var isDeletingAccount = false
+    @Published var deleteAccountError: String?
+
+    func present(_ modal: Modal) {
+        deleteAccountError = nil
+        self.modal = modal
+    }
+
+    func dismiss() {
+        modal = nil
+        isDeletingAccount = false
+        deleteAccountError = nil
+    }
+}
+
 enum AppTab: String, CaseIterable, Hashable {
     case home
     case prompts
@@ -26,6 +49,7 @@ enum AppTab: String, CaseIterable, Hashable {
 struct RootContainerView: View {
     @State private var selectedTab: AppTab = .home
     @StateObject private var stats = ConversionStats.shared
+    @StateObject private var overlay = AppOverlay()
     @EnvironmentObject private var session: UserSession
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("aikJP.pendingPostAuthOnboarding") private var pendingPostAuthOnboarding = false
@@ -52,6 +76,7 @@ struct RootContainerView: View {
                 }
             }
         }
+        .environmentObject(overlay)
         .preferredColorScheme(.light)
         .onAppear { stats.refresh() }
         .onChange(of: scenePhase) { phase in
@@ -60,7 +85,7 @@ struct RootContainerView: View {
             }
         }
         .onOpenURL { url in
-            guard url.scheme == "aikeyboard" else { return }
+            guard url.scheme == "keigobutton" || url.scheme == "aikeyboard" else { return }
             if case .signedIn = session.state, !pendingPostAuthOnboarding {
                 selectedTab = .profile
             }
@@ -98,8 +123,48 @@ struct RootContainerView: View {
                 LiquidTabBar(selectedTab: $selectedTab)
                     .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset + 4)
                     .padding(.bottom, 4)
+
+                if let modal = overlay.modal {
+                    overlayModal(for: modal)
+                        .transition(.opacity)
+                        .zIndex(10)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
+            .animation(.easeOut(duration: 0.18), value: overlay.modal)
+        }
+    }
+
+    @ViewBuilder
+    private func overlayModal(for modal: AppOverlay.Modal) -> some View {
+        switch modal {
+        case .signOut:
+            SignOutConfirmModal(
+                onCancel: { overlay.dismiss() },
+                onConfirm: {
+                    overlay.dismiss()
+                    Task { await session.signOut() }
+                }
+            )
+        case .deleteAccount:
+            DeleteAccountConfirmModal(
+                isDeleting: overlay.isDeletingAccount,
+                errorMessage: overlay.deleteAccountError,
+                onCancel: { overlay.dismiss() },
+                onConfirm: {
+                    overlay.deleteAccountError = nil
+                    overlay.isDeletingAccount = true
+                    Task {
+                        do {
+                            try await session.deleteAccount()
+                            overlay.dismiss()
+                        } catch {
+                            overlay.isDeletingAccount = false
+                            overlay.deleteAccountError = error.localizedDescription
+                        }
+                    }
+                }
+            )
         }
     }
 }

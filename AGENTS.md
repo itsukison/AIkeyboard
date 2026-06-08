@@ -4,7 +4,7 @@
 engineer joining this codebase. Everything else under `docs/` is reference
 material that this file points to.
 
-Last verified against the code: 2026-06-07.
+Last verified against the code: 2026-06-08.
 
 ---
 
@@ -75,7 +75,7 @@ them gets users killed by jetsam or rejected by App Review.
 │   └── Shared/                       ← types used by both targets
 ├── Tests/                            ← swift test
 ├── supabase/
-│   └── functions/keyboard-rewrite/   ← Edge Function (Deno + Groq)
+│   └── functions/keyboard-rewrite/   ← Edge Function (Deno + AI providers)
 ├── docs/                             ← reference docs (see §6)
 └── public/                           ← splash + onboarding images
 ```
@@ -114,9 +114,10 @@ Pipeline, end to end:
    Refreshes the access token via `auth/v1/token?grant_type=refresh_token` if
    it's within 30 s of expiry.
 5. The Edge Function (`supabase/functions/keyboard-rewrite/index.ts`)
-   validates the JWT, enforces a daily per-user quota, calls Groq Chat
-   Completions (`openai/gpt-oss-120b` by default) with `response_format =
-   json_schema` (strict), and returns `{ candidates, language }`.
+   validates the JWT, enforces abuse-oriented usage limits, calls Cerebras
+   Chat Completions (`gpt-oss-120b` by default, Groq fallback optional) with
+   `response_format = json_schema` (strict), and returns
+   `{ candidates, language }`.
 6. The result card (`AIResultOverlayView`) shows the candidates in a snap
    carousel. The user picks one, taps `置き換え`, and
    `WholeInputReplacementEngine.replace(...)` validates that the proxy
@@ -212,10 +213,13 @@ supabase functions deploy keyboard-rewrite
 Tracked here so they don't get lost. None block TestFlight, all block
 public launch.
 
-- DB-backed daily quota in the Edge Function (currently in-memory per warm
-  runtime).
-- DB-backed daily quota in the Edge Function (currently in-memory per
-  warm runtime).
+- Enable DB-backed AI usage guard in production (`USAGE_GUARD_MODE=db`;
+  migration already exists under `supabase/migrations/`).
+- Schedule retention jobs (`delete_ai_rewrite_events_older_than(30)`,
+  `delete_old_ai_rewrite_usage_buckets(48, 35)`) via `pg_cron`.
+- Add a feedback endpoint to record `selected_index` into `ai_rewrite_events`
+  (the keyboard already knows the selected candidate; it just doesn't POST
+  it back yet).
 - Environment-specific Supabase URL + publishable key (currently hard-
   coded as defaults in `CloudRewriteConfiguration`). Should read from
   Info.plist via xcconfig so dev/staging/prod can diverge.

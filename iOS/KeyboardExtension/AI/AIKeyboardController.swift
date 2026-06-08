@@ -7,7 +7,8 @@ import UIKit
 
 @MainActor
 final class AIKeyboardController: ObservableObject {
-    static let settingsURL = URL(string: "aikeyboard://settings")!
+    static let settingsURL = URL(string: "keigobutton://settings")!
+    static let loginURL = URL(string: "keigobutton://login")!
 
     @Published private(set) var state: AIKeyboardState = .hidden
     @Published private(set) var mainPrompt: UserPrompt? = UserPromptStore.mainPrompt()
@@ -36,6 +37,10 @@ final class AIKeyboardController: ObservableObject {
         guard !inputManager.isComposing else { return true }
         guard let controller else { return false }
         return (try? InputCapture.capture(from: controller.textDocumentProxy.ai)) != nil
+    }
+
+    func isSignedInForAI() -> Bool {
+        AIAuthStore.readAccessToken() != nil
     }
 
     func close() {
@@ -109,8 +114,15 @@ final class AIKeyboardController: ObservableObject {
     }
 
     func openSettings() {
+        openApp(url: Self.settingsURL, failureMessage: "設定を開けませんでした")
+    }
+
+    func openLogin() {
+        openApp(url: Self.loginURL, failureMessage: "アプリを開けませんでした")
+    }
+
+    private func openApp(url: URL, failureMessage: String) {
         guard let controller else { return }
-        let url = Self.settingsURL
         var responder: UIResponder? = controller
         let selector = sel_registerName("openURL:")
         while let current = responder {
@@ -121,7 +133,7 @@ final class AIKeyboardController: ObservableObject {
             }
             responder = current.next
         }
-        state = .error(prompt: nil, message: "設定を開けませんでした")
+        state = .error(prompt: nil, message: failureMessage)
     }
 
     func documentDidChange() {

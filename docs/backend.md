@@ -1,7 +1,7 @@
 # Backend — `keyboard-rewrite` Edge Function
 
 Last verified against `supabase/functions/keyboard-rewrite/index.ts` on
-2026-06-07.
+2026-06-08.
 
 ## Endpoint
 
@@ -76,11 +76,19 @@ Token lifecycle:
     { "replacement": "今日は素晴らしい天気でございますね。", "changed": true },
     { "replacement": "本日はとても良い天気ですね。", "changed": true }
   ],
-  "language": "ja"
+  "language": "ja",
+  "eventId": "8f6c2a30-1b9c-4d20-a9f6-c2e62d3b9a01"
 }
 ```
 
 `language` is one of `ja` / `en` / `ko` / `zh` / `mixed`.
+
+`eventId` is the primary key of the row inserted into `public.ai_rewrite_events`
+for this rewrite. It is `null` if event logging is disabled
+(`EVENT_LOGGING_ENABLED=false`) or the insert failed. The client may send it
+back later through a feedback endpoint to record which candidate the user
+selected. Unknown fields on this response are safe to ignore — old clients
+that do not decode `eventId` keep working.
 
 ## Errors
 
@@ -96,21 +104,30 @@ Token lifecycle:
 | `invalid_request` | 400 | Missing `prompt` or `text`, unsupported refinement |
 | `prompt_too_long` | 413 | `prompt` exceeds `MAX_PROMPT_CHARS` (1000) |
 | `text_too_long` | 413 | `text` exceeds `MAX_REWRITE_CHARS` (2000 default) |
-| `rate_limited` | 429 | Per-user daily quota exhausted |
-| `configuration_missing` | 503 | `GROQ_API_KEY` is unset |
-| `provider_error` | 502 | Groq returned non-OK or invalid JSON |
+| `rate_limited` | 429 | Per-user or global abuse guard tripped |
+| `configuration_missing` | 503 | No provider key is configured |
+| `content_blocked` | 422 | Provider blocked the content for safety/policy reasons |
+| `provider_rate_limited` | 429 | Provider returned a model/API rate limit |
+| `provider_error` | 502 | Provider returned non-OK, timed out, or returned invalid JSON |
 
 ## Provider
 
-Groq Chat Completions (`https://api.groq.com/openai/v1/chat/completions`)
-with `response_format = json_schema` (strict). Default model
-`openai/gpt-oss-120b`.
+Provider selection is server-side only. The iOS app still calls only the
+Supabase Edge Function.
 
-Alternatives (override `GROQ_MODEL`):
+Default order:
 
-- `llama-3.3-70b-versatile` — conservative, ~275 tok/s, JSON schema strict
-- `moonshotai/kimi-k2-instruct` — best Japanese quality, ~200 tok/s
-- `llama-3.1-8b-instant` — fastest, ~750 tok/s, only `json_object` mode
+1. Cerebras Chat Completions
+   (`https://api.cerebras.ai/v1/chat/completions`) with
+   `CEREBRAS_MODEL = gpt-oss-120b`.
+2. Groq Chat Completions
+   (`https://api.groq.com/openai/v1/chat/completions`) with
+   `GROQ_MODEL = openai/gpt-oss-120b`.
+
+Both use `response_format = json_schema` (strict). Set
+`REWRITE_PROVIDER=groq` to prefer Groq, or
+`REWRITE_PROVIDER_FALLBACK=false` to disable fallback. Safety/content blocks
+do **not** fall back to another provider.
 
 The prompt is built in `userPrompt()` and `systemInstructions()` inside
 `index.ts`. Refinement intents map to one-line tone instructions in
@@ -122,24 +139,90 @@ Set in Supabase Dashboard → Project Settings → Edge Functions → Secrets.
 
 | Key | Required | Default |
 |---|---|---|
-| `GROQ_API_KEY` | yes | — |
+| `CEREBRAS_API_KEY` | one provider required | — |
+| `GROQ_API_KEY` | one provider required | — |
+| `REWRITE_PROVIDER` | no | `cerebras` |
+| `REWRITE_PROVIDER_FALLBACK` | no | `true` |
+| `CEREBRAS_MODEL` | no | `gpt-oss-120b` |
+| `CEREBRAS_TIMEOUT_MS` | no | `8000` |
+| `CEREBRAS_MAX_OUTPUT_TOKENS` | no | `600` (per candidate; total = value × candidateCount) |
+| `CEREBRAS_REASONING_EFFORT` | no | unset (`low` / `medium` / `high` for `gpt-oss-120b`) |
 | `GROQ_MODEL` | no | `openai/gpt-oss-120b` |
 | `GROQ_TIMEOUT_MS` | no | `8000` |
 | `GROQ_MAX_OUTPUT_TOKENS` | no | `600` (per candidate; total = value × candidateCount) |
 | `GROQ_REASONING_EFFORT` | no | unset. Only valid for `openai/gpt-oss-*` models (values: `low` / `medium` / `high`). Leave unset for Llama / Kimi. |
 | `MAX_REWRITE_CHARS` | no | `2000` |
-| `DAILY_REWRITE_LIMIT` | no | `50` |
+| `USAGE_GUARD_MODE` | no | `local` (`db` for production) |
+| `USER_DAILY_REWRITE_UNITS` | no | `900` candidates/day/user |
+| `USER_HOURLY_REWRITE_REQUESTS` | no | `120` requests/hour/user |
+| `USER_MINUTE_REWRITE_REQUESTS` | no | `12` requests/minute/user |
+| `GLOBAL_DAILY_REWRITE_UNITS` | no | `100000` candidates/day/project |
+| `GLOBAL_MINUTE_REWRITE_REQUESTS` | no | `300` requests/minute/project |
+| `EVENT_LOGGING_ENABLED` | no | `true` (set `false` to disable `ai_rewrite_events` inserts) |
 
-`GROQ_API_KEY` must never be put in the iOS app. The keyboard only knows
-the Supabase URL and publishable key.
+Provider API keys and the Supabase service role key must never be put in the
+iOS app. The keyboard only knows the Supabase URL and publishable key.
+
+## Usage Guard
+
+The guard counts one unit per requested candidate. With the default
+`candidateCount = 3`, `USER_DAILY_REWRITE_UNITS = 900` means roughly 300 full
+rewrite requests per user per day. The default is intentionally useful for real
+users while still blocking scripted abuse.
+
+Modes:
+
+- `USAGE_GUARD_MODE=local` — in-memory guard per warm Edge Function runtime.
+  Good for local/dev and harmless as a first line of defense, but not enough
+  for launch.
+- `USAGE_GUARD_MODE=db` — calls
+  `public.reserve_ai_rewrite_usage(...)` through the service role key. Apply
+  `supabase/migrations/20260608000000_ai_rewrite_usage_limits.sql` before
+  enabling this mode.
+
+The migration creates an RLS-enabled usage table and grants access only to
+`service_role`. `anon` and `authenticated` cannot read or update usage rows.
 
 ## Privacy
 
-- Raw input/output is never logged.
-- Logs include only: provider, command key, refinement, candidate count,
-  input/prompt/output character lengths, latency, status.
+- Console logs include only: provider, command key, refinement, candidate
+  count, input/prompt/output character lengths, latency, status. Raw text is
+  not written to console logs.
+- Raw rewrite payloads (prompt, input, all candidates, metadata) **are**
+  persisted to the `public.ai_rewrite_events` table — this is the
+  collection path covered by `docs/web/privacy.md` §2.1 / §7 / §11. Disable
+  with `EVENT_LOGGING_ENABLED=false`.
 - The iOS keyboard sends text only when the user taps an AI command —
   never per keystroke.
+
+## Event log and retention
+
+Table: `public.ai_rewrite_events`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` | Returned as `eventId` in the response |
+| `user_id` | `uuid` | Supabase auth `sub` |
+| `created_at` | `timestamptz` | Defaults to `now()` |
+| `payload` | `jsonb` | `{ prompt, input, candidates, language, command_key, title, refinement, locale, app_version, candidate_count, provider, *_length, latency_ms }` |
+| `selected_index` | `integer` (nullable) | Populated by a future feedback endpoint |
+| `selected_at` | `timestamptz` (nullable) | Populated by a future feedback endpoint |
+
+RLS is on; only `service_role` can read/write. Inserts happen synchronously
+inside the request handler but a failed insert never fails the user
+response — the client just receives `eventId: null`.
+
+Retention helpers (schedule via `pg_cron` or external scheduler):
+
+- `select public.delete_ai_rewrite_events_older_than(30);` — drop events
+  older than 30 days. Returns the deleted row count.
+- `select public.delete_old_ai_rewrite_usage_buckets(48, 35);` — drop
+  minute/hour usage buckets older than 48 hours and day buckets older than
+  35 days. Bucket rows are not user-facing — the values themselves only
+  matter inside their bucket window.
+
+Cold archive to Supabase Storage (NDJSON.gz) is deliberately not wired up
+yet — defer until production volume justifies it.
 
 ## Deploy
 
@@ -172,21 +255,27 @@ curl -i -X POST \
 
 ## Known limitations (block public launch)
 
-- **In-memory daily quota**: the `dailyUsage` `Map<string, number>` is
-  per-warm-runtime. A cold start resets it; multiple warm instances each
-  hold their own. Acceptable for TestFlight, not for public launch.
-  Replace with a Postgres table keyed on `(user_id, day)`.
+- **Production usage guard must be DB mode**: `USAGE_GUARD_MODE=local` is still
+  per-warm-runtime. Before public launch, apply the usage migration and set
+  `USAGE_GUARD_MODE=db`.
+- **Retention scheduling not yet automated.** The
+  `delete_ai_rewrite_events_older_than` and
+  `delete_old_ai_rewrite_usage_buckets` functions exist but are not yet on
+  a `pg_cron` schedule.
+- **No selected-candidate feedback path yet.** `eventId` is returned but the
+  iOS client does not post selection back. Required for the highest-value
+  signal in the collected data.
 - **No abuse logging beyond Edge Function console logs.** Wire to
   Sentry / Logflare before launch.
-- **No model-level rate limit handling** — Groq 429s become
-  `provider_error` to the client. Add Retry-After parsing if it becomes
-  user-visible.
+- **No Retry-After display** — provider 429s are mapped to
+  `provider_rate_limited`, but the client does not yet show provider-specific
+  retry timing.
 
 ## Rollback
 
-If a Groq deploy goes bad, the previous OpenAI Responses API (`gpt-5.1`)
-implementation is recoverable from git history. Find the commit before
-the Groq switch (around 2026-06-06) with:
+If a provider deploy goes bad, the previous OpenAI Responses API (`gpt-5.1`)
+implementation is recoverable from git history. Find the commit before the
+Groq/Cerebras provider work with:
 
 ```bash
 git log --oneline -- supabase/functions/keyboard-rewrite/index.ts

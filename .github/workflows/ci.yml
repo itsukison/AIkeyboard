@@ -39,14 +39,14 @@ jobs:
       - name: Resolve packages
         run: |
           xcodebuild -resolvePackageDependencies \
-            -project BikeyJP.xcodeproj \
-            -scheme BikeyJP
+            -project KeigoButton.xcodeproj \
+            -scheme KeigoButton
 
       - name: Run AI tests
         run: |
           xcodebuild test \
-            -project BikeyJP.xcodeproj \
-            -scheme BikeyJP \
+            -project KeigoButton.xcodeproj \
+            -scheme KeigoButton \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -only-testing:JapaneseKeyboardAITests \
             -resultBundlePath build/ai-tests.xcresult \
@@ -55,8 +55,8 @@ jobs:
       - name: Run Core tests
         run: |
           xcodebuild test \
-            -project BikeyJP.xcodeproj \
-            -scheme BikeyJP \
+            -project KeigoButton.xcodeproj \
+            -scheme KeigoButton \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -only-testing:JapaneseKeyboardCoreTests \
             -resultBundlePath build/core-tests.xcresult \
@@ -65,8 +65,8 @@ jobs:
       - name: Build keyboard extension
         run: |
           xcodebuild build \
-            -project BikeyJP.xcodeproj \
-            -scheme BikeyJP \
+            -project KeigoButton.xcodeproj \
+            -scheme KeigoButton \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO

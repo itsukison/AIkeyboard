@@ -40,7 +40,7 @@ private struct WelcomePage: View {
             VStack(alignment: .leading, spacing: 0) {
                 Color.clear.frame(height: topInset)
 
-                Text("普通に入力。\n必要な時だけAI。")
+                Text("送る前に、\n敬語に整える。")
                     .bikeyFont(32, weight: .medium, relativeTo: .largeTitle)
                     .foregroundStyle(.white)
                     .tracking(-0.4)
@@ -48,7 +48,7 @@ private struct WelcomePage: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .shadow(color: .black.opacity(0.30), radius: 12, x: 0, y: 6)
 
-                Text("プロンプトを保存して、どの端末でも同じAI体験を。")
+                Text("LINE、メール、DMの文面をその場で自然に。")
                     .bikeyFont(14, weight: .regular, relativeTo: .footnote)
                     .foregroundStyle(.white.opacity(0.86))
                     .padding(.top, BikeyMetrics.Spacing.s + 4)
