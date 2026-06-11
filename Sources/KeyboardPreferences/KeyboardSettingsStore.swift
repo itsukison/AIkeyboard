@@ -86,3 +86,85 @@ public enum KeyboardSettingsStore {
         defaults?.set(enabled, forKey: lastKnownFullAccessEnabledKey)
     }
 }
+
+public struct KeyboardUsageStatsSnapshot: Equatable, Sendable {
+    public let conversionsTotal: Int
+    public let streakDays: Int
+
+    public init(conversionsTotal: Int, streakDays: Int) {
+        self.conversionsTotal = conversionsTotal
+        self.streakDays = streakDays
+    }
+}
+
+public enum KeyboardUsageStatsStore {
+    public static let conversionsTotalKey = "stats.conversionsTotal"
+    public static let lastConversionDayKey = "stats.lastConversionDay"
+    public static let streakDaysKey = "stats.streakDays"
+
+    public static func snapshot(
+        defaults: UserDefaults = KeyboardSettingsStore.sharedDefaults ?? .standard,
+        now: Date = Date()
+    ) -> KeyboardUsageStatsSnapshot {
+        let total = defaults.integer(forKey: conversionsTotalKey)
+        var streak = defaults.integer(forKey: streakDaysKey)
+
+        if let storedDay = defaults.string(forKey: lastConversionDayKey),
+           let dayDiff = daysBetween(storedDay, and: now),
+           dayDiff > 1 {
+            streak = 0
+            defaults.set(0, forKey: streakDaysKey)
+        }
+
+        return KeyboardUsageStatsSnapshot(conversionsTotal: total, streakDays: streak)
+    }
+
+    @discardableResult
+    public static func recordAcceptedRewrite(
+        defaults: UserDefaults = KeyboardSettingsStore.sharedDefaults ?? .standard,
+        now: Date = Date()
+    ) -> KeyboardUsageStatsSnapshot {
+        let today = dayIdentifier(for: now)
+        let storedDay = defaults.string(forKey: lastConversionDayKey)
+        let total = defaults.integer(forKey: conversionsTotalKey) + 1
+
+        let streak: Int
+        if storedDay == today {
+            streak = max(1, defaults.integer(forKey: streakDaysKey))
+        } else if let storedDay,
+                  let dayDiff = daysBetween(storedDay, and: now),
+                  dayDiff == 1 {
+            streak = defaults.integer(forKey: streakDaysKey) + 1
+        } else {
+            streak = 1
+        }
+
+        defaults.set(total, forKey: conversionsTotalKey)
+        defaults.set(streak, forKey: streakDaysKey)
+        defaults.set(today, forKey: lastConversionDayKey)
+
+        return KeyboardUsageStatsSnapshot(conversionsTotal: total, streakDays: streak)
+    }
+
+    private static func daysBetween(_ storedDay: String, and now: Date) -> Int? {
+        guard let stored = dayFormatter.date(from: storedDay) else { return nil }
+        let calendar = Calendar.current
+        guard let storedStart = calendar.dateInterval(of: .day, for: stored)?.start,
+              let todayStart = calendar.dateInterval(of: .day, for: now)?.start else {
+            return nil
+        }
+        return calendar.dateComponents([.day], from: storedStart, to: todayStart).day
+    }
+
+    private static func dayIdentifier(for date: Date) -> String {
+        dayFormatter.string(from: date)
+    }
+
+    private static var dayFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }
+}

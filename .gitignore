@@ -85,3 +85,4 @@ Config/Local.xcconfig
 # Supabase
 supabase/.temp/
 supabase/.branch/
+.env

@@ -79,6 +79,12 @@ original prompt; the three `refine` chips
 (`morePolite`/`moreDetailed`/`moreConcise`) further-edit the currently
 focused candidate.
 
+Fresh main/sub prompt generations always start on the leftmost card. For
+the default three-card response, the backend asks the model to keep a
+stable order: standard, slightly softer, then slightly more polite. The
+cards stay unlabeled; the differences should be subtle unless the user
+taps a refinement chip.
+
 Errors collapse the carousel and show a one-line message bar with a close
 button.
 

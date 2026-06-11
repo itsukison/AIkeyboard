@@ -52,6 +52,17 @@ final class InputManagerTests: XCTestCase {
         XCTAssertEqual(im.displayKana, "きょ")
     }
 
+    func testBackspaceShortensSmallYoonKanaComposition() async {
+        let im = makeManagerWithAdapter()
+        for ch in "nya" {
+            im.appendRomaji(ch)
+        }
+        await im.currentConversionTask()?.value
+        XCTAssertEqual(im.displayKana, "にゃ")
+        XCTAssertTrue(im.backspace())
+        XCTAssertEqual(im.displayKana, "に")
+    }
+
     func testResetClearsState() async {
         let im = makeManagerWithAdapter()
         for ch in "kyou" {

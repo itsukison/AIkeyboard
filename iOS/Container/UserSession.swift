@@ -1,5 +1,6 @@
 import Foundation
 import KeyboardPreferences
+import PostHog
 import Supabase
 
 @MainActor
@@ -71,6 +72,8 @@ final class UserSession: ObservableObject {
 
     func deleteAccount() async throws {
         try await supabase.functions.invoke("delete-account")
+        PostHogSDK.shared.capture("account_deleted")
+        PostHogSDK.shared.reset()
         try? await supabase.auth.signOut()
         clearTokens()
         UserPromptStore.writeEntries([])
@@ -84,6 +87,11 @@ final class UserSession: ObservableObject {
             data: ["display_name": .string(name)]
         )
         let profile = try await loadProfile(for: response.user, fallbackName: name)
+        PostHogSDK.shared.identify(profile.id.uuidString, userProperties: [
+            "name": profile.displayName,
+            "email": profile.email,
+        ])
+        PostHogSDK.shared.capture("signed_up")
         state = .signedIn(profile)
         try? await refreshUserPromptsCache(for: profile.id)
     }
@@ -91,11 +99,18 @@ final class UserSession: ObservableObject {
     func signIn(email: String, password: String) async throws {
         let session = try await supabase.auth.signIn(email: email, password: password)
         let profile = try await loadProfile(for: session.user)
+        PostHogSDK.shared.identify(profile.id.uuidString, userProperties: [
+            "name": profile.displayName,
+            "email": profile.email,
+        ])
+        PostHogSDK.shared.capture("signed_in")
         state = .signedIn(profile)
         try? await refreshUserPromptsCache(for: profile.id)
     }
 
     func signOut() async {
+        PostHogSDK.shared.capture("signed_out")
+        PostHogSDK.shared.reset()
         try? await supabase.auth.signOut()
         clearTokens()
         UserPromptStore.writeEntries([])

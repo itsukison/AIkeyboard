@@ -107,6 +107,7 @@ final class AIKeyboardController: ObservableObject {
                 with: replacement,
                 proxy: controller.textDocumentProxy.ai
             )
+            KeyboardUsageStatsStore.recordAcceptedRewrite()
             state = .hidden
         } catch {
             state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")

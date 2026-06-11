@@ -83,6 +83,8 @@ struct ProfileScreen: View {
 }
 
 private struct PersonalInformationView: View {
+    @Environment(\.dismiss) private var dismiss
+
     let profile: UserSession.Profile?
 
     private static let dateFormatter: DateFormatter = {
@@ -109,6 +111,12 @@ private struct PersonalInformationView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("ユーザー情報")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                BikeyNavigationBackButton { dismiss() }
+            }
+        }
     }
 
     private func infoRow(label: String, value: String) -> some View {

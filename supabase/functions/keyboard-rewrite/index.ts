@@ -639,12 +639,23 @@ function normalizeResult(result: RewriteResult, request: RewriteRequest): Rewrit
 }
 
 function systemInstructions(candidateCount: number): string {
+  const candidateInstruction = candidateCount === 3
+    ? [
+      "Return exactly 3 candidate rewrites in this fixed order:",
+      "1. Standard: balanced and natural for the requested command.",
+      "2. Slightly softer: warmer and a little more casual, without slang.",
+      "3. Slightly more polite: one notch more courteous, without becoming stiff.",
+      "Keep the differences subtle unless the command or refinement explicitly asks for a stronger change.",
+      "Avoid near-duplicates.",
+    ].join("\n")
+    : `Return exactly ${candidateCount} distinct candidate rewrites that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`;
+
   return [
     "You are a Japanese mobile keyboard writing assistant.",
     "Apply the user-supplied command instruction to the target text only.",
     "Preserve meaning, names, numbers, URLs, dates, emoji, and line breaks.",
     "Do not add explanations, greetings, markdown, quotes, or commentary.",
-    `Return exactly ${candidateCount} distinct candidate rewrites that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`,
+    candidateInstruction,
     "Return strict JSON matching the schema.",
   ].join("\n");
 }

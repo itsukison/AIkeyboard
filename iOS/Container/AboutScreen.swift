@@ -51,21 +51,7 @@ struct AboutScreen: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 36, height: 36)
-                            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 3)
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(AppColor.ink)
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("戻る")
+                BikeyNavigationBackButton { dismiss() }
             }
         }
         .sheet(item: $activeURL) { SafariView(url: $0.url) }

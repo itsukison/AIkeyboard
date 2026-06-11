@@ -1,3 +1,4 @@
+import PostHog
 import SwiftUI
 
 enum AuthField: Hashable {
@@ -88,7 +89,11 @@ struct SignUpForm: View {
                 )
                 pendingPostAuthOnboarding = true
             } catch {
-                errorMessage = japaneseAuthErrorMessage(for: error)
+                let message = japaneseAuthErrorMessage(for: error)
+                errorMessage = message
+                PostHogSDK.shared.capture("sign_up_error", properties: [
+                    "error_message": error.localizedDescription,
+                ])
             }
         }
     }
@@ -161,7 +166,11 @@ struct SignInForm: View {
                 )
                 pendingPostAuthOnboarding = true
             } catch {
-                errorMessage = japaneseAuthErrorMessage(for: error)
+                let message = japaneseAuthErrorMessage(for: error)
+                errorMessage = message
+                PostHogSDK.shared.capture("sign_in_error", properties: [
+                    "error_message": error.localizedDescription,
+                ])
             }
         }
     }

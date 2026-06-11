@@ -26,11 +26,17 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.5.1
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios
+    from: 3.59.3
 
 targets:
   KeigoButton:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/Local.xcconfig
+      Release: Config/Local.xcconfig
     sources:
       - path: iOS/Container
         excludes:
@@ -62,6 +68,8 @@ targets:
         product: KeyboardKit
       - package: Supabase
         product: Supabase
+      - package: PostHog
+        product: PostHog
 
   KeyboardExtension:
     type: app-extension

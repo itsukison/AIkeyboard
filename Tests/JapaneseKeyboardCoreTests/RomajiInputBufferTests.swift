@@ -72,6 +72,47 @@ final class RomajiInputBufferTests: XCTestCase {
         XCTAssertEqual(buf.displayKana, "こん")
     }
 
+    func testBackspaceDeletesSmallYoonKanaOnly() {
+        let cases: [(romaji: String, expectedRomaji: String, expectedKana: String)] = [
+            ("nya", "ni", "に"),
+            ("kya", "ki", "き"),
+            ("sha", "shi", "し"),
+            ("cha", "chi", "ち"),
+        ]
+
+        for testCase in cases {
+            let buf = RomajiInputBuffer()
+            for ch in testCase.romaji {
+                buf.append(ch)
+            }
+
+            XCTAssertTrue(buf.backspace(), testCase.romaji)
+            XCTAssertEqual(buf.pendingRomaji, testCase.expectedRomaji, testCase.romaji)
+            XCTAssertEqual(buf.displayKana, testCase.expectedKana, testCase.romaji)
+        }
+    }
+
+    func testBackspaceDeletesSmallVowelKanaOnly() {
+        let buf = RomajiInputBuffer()
+        for ch in "fa" {
+            buf.append(ch)
+        }
+
+        XCTAssertTrue(buf.backspace())
+        XCTAssertEqual(buf.pendingRomaji, "fu")
+        XCTAssertEqual(buf.displayKana, "ふ")
+    }
+
+    func testBackspaceAfterSokuonLeavesSokuon() {
+        let buf = RomajiInputBuffer()
+        for ch in "kko" {
+            buf.append(ch)
+        }
+
+        XCTAssertTrue(buf.backspace())
+        XCTAssertEqual(buf.displayKana, "っ")
+    }
+
     func testBackspaceOnEmptyReturnsFalse() {
         let buf = RomajiInputBuffer()
         XCTAssertFalse(buf.backspace())

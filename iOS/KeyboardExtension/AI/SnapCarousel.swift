@@ -11,6 +11,7 @@ struct SnapCarousel: UIViewRepresentable {
     let candidates: [RewriteCandidate]
     let showSkeletons: Bool
     let focusedIndex: Int?
+    let animatesProgrammaticScroll: Bool
     let onTapCentered: () -> Void
 
     private var totalCount: Int {
@@ -63,7 +64,7 @@ struct SnapCarousel: UIViewRepresentable {
                 let coord = context.coordinator
                 coord.isProgrammaticallyScrolling = true
                 view.currentCenteredIndex = centered
-                view.scroll(toIndex: centered, animated: true) { [weak coord] _ in
+                view.scroll(toIndex: centered, animated: animatesProgrammaticScroll) { [weak coord] _ in
                     coord?.isProgrammaticallyScrolling = false
                 }
             } else {

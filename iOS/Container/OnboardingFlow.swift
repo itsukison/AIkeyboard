@@ -1,3 +1,4 @@
+import PostHog
 import SwiftUI
 import UIKit
 
@@ -34,7 +35,15 @@ struct OnboardingFlow: View {
                 OnboardingSourcePage(
                     progress: progress(for: 2),
                     onBack: { goBack() },
-                    onContinue: { _ in onFinish() }
+                    onContinue: { source in
+                        if let source {
+                            PostHogSDK.shared.capture("onboarding_source_selected", properties: [
+                                "source": source.rawValue,
+                            ])
+                        }
+                        PostHogSDK.shared.capture("onboarding_completed")
+                        onFinish()
+                    }
                 )
             default:
                 legacyPostAuthBody

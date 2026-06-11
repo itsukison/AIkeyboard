@@ -23,10 +23,20 @@ struct AIResultOverlayView: View {
 
     private var panelModel: PanelModel? {
         switch aiController.state {
-        case .generating(_, _, _, let existing):
-            return PanelModel(existing: existing, showSkeletons: true, focusedIndex: nil)
+        case .generating(_, _, let refinement, let existing):
+            return PanelModel(
+                existing: existing,
+                showSkeletons: true,
+                focusedIndex: nil,
+                resetToFirstCard: refinement == nil && existing.isEmpty
+            )
         case .result(_, _, let candidates, let selectedIndex):
-            return PanelModel(existing: candidates, showSkeletons: false, focusedIndex: selectedIndex)
+            return PanelModel(
+                existing: candidates,
+                showSkeletons: false,
+                focusedIndex: selectedIndex,
+                resetToFirstCard: false
+            )
         default:
             return nil
         }
@@ -38,7 +48,8 @@ struct AIResultOverlayView: View {
             cardsCarousel(
                 candidates: model.existing,
                 showSkeletons: model.showSkeletons,
-                focusedIndex: model.focusedIndex
+                focusedIndex: model.focusedIndex,
+                resetToFirstCard: model.resetToFirstCard
             )
             .padding(.top, 4)
 
@@ -51,26 +62,43 @@ struct AIResultOverlayView: View {
         .padding(.top, KeyboardChromeMetrics.toolbarHeight)
     }
 
-    private func cardsCarousel(candidates: [RewriteCandidate], showSkeletons: Bool, focusedIndex: Int?) -> some View {
-        SnapCarousel(
-            centeredIndex: $centeredIndex,
+    private func cardsCarousel(
+        candidates: [RewriteCandidate],
+        showSkeletons: Bool,
+        focusedIndex: Int?,
+        resetToFirstCard: Bool
+    ) -> some View {
+        let carouselIndex = Binding<Int>(
+            get: { resetToFirstCard ? 0 : centeredIndex },
+            set: { centeredIndex = resetToFirstCard ? 0 : $0 }
+        )
+
+        return SnapCarousel(
+            centeredIndex: carouselIndex,
             candidates: candidates,
             showSkeletons: showSkeletons,
             focusedIndex: focusedIndex,
+            animatesProgrammaticScroll: !resetToFirstCard,
             onTapCentered: { aiController.replaceFocusedCandidate() }
         )
         .frame(height: CandidateCardMetrics.size.height)
+        .onAppear {
+            guard resetToFirstCard else { return }
+            centeredIndex = 0
+        }
+        .onChange(of: resetToFirstCard) { shouldReset in
+            guard shouldReset else { return }
+            centeredIndex = 0
+        }
         .onChange(of: focusedIndex) { newFocused in
             guard let newFocused, candidates.indices.contains(newFocused), centeredIndex != newFocused else { return }
             centeredIndex = newFocused
         }
-        // When a refinement batch begins (skeletons appended to the end of the
-        // existing cards), jump focus to the first skeleton so the carousel
-        // auto-scrolls there. Mirrors the pre-snap `proxy.scrollTo(_, .leading)`
-        // behavior, just snap-style.
+        // Fresh generations start from the first skeleton; refinement batches
+        // append skeletons to the end so users can compare with existing cards.
         .onChange(of: showSkeletons) { isShowing in
-            guard isShowing, !candidates.isEmpty else { return }
-            centeredIndex = candidates.count
+            guard isShowing else { return }
+            centeredIndex = resetToFirstCard ? 0 : candidates.count
         }
         .onChange(of: centeredIndex) { newCentered in
             guard candidates.indices.contains(newCentered) else { return }
@@ -100,6 +128,7 @@ struct AIResultOverlayView: View {
         let existing: [RewriteCandidate]
         let showSkeletons: Bool
         let focusedIndex: Int?
+        let resetToFirstCard: Bool
     }
 }
 

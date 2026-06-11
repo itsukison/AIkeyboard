@@ -68,4 +68,47 @@ final class ConversionPreferenceStoreTests: XCTestCase {
 
         XCTAssertEqual(ranked, ["京", "今日", "きょう"])
     }
+
+    func testUsageStatsRecordAcceptedRewriteIncrementsTotalAndStartsStreak() {
+        let now = Date(timeIntervalSince1970: 1_780_000_000)
+
+        let snapshot = KeyboardUsageStatsStore.recordAcceptedRewrite(defaults: defaults, now: now)
+
+        XCTAssertEqual(snapshot.conversionsTotal, 1)
+        XCTAssertEqual(snapshot.streakDays, 1)
+        XCTAssertEqual(KeyboardUsageStatsStore.snapshot(defaults: defaults, now: now), snapshot)
+    }
+
+    func testUsageStatsSameDayKeepsSingleStreakDay() {
+        let first = Date(timeIntervalSince1970: 1_780_000_000)
+        let second = first.addingTimeInterval(60 * 60)
+
+        _ = KeyboardUsageStatsStore.recordAcceptedRewrite(defaults: defaults, now: first)
+        let snapshot = KeyboardUsageStatsStore.recordAcceptedRewrite(defaults: defaults, now: second)
+
+        XCTAssertEqual(snapshot.conversionsTotal, 2)
+        XCTAssertEqual(snapshot.streakDays, 1)
+    }
+
+    func testUsageStatsNextDayAdvancesStreak() {
+        let first = Date(timeIntervalSince1970: 1_780_000_000)
+        let second = first.addingTimeInterval(60 * 60 * 24)
+
+        _ = KeyboardUsageStatsStore.recordAcceptedRewrite(defaults: defaults, now: first)
+        let snapshot = KeyboardUsageStatsStore.recordAcceptedRewrite(defaults: defaults, now: second)
+
+        XCTAssertEqual(snapshot.conversionsTotal, 2)
+        XCTAssertEqual(snapshot.streakDays, 2)
+    }
+
+    func testUsageStatsSnapshotExpiresStaleStreak() {
+        let first = Date(timeIntervalSince1970: 1_780_000_000)
+        let stale = first.addingTimeInterval(60 * 60 * 24 * 2)
+
+        _ = KeyboardUsageStatsStore.recordAcceptedRewrite(defaults: defaults, now: first)
+        let snapshot = KeyboardUsageStatsStore.snapshot(defaults: defaults, now: stale)
+
+        XCTAssertEqual(snapshot.conversionsTotal, 1)
+        XCTAssertEqual(snapshot.streakDays, 0)
+    }
 }

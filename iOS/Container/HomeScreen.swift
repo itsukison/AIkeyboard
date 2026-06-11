@@ -1,3 +1,4 @@
+import PostHog
 import SwiftUI
 import UIKit
 
@@ -65,6 +66,11 @@ struct HomeScreen: View {
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(32)
                 .presentationBackground(AppColor.background)
+        }
+        .onChange(of: showDemo) { isShowing in
+            if isShowing {
+                PostHogSDK.shared.capture("demo_opened")
+            }
         }
         .onAppear {
             guard isLoading else { return }

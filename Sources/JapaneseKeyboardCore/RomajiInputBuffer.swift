@@ -41,14 +41,140 @@ public final class RomajiInputBuffer {
     @discardableResult
     public func backspace() -> Bool {
         guard !pendingRomaji.isEmpty else { return false }
-        let originalCount = displayKana.count
-        repeat {
+        let originalDisplay = displayKana
+        guard !originalDisplay.isEmpty else {
             pendingRomaji.removeLast()
-        } while !pendingRomaji.isEmpty && displayKana.count >= originalCount
+            return true
+        }
+
+        let targetDisplay = String(originalDisplay.dropLast())
+        if setPendingRomajiByTrimming(to: targetDisplay) { return true }
+        if setPendingRomajiByReconciling(to: targetDisplay) { return true }
+
+        pendingRomaji.removeLast()
         return true
     }
 
     public func reset() {
         pendingRomaji = ""
+    }
+
+    private func setPendingRomajiByTrimming(to targetDisplay: String) -> Bool {
+        var candidate = pendingRomaji
+        repeat {
+            candidate.removeLast()
+            if Romaji.toLiveKana(candidate) == targetDisplay {
+                pendingRomaji = candidate
+                return true
+            }
+        } while !candidate.isEmpty
+        return false
+    }
+
+    private func setPendingRomajiByReconciling(to targetDisplay: String) -> Bool {
+        let original = pendingRomaji
+        var prefixEnd = original.endIndex
+
+        while true {
+            let rawPrefix = String(original[..<prefixEnd])
+            let displayPrefix = Romaji.toLiveKana(rawPrefix)
+
+            if targetDisplay.hasPrefix(displayPrefix) {
+                let suffixDisplay = String(targetDisplay.dropFirst(displayPrefix.count))
+                let originalSuffix = String(original[prefixEnd...])
+                if let suffix = Self.bestRomaji(for: suffixDisplay, originalSuffix: originalSuffix) {
+                    let candidate = rawPrefix + suffix
+                    if Romaji.toLiveKana(candidate) == targetDisplay {
+                        pendingRomaji = candidate
+                        return true
+                    }
+                }
+            }
+
+            if prefixEnd == original.startIndex { break }
+            prefixEnd = original.index(before: prefixEnd)
+        }
+
+        return false
+    }
+
+    private static func bestRomaji(for display: String, originalSuffix: String) -> String? {
+        guard !display.isEmpty else { return "" }
+        return romajiCandidates(for: display)
+            .filter { Romaji.toLiveKana($0) == display }
+            .sorted { isBetterRomaji($0, than: $1, originalSuffix: originalSuffix) }
+            .first
+    }
+
+    private static func romajiCandidates(for display: String) -> [String] {
+        var results: [String] = []
+        let entries = Romaji.kanaTable
+            .map { (romaji: $0.key, kana: $0.value) }
+            .sorted {
+                if $0.kana.count != $1.kana.count { return $0.kana.count > $1.kana.count }
+                return $0.romaji < $1.romaji
+            }
+
+        func visit(_ remaining: Substring, built: String) {
+            guard results.count < 128 else { return }
+            guard !remaining.isEmpty else {
+                results.append(built)
+                return
+            }
+
+            if let first = remaining.first, first.isASCII {
+                visit(remaining.dropFirst(), built: built + String(first))
+            }
+
+            for entry in entries where remaining.hasPrefix(entry.kana) {
+                visit(remaining.dropFirst(entry.kana.count), built: built + entry.romaji)
+            }
+        }
+
+        visit(display[...], built: "")
+        return results
+    }
+
+    private static func isBetterRomaji(_ lhs: String, than rhs: String, originalSuffix: String) -> Bool {
+        let lhsPrefix = commonPrefixLength(lhs, originalSuffix)
+        let rhsPrefix = commonPrefixLength(rhs, originalSuffix)
+        if lhsPrefix != rhsPrefix { return lhsPrefix > rhsPrefix }
+
+        let lhsSameFirst = lhs.first == originalSuffix.first
+        let rhsSameFirst = rhs.first == originalSuffix.first
+        if lhsSameFirst != rhsSameFirst { return lhsSameFirst }
+
+        let lhsRank = preferredRomanizationRank(lhs)
+        let rhsRank = preferredRomanizationRank(rhs)
+        if lhsRank != rhsRank { return lhsRank < rhsRank }
+
+        let lhsDelta = abs(lhs.count - originalSuffix.count)
+        let rhsDelta = abs(rhs.count - originalSuffix.count)
+        if lhsDelta != rhsDelta { return lhsDelta < rhsDelta }
+
+        if lhs.count != rhs.count { return lhs.count < rhs.count }
+        return lhs < rhs
+    }
+
+    private static func commonPrefixLength(_ lhs: String, _ rhs: String) -> Int {
+        var count = 0
+        for (left, right) in zip(lhs, rhs) {
+            guard left == right else { break }
+            count += 1
+        }
+        return count
+    }
+
+    private static func preferredRomanizationRank(_ romaji: String) -> Int {
+        switch romaji {
+        case "shi", "chi", "tsu", "fu", "ji", "xtu", "xya", "xyu", "xyo":
+            return 0
+        case "si", "ti", "tu", "hu", "zi", "xtsu", "lya", "lyu", "lyo":
+            return 1
+        case "ltu", "ltsu":
+            return 2
+        default:
+            return 10
+        }
     }
 }

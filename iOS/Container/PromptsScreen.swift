@@ -1,4 +1,5 @@
 import KeyboardPreferences
+import PostHog
 import SwiftUI
 import UIKit
 
@@ -181,6 +182,9 @@ struct PromptsScreen: View {
                     sortOrder: entry.sortOrder,
                     userId: profile.id
                 )
+                PostHogSDK.shared.capture("prompt_updated", properties: [
+                    "is_builtin": entry.builtinKey != nil,
+                ])
             } else {
                 _ = try await UserPromptRemoteStore.insertCustomSubPrompt(
                     title: trimmedTitle,
@@ -188,6 +192,7 @@ struct PromptsScreen: View {
                     sortOrder: nextSortOrder(),
                     userId: profile.id
                 )
+                PostHogSDK.shared.capture("prompt_created")
             }
             try await session.refreshUserPromptsCache()
             entries = UserPromptStore.readEntries()
@@ -217,6 +222,7 @@ struct PromptsScreen: View {
         defer { isSyncing = false }
         do {
             try await UserPromptRemoteStore.deletePrompt(id: entry.id, userId: profile.id)
+            PostHogSDK.shared.capture("prompt_deleted")
             try await session.refreshUserPromptsCache()
             entries = UserPromptStore.readEntries()
             editorPayload = nil
