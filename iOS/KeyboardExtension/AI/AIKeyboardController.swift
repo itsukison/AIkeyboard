@@ -114,29 +114,6 @@ final class AIKeyboardController: ObservableObject {
         }
     }
 
-    func openSettings() {
-        openApp(url: Self.settingsURL, failureMessage: "設定を開けませんでした")
-    }
-
-    func openLogin() {
-        openApp(url: Self.loginURL, failureMessage: "アプリを開けませんでした")
-    }
-
-    private func openApp(url: URL, failureMessage: String) {
-        guard let controller else { return }
-        var responder: UIResponder? = controller
-        let selector = sel_registerName("openURL:")
-        while let current = responder {
-            if current.responds(to: selector) {
-                _ = current.perform(selector, with: url)
-                state = .hidden
-                return
-            }
-            responder = current.next
-        }
-        state = .error(prompt: nil, message: failureMessage)
-    }
-
     func documentDidChange() {
         guard let controller else { return }
         let current = String(describing: controller.textDocumentProxy.documentIdentifier)
@@ -180,12 +157,16 @@ final class AIKeyboardController: ObservableObject {
 
         guard let controller else { return }
 
+        guard KeyboardSettingsStore.readAIConsentGranted() else {
+            state = .consentRequired(prompt: prompt)
+            return
+        }
         guard KeyboardSettingsStore.readCloudAIEnabled() else {
             state = .error(prompt: prompt, message: "Cloud AIを設定でオンにしてください")
             return
         }
         guard controller.state.keyboardContext.hasFullAccess else {
-            state = .error(prompt: prompt, message: "フルアクセスを有効にしてください")
+            state = .fullAccessRequired(prompt: prompt)
             return
         }
         guard AIAuthStore.readAccessToken() != nil else {
@@ -251,7 +232,7 @@ final class AIKeyboardController: ObservableObject {
         case CloudRewriteError.backend(let message):
             return message
         default:
-            return "AI rewrite failed."
+            return "通信に失敗しました。電波の良い場所で、もう一度お試しください。"
         }
     }
 }

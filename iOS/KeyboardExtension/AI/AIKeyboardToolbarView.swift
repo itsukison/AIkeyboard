@@ -39,6 +39,10 @@ struct AIKeyboardToolbarView: View {
             commandResultBar(prompt: prompt, isGenerating: false)
         case .error:
             errorBar
+        case .consentRequired:
+            consentRequiredBar
+        case .fullAccessRequired:
+            fullAccessRequiredBar
         case .hidden, .overflow:
             EmptyView()
         }
@@ -57,9 +61,7 @@ struct AIKeyboardToolbarView: View {
 
     private var signedOutBar: some View {
         HStack(spacing: 0) {
-            pillButton(label: "ログイン", isSelected: false) {
-                aiController.openLogin()
-            }
+            pillLink(label: "ログイン", url: AIKeyboardController.loginURL)
             .accessibilityLabel("ログインまたは登録")
 
             Spacer()
@@ -139,9 +141,7 @@ struct AIKeyboardToolbarView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .transition(.move(edge: .trailing).combined(with: .opacity))
 
-                pillButton(label: "設定", isSelected: false) {
-                    aiController.openSettings()
-                }
+                pillLink(label: "設定", url: AIKeyboardController.settingsURL)
                 .accessibilityLabel("設定")
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
@@ -236,26 +236,99 @@ struct AIKeyboardToolbarView: View {
         .padding(.horizontal, 12)
     }
 
+    /// Shown when the user taps an AI command before granting consent in the
+    /// container app. No text is sent; we point them to the app to enable it.
+    private var consentRequiredBar: some View {
+        HStack(spacing: 8) {
+            Text("AI機能はアプリで有効にできます")
+                .font(.system(size: 13))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 4)
+
+            pillLink(label: "アプリで開く", url: AIKeyboardController.settingsURL)
+            .accessibilityLabel("アプリでAI機能を有効にする")
+
+            Button {
+                aiController.close()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(width: KeyboardChromeMetrics.toolbarButtonHeight, height: KeyboardChromeMetrics.toolbarButtonHeight)
+                    .foregroundStyle(KeyboardPalette.ink)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("閉じる")
+        }
+        .padding(.horizontal, 12)
+    }
+
+    /// Shown when the user taps an AI command without Full Access enabled.
+    /// Full Access is an iOS system setting; we point them to the app's settings
+    /// screen, where the Full Access row links out to iOS Settings.
+    private var fullAccessRequiredBar: some View {
+        HStack(spacing: 8) {
+            Text("フルアクセスをオンにすると使えます")
+                .font(.system(size: 13))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 4)
+
+            pillLink(label: "アプリで開く", url: AIKeyboardController.settingsURL)
+            .accessibilityLabel("アプリでフルアクセスを有効にする")
+
+            Button {
+                aiController.close()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(width: KeyboardChromeMetrics.toolbarButtonHeight, height: KeyboardChromeMetrics.toolbarButtonHeight)
+                    .foregroundStyle(KeyboardPalette.ink)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("閉じる")
+        }
+        .padding(.horizontal, 12)
+    }
+
     private func pillButton(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        // Font weight + paddings + frame are identical across states so the
-        // pill's geometry never changes. Selected state is conveyed by the
-        // pale lavender fill plus a purple stroke (option A from design.md).
         Button(action: action) {
-            Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(KeyboardPalette.ink)
-                .padding(.horizontal, 12)
-                .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
-                .background(
-                    isSelected ? KeyboardPalette.accentSoft : Color.white.opacity(0.72),
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(isSelected ? KeyboardPalette.accent : Color.clear, lineWidth: 1)
-                )
+            pillLabel(label, isSelected: isSelected)
         }
         .buttonStyle(.plain)
+    }
+
+    /// A pill that opens a container-app URL. Uses a SwiftUI `Link` because the
+    /// selector-based `openURL:` responder-chain trick stopped working in keyboard
+    /// extensions on iOS 18+; `Link` is the supported way to open URLs from here.
+    private func pillLink(label: String, url: URL) -> some View {
+        Link(destination: url) {
+            pillLabel(label, isSelected: false)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Font weight + paddings + frame are identical across states so the
+    // pill's geometry never changes. Selected state is conveyed by the
+    // pale lavender fill plus a purple stroke (option A from design.md).
+    private func pillLabel(_ label: String, isSelected: Bool) -> some View {
+        Text(label)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(KeyboardPalette.ink)
+            .padding(.horizontal, 12)
+            .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
+            .background(
+                isSelected ? KeyboardPalette.accentSoft : Color.white.opacity(0.72),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(isSelected ? KeyboardPalette.accent : Color.clear, lineWidth: 1)
+            )
     }
 }
 

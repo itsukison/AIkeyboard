@@ -62,8 +62,8 @@ KeyboardKit uses `.characterMargin(...)` items for row staggering. Tapping one r
 ### Jetsam is the hard ceiling
 iOS keyboard extensions are killed around 30-60 MB resident. Target < 40 MB peak. Profile early, defer Zenzai to v2.
 
-### No network in the extension
-The extension target ships with `RequestsOpenAccess = NO`. No analytics, no remote calls. The container app may use network for future cloud sync, but the extension must not.
+### Extension network policy
+The extension ships with `RequestsOpenAccess = YES` (Full Access), which the Cloud AI rewrite requires. The only network call is that rewrite, and only after the user explicitly taps an AI command — never send keystrokes, never run analytics from the extension.
 
 ### App Group is the only IPC
 Container ↔ extension data flows through the App Group container (`group.co.gastroduce-japan.bikey.japanese`). No URL schemes, no shared keychain in v1.
