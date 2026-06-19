@@ -1,10 +1,13 @@
+import KeyboardPreferences
 import SwiftUI
 import UIKit
 
 struct AboutScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @State private var activeURL: IdentifiedURL?
+    @State private var fullAccessEnabled = KeyboardSettingsStore.readLastKnownFullAccessEnabled()
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -14,6 +17,14 @@ struct AboutScreen: View {
 
                 AboutListCard(
                     rows: [
+                        AboutRowModel(
+                            icon: "lock.shield",
+                            title: "フルアクセス",
+                            trailing: fullAccessEnabled ? "オン" : "オフ",
+                            highlight: !fullAccessEnabled
+                        ) {
+                            openSystemSettings()
+                        },
                         AboutRowModel(icon: "questionmark.circle", title: "サポート") {
                             activeURL = IdentifiedURL(url: LegalLinks.support)
                         },
@@ -55,6 +66,19 @@ struct AboutScreen: View {
             }
         }
         .sheet(item: $activeURL) { SafariView(url: $0.url) }
+        .onAppear {
+            fullAccessEnabled = KeyboardSettingsStore.readLastKnownFullAccessEnabled()
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                fullAccessEnabled = KeyboardSettingsStore.readLastKnownFullAccessEnabled()
+            }
+        }
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }
 
@@ -120,6 +144,7 @@ private struct AboutRowModel {
     let title: String
     let trailing: String?
     let showsChevron: Bool
+    let highlight: Bool
     let action: () -> Void
 
     init(
@@ -127,12 +152,14 @@ private struct AboutRowModel {
         title: String,
         trailing: String? = nil,
         showsChevron: Bool = true,
+        highlight: Bool = false,
         action: @escaping () -> Void
     ) {
         self.icon = icon
         self.title = title
         self.trailing = trailing
         self.showsChevron = showsChevron
+        self.highlight = highlight
         self.action = action
     }
 }
@@ -193,6 +220,11 @@ private struct AboutListRow: View {
             }
             .padding(.horizontal, BikeyMetrics.Spacing.l - 1)
             .frame(minHeight: 54)
+            .background {
+                if model.highlight {
+                    ShimmerRowBackground()
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

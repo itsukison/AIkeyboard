@@ -24,6 +24,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         }
         Task.detached(priority: .userInitiated) { [weak self] in
             let adapter = KanaKanjiAdapter()
+            await adapter.prewarm()
             await MainActor.run {
                 self?.inputManager.setAdapter(adapter)
             }
@@ -202,9 +203,12 @@ final class KeyboardViewController: KeyboardInputViewController {
         state.keyboardContext.keyboardType = .alphabetic
         // iOS's "Settings → Sounds & Haptics → Keyboard Feedback → Haptic"
         // preference is private to UIKit and unreadable from a sandboxed
-        // keyboard extension, so we can't mirror it directly. KeyboardKit
-        // otherwise fires a haptic on every gesture by default; mirror Apple's
-        // native default (haptic OFF) and let the user opt in via our setting.
+        // keyboard extension, so we can't mirror it directly; the user opts in
+        // via our own setting. `hapticConfiguration` only picks which haptic
+        // maps to each gesture — actual firing is gated by the separate
+        // `settings.isHapticFeedbackEnabled` flag (haptics default OFF in
+        // KeyboardKit), so both must be set for haptics to play.
+        state.feedbackContext.settings.isHapticFeedbackEnabled = hapticsEnabled
         state.feedbackContext.hapticConfiguration = hapticsEnabled ? .standard : .disabled
     }
 

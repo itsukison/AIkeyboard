@@ -9,7 +9,6 @@ enum AuthField: Hashable {
 
 struct SignUpForm: View {
     @EnvironmentObject private var session: UserSession
-    @AppStorage("aikJP.pendingPostAuthOnboarding") private var pendingPostAuthOnboarding = false
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
@@ -87,7 +86,6 @@ struct SignUpForm: View {
                     email: email.trimmingCharacters(in: .whitespaces),
                     password: password
                 )
-                pendingPostAuthOnboarding = true
             } catch {
                 let message = japaneseAuthErrorMessage(for: error)
                 errorMessage = message
@@ -101,7 +99,6 @@ struct SignUpForm: View {
 
 struct SignInForm: View {
     @EnvironmentObject private var session: UserSession
-    @AppStorage("aikJP.pendingPostAuthOnboarding") private var pendingPostAuthOnboarding = false
     @Environment(\.dismiss) private var dismiss
 
     @State private var email: String = ""
@@ -164,7 +161,6 @@ struct SignInForm: View {
                     email: email.trimmingCharacters(in: .whitespaces),
                     password: password
                 )
-                pendingPostAuthOnboarding = true
             } catch {
                 let message = japaneseAuthErrorMessage(for: error)
                 errorMessage = message
@@ -203,10 +199,11 @@ private struct AuthFormScaffold<Content: View>: View {
         ) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 28) {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(spacing: 14) {
                         Text(title)
-                            .font(.system(size: 32, weight: .semibold))
+                            .font(.system(size: 30, weight: .medium))
                             .foregroundStyle(OnboardingPalette.ink)
+                            .multilineTextAlignment(.center)
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
 
@@ -214,10 +211,14 @@ private struct AuthFormScaffold<Content: View>: View {
                             Text(subtitle)
                                 .font(.system(size: 16, weight: .regular))
                                 .foregroundStyle(OnboardingPalette.subInk)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(4)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 4)
                         }
                     }
-                    .padding(.top, 28)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
 
                     content()
 

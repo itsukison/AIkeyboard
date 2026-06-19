@@ -42,7 +42,7 @@ final class UserSession: ObservableObject {
             try? await refreshUserPromptsCache(for: profile.id)
         } catch {
             clearTokens()
-            UserPromptStore.writeEntries([])
+            UserPromptStore.writeEntries(UserPromptDefaults.seedEntries())
             state = .signedOut
         }
 
@@ -52,7 +52,7 @@ final class UserSession: ObservableObject {
                 switch event {
                 case .signedOut, .userDeleted:
                     self.clearTokens()
-                    UserPromptStore.writeEntries([])
+                    UserPromptStore.writeEntries(UserPromptDefaults.seedEntries())
                     self.state = .signedOut
                 case .signedIn, .tokenRefreshed, .userUpdated:
                     if let session {
@@ -76,7 +76,7 @@ final class UserSession: ObservableObject {
         PostHogSDK.shared.reset()
         try? await supabase.auth.signOut()
         clearTokens()
-        UserPromptStore.writeEntries([])
+        UserPromptStore.writeEntries(UserPromptDefaults.seedEntries())
         state = .signedOut
     }
 
@@ -87,10 +87,7 @@ final class UserSession: ObservableObject {
             data: ["display_name": .string(name)]
         )
         let profile = try await loadProfile(for: response.user, fallbackName: name)
-        PostHogSDK.shared.identify(profile.id.uuidString, userProperties: [
-            "name": profile.displayName,
-            "email": profile.email,
-        ])
+        PostHogSDK.shared.identify(profile.id.uuidString, userProperties: identifyProperties(for: profile))
         PostHogSDK.shared.capture("signed_up")
         state = .signedIn(profile)
         try? await refreshUserPromptsCache(for: profile.id)
@@ -99,10 +96,7 @@ final class UserSession: ObservableObject {
     func signIn(email: String, password: String) async throws {
         let session = try await supabase.auth.signIn(email: email, password: password)
         let profile = try await loadProfile(for: session.user)
-        PostHogSDK.shared.identify(profile.id.uuidString, userProperties: [
-            "name": profile.displayName,
-            "email": profile.email,
-        ])
+        PostHogSDK.shared.identify(profile.id.uuidString, userProperties: identifyProperties(for: profile))
         PostHogSDK.shared.capture("signed_in")
         state = .signedIn(profile)
         try? await refreshUserPromptsCache(for: profile.id)
@@ -113,8 +107,19 @@ final class UserSession: ObservableObject {
         PostHogSDK.shared.reset()
         try? await supabase.auth.signOut()
         clearTokens()
-        UserPromptStore.writeEntries([])
+        UserPromptStore.writeEntries(UserPromptDefaults.seedEntries())
         state = .signedOut
+    }
+
+    private func identifyProperties(for profile: Profile) -> [String: Any] {
+        var properties: [String: Any] = [
+            "name": profile.displayName,
+            "email": profile.email,
+        ]
+        if let source = UserDefaults.standard.string(forKey: OnboardingSourceStore.key), !source.isEmpty {
+            properties["acquisition_source"] = source
+        }
+        return properties
     }
 
     private func persistTokens(from session: Session) {
@@ -131,7 +136,7 @@ final class UserSession: ObservableObject {
 
     func refreshUserPromptsCache() async throws {
         guard let profile else {
-            UserPromptStore.writeEntries([])
+            UserPromptStore.writeEntries(UserPromptDefaults.seedEntries())
             return
         }
         try await refreshUserPromptsCache(for: profile.id)

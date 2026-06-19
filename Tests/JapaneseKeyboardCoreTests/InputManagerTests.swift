@@ -175,6 +175,47 @@ final class InputManagerTests: XCTestCase {
         XCTAssertNil(im.selectedCandidateIndex)
     }
 
+    // A typo (unresolvable letter) mid-composition must not cut conversion
+    // short: the convertible input keeps covering the full string with the
+    // stray letter passed through, so the candidate bar shows the typo
+    // instead of silently dropping everything after it.
+    func testTypoMidCompositionKeepsConvertingFullInput() async {
+        let im = makeManagerWithAdapter()
+        for ch in "tabmono" {
+            im.appendRomaji(ch)
+        }
+        XCTAssertEqual(im.displayKana, "たbもの")
+        XCTAssertEqual(im.currentConversionInput, "たbもの")
+        await im.currentConversionTask()?.value
+        XCTAssertTrue(
+            im.candidates.contains(where: { $0.text == "たbもの" }),
+            "Expected raw input incl. typo in candidates: \(im.candidates.map(\.text))"
+        )
+    }
+
+    // A trailing letter run is a partial syllable still being typed, not a
+    // typo; it stays out of the conversion input.
+    func testTrailingPartialRomajiExcludedFromConversion() {
+        let im = InputManager()
+        for ch in "kyouk" {
+            im.appendRomaji(ch)
+        }
+        XCTAssertEqual(im.displayKana, "きょうk")
+        XCTAssertEqual(im.currentConversionInput, "きょう")
+    }
+
+    func testPunctuationStaysInComposition() {
+        let im = InputManager()
+        for ch in "kyou？" {
+            im.appendRomaji(ch)
+        }
+
+        XCTAssertTrue(im.isComposing)
+        XCTAssertEqual(im.displayKana, "きょう？")
+        XCTAssertEqual(im.currentConversionInput, "きょう？")
+        XCTAssertEqual(im.commitText, "きょう？")
+    }
+
     func testPreferenceEntriesRerankCandidates() async {
         let now = Date()
         let im = InputManager(conversionPreferenceEntries: {

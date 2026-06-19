@@ -16,6 +16,7 @@ public enum KeyboardSettingsStore {
     public static let conversionPreferenceEntriesKey = "conversionPreferenceEntries"
     public static let hapticsEnabledKey = "hapticsEnabled"
     public static let cloudAIEnabledKey = "cloudAIEnabled"
+    public static let aiConsentGrantedKey = "aiConsentGranted"
     public static let anonymousDeviceIdKey = "anonymousDeviceId"
     public static let lastKnownFullAccessEnabledKey = "lastKnownFullAccessEnabled"
 
@@ -64,6 +65,21 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(enabled, forKey: cloudAIEnabledKey)
+    }
+
+    /// Whether the user has explicitly agreed to send text to the third-party
+    /// AI services. Defaults to `false`: AI rewrite stays gated until the user
+    /// consents in the container app. Read by the extension before any network
+    /// call so consent is enforced cross-process via the App Group.
+    public static func readAIConsentGranted(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        defaults?.bool(forKey: aiConsentGrantedKey) ?? false
+    }
+
+    public static func writeAIConsentGranted(
+        _ granted: Bool,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(granted, forKey: aiConsentGrantedKey)
     }
 
     public static func anonymousDeviceId(defaults: UserDefaults? = sharedDefaults) -> String {

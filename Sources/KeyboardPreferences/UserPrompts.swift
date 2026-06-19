@@ -44,6 +44,24 @@ public enum UserPromptDefaults {
     public static let naturalKey = "natural"
     public static let emailKey = "email"
     public static let translateToEnglishKey = "translateToEnglish"
+    private static let legacyDefaults: [String: (title: String, prompt: String)] = [
+        politeKey: (
+            title: "敬語",
+            prompt: "Rewrite into polite, business-appropriate Japanese (敬語) while preserving meaning."
+        ),
+        naturalKey: (
+            title: "自然に書き直し",
+            prompt: "Rewrite into natural, idiomatic Japanese while preserving meaning. Make it sound like a native speaker wrote it."
+        ),
+        emailKey: (
+            title: "メール",
+            prompt: "Rewrite into formal Japanese business email style (件名を要さず、本文のみ). Use 拝啓 only if culturally appropriate, otherwise typical メール本文 register with お世話になっております level politeness when applicable."
+        ),
+        translateToEnglishKey: (
+            title: "英訳",
+            prompt: "Translate into natural English."
+        ),
+    ]
 
     public static func defaultTitle(for builtinKey: String) -> String? {
         switch builtinKey {
@@ -69,6 +87,41 @@ public enum UserPromptDefaults {
             return nil
         }
     }
+
+    /// Local default prompt set for users who have not signed in. Mirrors the
+    /// server-seeded set so the keyboard toolbar and Prompts screen are populated
+    /// for guests. Overwritten by the cloud fetch once the user signs in.
+    public static func seedEntries() -> [UserPrompt] {
+        [
+            seedEntry(politeKey, slot: .main, sortOrder: 0),
+            seedEntry(naturalKey, slot: .sub, sortOrder: 0),
+            seedEntry(emailKey, slot: .sub, sortOrder: 1),
+            seedEntry(translateToEnglishKey, slot: .sub, sortOrder: 2),
+        ].compactMap { $0 }
+    }
+
+    private static func seedEntry(_ key: String, slot: UserPrompt.Slot, sortOrder: Int) -> UserPrompt? {
+        guard let title = defaultTitle(for: key), let prompt = defaultPrompt(for: key) else { return nil }
+        return UserPrompt(slot: slot, builtinKey: key, title: title, prompt: prompt, sortOrder: sortOrder)
+    }
+
+    static func normalized(_ prompt: UserPrompt) -> UserPrompt {
+        guard
+            let key = prompt.builtinKey,
+            let legacy = legacyDefaults[key],
+            prompt.title == legacy.title,
+            prompt.prompt == legacy.prompt,
+            let currentTitle = defaultTitle(for: key),
+            let currentPrompt = defaultPrompt(for: key)
+        else {
+            return prompt
+        }
+
+        var normalizedPrompt = prompt
+        normalizedPrompt.title = currentTitle
+        normalizedPrompt.prompt = currentPrompt
+        return normalizedPrompt
+    }
 }
 
 public enum UserPromptStore {
@@ -83,7 +136,8 @@ public enum UserPromptStore {
         _ entries: [UserPrompt],
         defaults: UserDefaults? = KeyboardSettingsStore.sharedDefaults
     ) {
-        guard let data = try? JSONEncoder().encode(entries) else { return }
+        let normalizedEntries = entries.map(UserPromptDefaults.normalized)
+        guard let data = try? JSONEncoder().encode(normalizedEntries) else { return }
         defaults?.set(data, forKey: KeyboardSettingsStore.userPromptEntriesKey)
     }
 

@@ -8,7 +8,40 @@ struct ProfileScreen: View {
     @ObservedObject private var stats = ConversionStats.shared
     @State private var showPersonalInfo = false
     @State private var promptCount: Int = UserPromptStore.readEntries().count
-    @State private var showAbout = false
+    @Binding var showAbout: Bool
+    @State private var showAuth = false
+    @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var consentGranted = false
+    @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var hapticsEnabled = false
+
+    init(showAbout: Binding<Bool> = .constant(false)) {
+        _showAbout = showAbout
+    }
+
+    private var accountRows: [ProfileRowModel] {
+        if session.profile == nil {
+            return [
+                .init(
+                    icon: "person.crop.circle.badge.plus",
+                    title: "サインイン / アカウントを作成",
+                    action: { showAuth = true }
+                )
+            ]
+        }
+        return [
+            .init(
+                icon: "person",
+                title: "ユーザー情報",
+                action: { showPersonalInfo = true }
+            ),
+            .init(
+                icon: "rectangle.portrait.and.arrow.right",
+                title: "サインアウト",
+                action: { overlay.present(.signOut) }
+            )
+        ]
+    }
 
     var body: some View {
         NavigationStack {
@@ -23,26 +56,7 @@ struct ProfileScreen: View {
                     ProfileSectionTitle("アカウント")
                         .padding(.top, BikeyMetrics.Spacing.l + 2)
 
-                    ProfileListCard(
-                        rows: [
-                            .init(
-                                icon: "person",
-                                title: "ユーザー情報",
-                                action: { showPersonalInfo = true }
-                            ),
-                            .init(
-                                icon: "rectangle.portrait.and.arrow.right",
-                                title: "サインアウト",
-                                action: { overlay.present(.signOut) }
-                            ),
-                            .init(
-                                icon: "trash",
-                                title: "アカウントを削除",
-                                isDestructive: true,
-                                action: { overlay.present(.deleteAccount) }
-                            )
-                        ]
-                    )
+                    ProfileListCard(rows: accountRows)
                     .padding(.top, BikeyMetrics.Spacing.s)
 
                     ProfileSectionTitle("その他")
@@ -50,6 +64,17 @@ struct ProfileScreen: View {
 
                     ProfileListCard(
                         rows: [
+                            .init(
+                                icon: "hand.raised",
+                                title: "AI変換とプライバシー",
+                                highlight: !consentGranted,
+                                action: { overlay.present(.aiConsent) }
+                            ),
+                            .init(
+                                icon: "hand.tap",
+                                title: "触覚フィードバック",
+                                toggle: $hapticsEnabled
+                            ),
                             .init(
                                 icon: "info.circle",
                                 title: "敬語ボタンについて",
@@ -78,12 +103,14 @@ struct ProfileScreen: View {
                 KeyboardSettingsStore.writeCloudAIEnabled(true)
                 promptCount = UserPromptStore.readEntries().count
             }
+            .guestAuthCover(isPresented: $showAuth)
         }
     }
 }
 
 private struct PersonalInformationView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var overlay: AppOverlay
 
     let profile: UserSession.Profile?
 
@@ -103,6 +130,25 @@ private struct PersonalInformationView: View {
                     label: "登録日",
                     value: profile.map { Self.dateFormatter.string(from: $0.createdAt) } ?? "—"
                 )
+
+                Button(role: .destructive) {
+                    overlay.present(.deleteAccount)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14, weight: .regular))
+                        Text("アカウントを削除")
+                            .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    }
+                    .foregroundStyle(Color(red: 0.847, green: 0.306, blue: 0.345))
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(.white, in: Capsule())
+                    .overlay(
+                        Capsule().stroke(Color(red: 0.847, green: 0.306, blue: 0.345).opacity(0.34), lineWidth: 0.8)
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.top, BikeyMetrics.Spacing.l)
             }
             .padding(.horizontal, BikeyMetrics.Spacing.l - 4)
             .padding(.top, BikeyMetrics.Spacing.l - 4)
@@ -337,20 +383,26 @@ private struct ProfileRowModel {
     let title: String
     let trailing: String?
     let isDestructive: Bool
+    let highlight: Bool
     let action: (() -> Void)?
+    let toggle: Binding<Bool>?
 
     init(
         icon: String,
         title: String,
         trailing: String? = nil,
         isDestructive: Bool = false,
-        action: (() -> Void)? = nil
+        highlight: Bool = false,
+        action: (() -> Void)? = nil,
+        toggle: Binding<Bool>? = nil
     ) {
         self.icon = icon
         self.title = title
         self.trailing = trailing
         self.isDestructive = isDestructive
+        self.highlight = highlight
         self.action = action
+        self.toggle = toggle
     }
 }
 
@@ -384,6 +436,12 @@ private struct ProfileListRow: View {
 
             Spacer()
 
+            if let toggle = model.toggle {
+                Toggle("", isOn: toggle)
+                    .labelsHidden()
+                    .tint(AppColor.purple)
+            }
+
             if let trailing = model.trailing {
                 Text(trailing)
                     .bikeyFont(14, weight: .regular, relativeTo: .body)
@@ -398,7 +456,265 @@ private struct ProfileListRow: View {
         }
         .padding(.horizontal, BikeyMetrics.Spacing.l - 1)
         .frame(minHeight: 54)
+        .background {
+            if model.highlight {
+                ShimmerRowBackground()
+            }
+        }
         .contentShape(Rectangle())
+    }
+}
+
+struct ShimmerRowBackground: View {
+    @State private var phase: CGFloat = -1
+    private let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            LinearGradient(
+                stops: [
+                    .init(color: AppColor.purple.opacity(0.0), location: 0.0),
+                    .init(color: AppColor.purple.opacity(0.12), location: 0.5),
+                    .init(color: AppColor.purple.opacity(0.0), location: 1.0)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: width * 0.55)
+            .offset(x: phase * width)
+        }
+        .clipShape(shape)
+        .allowsHitTesting(false)
+        .onAppear {
+            withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                phase = 1.6
+            }
+        }
+    }
+}
+
+struct AIConsentInfoModal: View {
+    let onClose: () -> Void
+
+    @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var consentGranted = false
+
+    @State private var showPrivacy = false
+    @State private var agreedToPolicy = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.34)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onClose)
+
+            VStack(spacing: 0) {
+                VStack(spacing: BikeyMetrics.Spacing.m) {
+                    hero
+                    AIConsentCompactSummary()
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l - 2)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.s)
+
+                consentAction
+                    .padding(.horizontal, BikeyMetrics.Spacing.m)
+                    .padding(.top, BikeyMetrics.Spacing.xs)
+                    .padding(.bottom, BikeyMetrics.Spacing.m)
+            }
+            .frame(maxWidth: 348)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .sheet(isPresented: $showPrivacy) {
+            SafariView(url: LegalLinks.privacy)
+        }
+    }
+
+    private var hero: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(consentGranted ? AppColor.purple.opacity(0.10) : Color.black.opacity(0.06))
+                    .frame(width: 48, height: 48)
+
+                Image(systemName: consentGranted ? "hand.raised.fill" : "hand.raised")
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundStyle(consentGranted ? AppColor.purple : AppColor.charcoalAction)
+            }
+
+            Text(consentGranted ? "AI変換は有効です" : "AIに送る前に\n確認してください")
+                .bikeyFont(22, weight: .medium, relativeTo: .title2)
+                .foregroundStyle(AppColor.ink)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(consentGranted ? "敬語ボタンを押した時だけ、その文章がAIサービスに送信されます。設定はいつでもここから変更できます。" : "敬語ボタンを押した時だけ、その文章がAIサービスに送信されます。通常の入力が送信されることはありません。")
+                .bikeyFont(15, weight: .regular, relativeTo: .body)
+                .foregroundStyle(AppColor.muted.opacity(0.95))
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var consentAction: some View {
+        if consentGranted {
+            VStack(spacing: 10) {
+                Button {
+                    consentGranted = false
+                    agreedToPolicy = false
+                    onClose()
+                } label: {
+                    Text("AI変換を無効にする")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(Color(red: 0.847, green: 0.306, blue: 0.345))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(.white, in: Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(red: 0.847, green: 0.306, blue: 0.345).opacity(0.34), lineWidth: 0.8)
+                        )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onClose()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(14, weight: .regular, relativeTo: .body)
+                        .foregroundStyle(AppColor.muted)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity)
+        } else {
+            VStack(spacing: 12) {
+                ProfileConsentAgreementCheckbox(
+                    isOn: $agreedToPolicy,
+                    onOpenPrivacy: { showPrivacy = true }
+                )
+
+                Button {
+                    consentGranted = true
+                    onClose()
+                } label: {
+                    Text("同意して有効にする")
+                        .bikeyFont(16, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(Capsule().fill(AppColor.charcoalAction.opacity(agreedToPolicy ? 1 : 0.42)))
+                }
+                .buttonStyle(.plain)
+                .disabled(!agreedToPolicy)
+                .accessibilityHint(agreedToPolicy ? "" : "プライバシーポリシーへの同意が必要です")
+
+                Button(action: onClose) {
+                    Text("今は使わない")
+                        .bikeyFont(14, weight: .regular, relativeTo: .body)
+                        .foregroundStyle(AppColor.muted)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 34)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+private struct AIConsentCompactSummary: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("AIサービスに送信される内容")
+                .bikeyFont(13, weight: .semibold, relativeTo: .footnote)
+                .foregroundStyle(AppColor.muted)
+
+            AIConsentDataRow(icon: "text.alignleft", text: "敬語ボタンを押した時のテキスト")
+            AIConsentDataRow(icon: "cpu", text: "送信先：第三者のAIサービス")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct AIConsentDataRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(AppColor.ink)
+                .frame(width: 22)
+
+            Text(text)
+                .bikeyFont(15, weight: .regular, relativeTo: .body)
+                .foregroundStyle(AppColor.ink)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct ProfileConsentAgreementCheckbox: View {
+    @Binding var isOn: Bool
+    let onOpenPrivacy: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Button {
+                isOn.toggle()
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isOn ? AppColor.charcoalAction : Color.white)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .strokeBorder(isOn ? Color.clear : AppColor.rule.opacity(0.72), lineWidth: 1.5)
+                        )
+
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("プライバシーポリシーの内容に同意する")
+            .accessibilityAddTraits(isOn ? [.isSelected] : [])
+
+            Text(.init("[プライバシーポリシー](\(LegalLinks.privacy.absoluteString))の内容に同意します"))
+                .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                .foregroundStyle(AppColor.ink)
+                .tint(AppColor.purple)
+                .environment(\.openURL, OpenURLAction { _ in
+                    onOpenPrivacy()
+                    return .handled
+                })
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, BikeyMetrics.Spacing.s)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 

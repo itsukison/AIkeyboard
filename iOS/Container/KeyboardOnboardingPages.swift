@@ -261,7 +261,7 @@ struct KeyboardUsagePage: View {
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("候補バー左のAIボタンを押すだけ。上司、取引先、教授、採用担当に送る前に、自然な敬語へ整えます。")
+                        Text("候補バーの敬語ボタンから、よく使う書き換えをすぐ選べます。")
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(OnboardingPalette.subInk)
                             .multilineTextAlignment(.center)
@@ -283,16 +283,594 @@ struct KeyboardUsagePage: View {
 
 private struct KeyboardMockCard: View {
     var body: some View {
-        VStack(spacing: 10) {
-            ChatInputMock()
-            KeyboardMock()
-        }
+        NativeKeyboardSurfaceMock(mode: .toolbar)
         .padding(18)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
         )
+    }
+}
+
+struct KeyboardResultPage: View {
+    let progress: Double
+    let onBack: () -> Void
+    let onContinue: () -> Void
+
+    var body: some View {
+        OnboardingScaffold(
+            progress: progress,
+            canGoBack: true,
+            onBack: onBack,
+            onSkip: nil,
+            ctaTitle: "次へ",
+            isCtaEnabled: true,
+            onCta: onContinue
+        ) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 24) {
+                    VStack(spacing: 14) {
+                        Text("候補をフリックして\nそのまま置き換え。")
+                            .font(.system(size: 30, weight: .medium))
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("生成後はカードを横に動かして比較できます。\n選んだ候補で文章を置き換えます。")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundStyle(OnboardingPalette.subInk)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 4)
+                    }
+                    .padding(.top, 40)
+
+                    KeyboardResultMockCard()
+                        .padding(.top, 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+        }
+    }
+}
+
+private struct KeyboardResultMockCard: View {
+    var body: some View {
+        NativeKeyboardSurfaceMock(mode: .result)
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+            )
+    }
+}
+
+// MARK: - Consent page
+
+struct KeyboardConsentPage: View {
+    let progress: Double
+    let onBack: () -> Void
+    let onAgree: () -> Void
+    let onDecline: () -> Void
+
+    @State private var showPrivacy = false
+    @State private var agreedToPolicy = false
+
+    var body: some View {
+        OnboardingScaffold(
+            progress: progress,
+            canGoBack: true,
+            onBack: onBack,
+            onSkip: nil,
+            ctaTitle: "同意してはじめる",
+            isCtaEnabled: agreedToPolicy,
+            onCta: onAgree,
+            secondaryTitle: "今は使わない（通常のキーボードとして利用）",
+            onSecondary: onDecline
+        ) {
+            VStack(spacing: 0) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        VStack(spacing: 14) {
+                            Text("AIに送る前に\n確認してください")
+                                .font(.system(size: 31, weight: .medium))
+                                .foregroundStyle(OnboardingPalette.ink)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(2)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text("敬語ボタンを押した時だけ、その文章がAIサービスに送信されます。通常の入力が送信されることはありません。")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundStyle(OnboardingPalette.subInk)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(4)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 4)
+                        }
+                        .padding(.top, 28)
+
+                        ConsentDataCard()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+                }
+
+                ConsentAgreementCheckbox(
+                    isOn: $agreedToPolicy,
+                    onOpenPrivacy: { showPrivacy = true }
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 6)
+                .padding(.bottom, 12)
+            }
+        }
+        .sheet(isPresented: $showPrivacy) {
+            SafariView(url: LegalLinks.privacy)
+        }
+    }
+}
+
+struct ConsentDataCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("AIサービスに送信される内容")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(OnboardingPalette.subInk)
+
+            VStack(alignment: .leading, spacing: 14) {
+                ConsentDataRow(icon: "text.alignleft", text: "入力したテキスト")
+                ConsentDataRow(icon: "wand.and.stars", text: "使用した機能の種類（敬語・メール・翻訳など）")
+                ConsentDataRow(icon: "info.circle", text: "処理に関する技術情報（文字数・処理日時など）")
+            }
+
+            Divider()
+                .overlay(Color.black.opacity(0.06))
+
+            ConsentDataRow(icon: "cpu", text: "送信先：第三者のAIサービス（Cerebras・Groq）")
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white)
+        )
+        .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
+    }
+}
+
+private struct ConsentAgreementCheckbox: View {
+    @Binding var isOn: Bool
+    let onOpenPrivacy: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Button {
+                isOn.toggle()
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isOn ? OnboardingPalette.ink : Color.white)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .strokeBorder(isOn ? Color.clear : OnboardingPalette.fieldStroke, lineWidth: 1.5)
+                        )
+
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("プライバシーポリシーの内容に同意する")
+            .accessibilityAddTraits(isOn ? [.isSelected] : [])
+
+            Text(.init("[プライバシーポリシー](\(LegalLinks.privacy.absoluteString))の内容に同意します"))
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(OnboardingPalette.ink)
+                .tint(AppColor.purple)
+                .environment(\.openURL, OpenURLAction { _ in
+                    onOpenPrivacy()
+                    return .handled
+                })
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+}
+
+private struct ConsentDataRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(OnboardingPalette.ink)
+                .frame(width: 22)
+
+            Text(text)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(OnboardingPalette.ink)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private enum NativeKeyboardSurfaceMode {
+    case toolbar
+    case result
+}
+
+private struct NativeKeyboardSurfaceMock: View {
+    let mode: NativeKeyboardSurfaceMode
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isExpanded = false
+    @State private var cardIndex = 0
+
+    private let designSize = CGSize(width: 390, height: 266)
+
+    var body: some View {
+        GeometryReader { proxy in
+            let scale = proxy.size.width / designSize.width
+
+            ZStack(alignment: .topLeading) {
+                content
+                    .frame(width: designSize.width, height: designSize.height)
+                    .scaleEffect(scale, anchor: .topLeading)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
+        }
+        .aspectRatio(designSize.width / designSize.height, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .task(id: reduceMotion) {
+            await runDemoLoop()
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch mode {
+        case .toolbar:
+            VStack(spacing: 8) {
+                NativeToolbarDemo(isExpanded: isExpanded)
+                NativeKeyboardRows()
+                NativeKeyboardAccessoryRow()
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+            .background(NativeKeyboardStyle.surface)
+        case .result:
+            NativeResultDemo(selectedIndex: cardIndex)
+                .background(NativeKeyboardStyle.surface)
+        }
+    }
+
+    @MainActor
+    private func runDemoLoop() async {
+        guard !reduceMotion else {
+            isExpanded = mode == .toolbar
+            cardIndex = 0
+            return
+        }
+
+        switch mode {
+        case .toolbar:
+            isExpanded = false
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 900_000_000)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                    isExpanded = true
+                }
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                    isExpanded = false
+                }
+            }
+        case .result:
+            cardIndex = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_350_000_000)
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+                    cardIndex = (cardIndex + 1) % 3
+                }
+            }
+        }
+    }
+}
+
+private enum NativeKeyboardStyle {
+    static let surface = Color(red: 0.86, green: 0.87, blue: 0.89)
+    static let keyFill = Color.white.opacity(0.96)
+    static let specialKey = Color(red: 0.74, green: 0.76, blue: 0.78)
+    static let ink = Color(red: 0.129, green: 0.129, blue: 0.155)
+    static let accent = Color(red: 0.341, green: 0.258, blue: 0.656)
+    static let accentSoft = Color(red: 0.950, green: 0.937, blue: 0.986)
+}
+
+private struct NativeToolbarDemo: View {
+    let isExpanded: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if !isExpanded {
+                NativeToolbarPill(title: "敬語", isSelected: false)
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+
+            NativeToolbarPill(title: "…", isSelected: isExpanded, minWidth: 36)
+
+            if isExpanded {
+                HStack(spacing: 6) {
+                    NativeToolbarPill(title: "自然に", isSelected: false)
+                    NativeToolbarPill(title: "メール", isSelected: false)
+                    NativeToolbarPill(title: "英訳", isSelected: false)
+                    Spacer(minLength: 6)
+                    NativeToolbarPill(title: "設定", isSelected: false)
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: 46)
+        .padding(.horizontal, 6)
+        .clipped()
+        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: isExpanded)
+    }
+}
+
+private struct NativeToolbarPill: View {
+    let title: String
+    let isSelected: Bool
+    var minWidth: CGFloat? = nil
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 17, weight: .medium))
+            .foregroundStyle(NativeKeyboardStyle.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .padding(.horizontal, 12)
+            .frame(minWidth: minWidth, minHeight: 38)
+            .background(
+                isSelected ? NativeKeyboardStyle.accentSoft : Color.white.opacity(0.72),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(isSelected ? NativeKeyboardStyle.accent : Color.clear, lineWidth: 1.2)
+            )
+    }
+}
+
+private struct NativeKeyboardRows: View {
+    private let row1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
+    private let row2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ー"]
+    private let row3 = ["z", "x", "c", "v", "b", "n", "m"]
+
+    var body: some View {
+        VStack(spacing: 8) {
+            NativeLetterRow(keys: row1)
+            NativeLetterRow(keys: row2)
+
+            HStack(spacing: 6) {
+                NativeSpecialKey(symbol: "shift", width: 45)
+                Spacer(minLength: 6)
+                ForEach(row3, id: \.self) { key in
+                    NativeLetterKey(label: key)
+                }
+                Spacer(minLength: 6)
+                NativeSpecialKey(symbol: "delete.left", width: 45)
+            }
+        }
+        .padding(.horizontal, 6)
+    }
+}
+
+private struct NativeLetterRow: View {
+    let keys: [String]
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(keys, id: \.self) { key in
+                NativeLetterKey(label: key)
+            }
+        }
+    }
+}
+
+private struct NativeLetterKey: View {
+    let label: String
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: 25, weight: .regular))
+            .foregroundStyle(.black.opacity(0.92))
+            .frame(maxWidth: .infinity)
+            .frame(height: 43)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(NativeKeyboardStyle.keyFill)
+                    .shadow(color: .black.opacity(0.18), radius: 0, x: 0, y: 1)
+            )
+    }
+}
+
+private struct NativeSpecialKey: View {
+    let symbol: String
+    let width: CGFloat
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 20, weight: .regular))
+            .foregroundStyle(.black.opacity(0.92))
+            .frame(width: width, height: 43)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(NativeKeyboardStyle.specialKey)
+                    .shadow(color: .black.opacity(0.18), radius: 0, x: 0, y: 1)
+            )
+    }
+}
+
+private struct NativeKeyboardAccessoryRow: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            NativeBottomKey(text: "123", width: 42, fill: NativeKeyboardStyle.specialKey)
+            NativeBottomKey(text: "空白", width: nil, fill: NativeKeyboardStyle.keyFill)
+            NativeBottomKey(text: "改行", width: 78, fill: NativeKeyboardStyle.specialKey)
+        }
+        .frame(height: 43)
+        .padding(.horizontal, 6)
+    }
+}
+
+private struct NativeBottomKey: View {
+    var text: String? = nil
+    var symbol: String? = nil
+    var width: CGFloat?
+    let fill: Color
+
+    var body: some View {
+        Group {
+            if let text {
+                Text(text)
+                    .font(.system(size: 18, weight: .regular))
+            } else if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: 22, weight: .regular))
+            }
+        }
+        .foregroundStyle(.black.opacity(0.92))
+        .frame(maxWidth: width == nil ? .infinity : nil)
+        .frame(width: width, height: 43)
+        .background(
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(fill)
+                .shadow(color: .black.opacity(0.18), radius: 0, x: 0, y: 1)
+        )
+    }
+}
+
+private struct NativeResultDemo: View {
+    let selectedIndex: Int
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                NativeToolbarPill(title: "敬語", isSelected: true)
+                Spacer()
+                Image(systemName: "xmark")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(NativeKeyboardStyle.ink)
+                    .frame(width: 38, height: 38)
+            }
+            .frame(height: 52)
+            .padding(.horizontal, 6)
+
+            NativeResultCarousel(selectedIndex: selectedIndex)
+                .frame(height: 158)
+
+            NativeRefinementRow()
+                .padding(.top, 10)
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct NativeResultCarousel: View {
+    let selectedIndex: Int
+
+    private let cardWidth: CGFloat = 330
+    private let spacing: CGFloat = 14
+    private let samples = [
+        "テストについてご案内いたします",
+        "テストの件につきまして、ご案内申し上げます。",
+        "テストについて、以下の通りご案内いたします。"
+    ]
+
+    var body: some View {
+        HStack(spacing: spacing) {
+            ForEach(Array(samples.enumerated()), id: \.offset) { index, sample in
+                NativeCandidateCard(text: sample, isSelected: index == selectedIndex)
+                    .frame(width: cardWidth, height: 156)
+            }
+        }
+        .padding(.leading, 30)
+        .offset(x: -CGFloat(selectedIndex) * (cardWidth + spacing))
+        .frame(width: 390, height: 158, alignment: .leading)
+        .clipped()
+        .animation(.spring(response: 0.55, dampingFraction: 0.85), value: selectedIndex)
+    }
+}
+
+private struct NativeCandidateCard: View {
+    let text: String
+    let isSelected: Bool
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 19, weight: .regular))
+            .foregroundStyle(NativeKeyboardStyle.ink)
+            .lineLimit(5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(
+                Color.white,
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(isSelected ? NativeKeyboardStyle.accent.opacity(0.74) : Color.clear, lineWidth: 2)
+            )
+            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
+    }
+}
+
+private struct NativeRefinementRow: View {
+    private let chips = [
+        ("arrow.clockwise", "再作成"),
+        ("briefcase", "より丁寧に"),
+        ("arrow.up.arrow.down", "より詳しく"),
+        ("arrow.down.right.and.arrow.up.left", "短く")
+    ]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(Array(chips.enumerated()), id: \.offset) { _, chip in
+                    HStack(spacing: 5) {
+                        Image(systemName: chip.0)
+                            .font(.system(size: 14, weight: .regular))
+                        Text(chip.1)
+                            .font(.system(size: 17, weight: .regular))
+                    }
+                    .foregroundStyle(NativeKeyboardStyle.ink)
+                    .padding(.horizontal, 14)
+                    .frame(height: 38)
+                    .background(Color.white.opacity(0.92), in: Capsule())
+                    .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
+                }
+            }
+            .padding(.horizontal, 12)
+        }
+        .frame(height: 40)
     }
 }
 
@@ -498,4 +1076,12 @@ private struct KeepKey: View {
 
 #Preview("Usage page") {
     KeyboardUsagePage(progress: 0.88, onBack: {}, onContinue: {})
+}
+
+#Preview("Result page") {
+    KeyboardResultPage(progress: 0.75, onBack: {}, onContinue: {})
+}
+
+#Preview("Consent page") {
+    KeyboardConsentPage(progress: 1.0, onBack: {}, onAgree: {}, onDecline: {})
 }

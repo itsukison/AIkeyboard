@@ -24,26 +24,12 @@ public struct CandidateBar: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 0) {
                     ForEach(Array(inputManager.candidates.enumerated()), id: \.element.id) { index, candidate in
-                        Button {
-                            onSelect(candidate)
-                        } label: {
-                            Text(candidate.text)
-                                .font(.system(size: 18))
-                                .lineLimit(1)
-                                .padding(.leading, index == 0 ? firstCandidateLeadingPadding : 14)
-                                .padding(.trailing, 14)
-                                .frame(height: KeyboardChromeMetrics.candidateTextHeight)
-                                .foregroundStyle(.primary)
-                                .background(
-                                    index == inputManager.selectedCandidateIndex
-                                        ? Color(uiColor: .systemBackground)
-                                        : Color.clear
-                                )
-                                .cornerRadius(6)
-                                .frame(height: KeyboardChromeMetrics.toolbarHeight)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                        CandidateButton(
+                            candidate: candidate,
+                            isSelected: index == inputManager.selectedCandidateIndex,
+                            leadingPadding: index == 0 ? firstCandidateLeadingPadding : 14,
+                            onSelect: { onSelect(candidate) }
+                        )
                         .id(index)
 
                         if index < inputManager.candidates.count - 1 {
@@ -63,5 +49,33 @@ public struct CandidateBar: View {
                 }
             }
         }
+    }
+}
+
+/// A candidate cell that registers a tap without blocking horizontal scrolling.
+/// A `Button` / `.buttonStyle(.plain)` inside a `ScrollView` has a finicky
+/// press-state machine that drops the first tap, while a `DragGesture` (even via
+/// `.simultaneousGesture`) wins the touch immediately and kills scrolling. A
+/// plain tap gesture does neither: it fires only on a genuine press-and-release
+/// and leaves the scroll view's pan untouched.
+private struct CandidateButton: View {
+    let candidate: Candidate
+    let isSelected: Bool
+    let leadingPadding: CGFloat
+    let onSelect: () -> Void
+
+    var body: some View {
+        Text(candidate.text)
+            .font(.system(size: 18))
+            .lineLimit(1)
+            .padding(.leading, leadingPadding)
+            .padding(.trailing, 14)
+            .frame(height: KeyboardChromeMetrics.candidateTextHeight)
+            .foregroundStyle(.primary)
+            .background(isSelected ? Color(uiColor: .systemBackground) : Color.clear)
+            .cornerRadius(6)
+            .frame(height: KeyboardChromeMetrics.toolbarHeight)
+            .contentShape(Rectangle())
+            .onTapGesture { onSelect() }
     }
 }

@@ -1,0 +1,17 @@
+project_id = "eercsucvxnszqletxued"
+
+# Pin JWT verification per-function so a redeploy can never silently expose
+# these endpoints. `keyboard-rewrite` and `delete-account` trust the `sub`
+# claim without re-verifying the signature in-function (see index.ts), so the
+# gateway check below is the only thing standing between the public internet
+# and "act as / delete any user". Do not set these to false.
+
+[functions.keyboard-rewrite]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+# Liveness probe only — returns `{ ok: true }`, reads no auth and no data.
+[functions.keyboard-rewrite-health]
+verify_jwt = false

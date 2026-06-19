@@ -6,6 +6,7 @@ final class AppOverlay: ObservableObject {
     enum Modal: Equatable {
         case signOut
         case deleteAccount
+        case aiConsent
     }
 
     @Published var modal: Modal?
@@ -48,11 +49,12 @@ enum AppTab: String, CaseIterable, Hashable {
 
 struct RootContainerView: View {
     @State private var selectedTab: AppTab = .home
+    @State private var profileShowsAbout = false
     @StateObject private var stats = ConversionStats.shared
     @StateObject private var overlay = AppOverlay()
     @EnvironmentObject private var session: UserSession
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("aikJP.pendingPostAuthOnboarding") private var pendingPostAuthOnboarding = false
+    @AppStorage("aikJP.hasCompletedFirstRun") private var hasCompletedFirstRun = false
 
     init(initialTab: AppTab = .home) {
         _selectedTab = State(initialValue: initialTab)
@@ -64,16 +66,14 @@ struct RootContainerView: View {
             case .loading:
                 loadingBody
             case .signedOut:
-                WelcomeAuthScreen()
-            case .signedIn:
-                if pendingPostAuthOnboarding {
-                    OnboardingFlow {
-                        pendingPostAuthOnboarding = false
-                        selectedTab = .home
-                    }
-                } else {
+                if hasCompletedFirstRun {
                     signedInBody
+                } else {
+                    FirstRunFlow(onComplete: { hasCompletedFirstRun = true })
                 }
+            case .signedIn:
+                signedInBody
+                    .onAppear { hasCompletedFirstRun = true }
             }
         }
         .environmentObject(overlay)
@@ -86,9 +86,15 @@ struct RootContainerView: View {
         }
         .onOpenURL { url in
             guard url.scheme == "keigobutton" || url.scheme == "aikeyboard" else { return }
-            if case .signedIn = session.state, !pendingPostAuthOnboarding {
-                selectedTab = .profile
+            switch url.host {
+            case "fullaccess":
+                profileShowsAbout = true
+            case "consent":
+                overlay.present(.aiConsent)
+            default:
+                break
             }
+            selectedTab = .profile
         }
     }
 
@@ -115,7 +121,7 @@ struct RootContainerView: View {
                     case .prompts:
                         PromptsScreen()
                     case .profile:
-                        ProfileScreen()
+                        ProfileScreen(showAbout: $profileShowsAbout)
                     }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
@@ -165,6 +171,8 @@ struct RootContainerView: View {
                     }
                 }
             )
+        case .aiConsent:
+            AIConsentInfoModal(onClose: { overlay.dismiss() })
         }
     }
 }
@@ -218,7 +226,7 @@ private struct LiquidTabBar: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 5)
         .frame(height: 70)
-        .bikeyInteractiveGlass(in: Capsule(), fallback: .white.opacity(0.92))
+        .bikeyGlass(in: Capsule(), fallback: .white.opacity(0.92))
         .shadow(color: Color(red: 0.42, green: 0.42, blue: 0.44).opacity(0.20), radius: 18, x: 0, y: 8)
         .shadowIfLegacyChrome(color: .white.opacity(0.75), radius: 2, y: -1)
     }

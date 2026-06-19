@@ -16,6 +16,8 @@ struct OnboardingScaffold<Content: View>: View {
     let isCtaEnabled: Bool
     var isCtaLoading: Bool = false
     let onCta: () -> Void
+    var secondaryTitle: String? = nil
+    var onSecondary: (() -> Void)? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -36,12 +38,26 @@ struct OnboardingScaffold<Content: View>: View {
                 content()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                OnboardingPrimaryButton(
-                    title: ctaTitle,
-                    isEnabled: isCtaEnabled,
-                    isLoading: isCtaLoading,
-                    action: onCta
-                )
+                VStack(spacing: 0) {
+                    OnboardingPrimaryButton(
+                        title: ctaTitle,
+                        isEnabled: isCtaEnabled,
+                        isLoading: isCtaLoading,
+                        action: onCta
+                    )
+
+                    if let secondaryTitle, let onSecondary {
+                        Button(action: onSecondary) {
+                            Text(secondaryTitle)
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundStyle(OnboardingPalette.subInk)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 12)
+                    }
+                }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 8)
             }
@@ -155,7 +171,7 @@ struct OnboardingSourcePage: View {
             canGoBack: onBack != nil,
             onBack: onBack,
             onSkip: nil,
-            ctaTitle: "敬語ボタンをはじめる",
+            ctaTitle: "次へ",
             isCtaEnabled: selected != nil,
             onCta: { onContinue(selected) }
         ) {
@@ -189,6 +205,14 @@ struct OnboardingSourcePage: View {
                 Spacer(minLength: 0)
             }
         }
+    }
+}
+
+enum OnboardingSourceStore {
+    static let key = "aikJP.onboardingSource"
+
+    static func write(_ source: SourceOption) {
+        UserDefaults.standard.set(source.rawValue, forKey: key)
     }
 }
 

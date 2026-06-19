@@ -1,3 +1,4 @@
+import KeyboardPreferences
 import PostHog
 import SwiftUI
 import UIKit
@@ -13,7 +14,7 @@ struct OnboardingFlow: View {
     @State private var pageIndex = 0
     @Environment(\.openURL) private var openURL
 
-    private let totalPages = 3
+    private let totalPages = 5
 
     var body: some View {
         Group {
@@ -32,18 +33,31 @@ struct OnboardingFlow: View {
                     onContinue: { advance() }
                 )
             case 2:
-                OnboardingSourcePage(
+                KeyboardResultPage(
                     progress: progress(for: 2),
+                    onBack: { goBack() },
+                    onContinue: { advance() }
+                )
+            case 3:
+                OnboardingSourcePage(
+                    progress: progress(for: 3),
                     onBack: { goBack() },
                     onContinue: { source in
                         if let source {
+                            OnboardingSourceStore.write(source)
                             PostHogSDK.shared.capture("onboarding_source_selected", properties: [
                                 "source": source.rawValue,
                             ])
                         }
-                        PostHogSDK.shared.capture("onboarding_completed")
-                        onFinish()
+                        advance()
                     }
+                )
+            case 4:
+                KeyboardConsentPage(
+                    progress: progress(for: 4),
+                    onBack: { goBack() },
+                    onAgree: { completeOnboarding(consentGranted: true) },
+                    onDecline: { completeOnboarding(consentGranted: false) }
                 )
             default:
                 legacyPostAuthBody
@@ -109,6 +123,15 @@ struct OnboardingFlow: View {
             }
             .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset + 8)
         }
+    }
+
+    private func completeOnboarding(consentGranted: Bool) {
+        KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
+        PostHogSDK.shared.capture("ai_consent_decision", properties: [
+            "granted": consentGranted,
+        ])
+        PostHogSDK.shared.capture("onboarding_completed")
+        onFinish()
     }
 
     private func advance() {
@@ -418,7 +441,7 @@ struct OnboardingBrandMark<S: ShapeStyle>: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "sparkle")
+            Image(systemName: "pencil.line")
                 .font(.system(size: 10, weight: .medium))
             Text("敬語ボタン")
                 .bikeyFont(12, weight: .medium, relativeTo: .footnote)

@@ -9,6 +9,8 @@ import UIKit
 final class AIKeyboardController: ObservableObject {
     static let settingsURL = URL(string: "keigobutton://settings")!
     static let loginURL = URL(string: "keigobutton://login")!
+    static let fullAccessURL = URL(string: "keigobutton://fullaccess")!
+    static let consentURL = URL(string: "keigobutton://consent")!
 
     @Published private(set) var state: AIKeyboardState = .hidden
     @Published private(set) var mainPrompt: UserPrompt? = UserPromptStore.mainPrompt()

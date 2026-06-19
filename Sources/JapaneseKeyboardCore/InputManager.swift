@@ -31,6 +31,10 @@ public final class InputManager: ObservableObject {
     private var adapter: KanaKanjiAdapter?
     private var conversionTask: Task<Void, Never>?
     private var lastNotifiedMarkedText: String = ""
+    /// Kana prefix of the most recently scheduled conversion. Keystrokes that
+    /// don't change the convertible prefix (e.g. the trailing "k" of the next
+    /// syllable) reuse the in-flight or already-published candidates.
+    private var lastScheduledKanaPrefix: String?
 
     public init(
         conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
@@ -76,7 +80,7 @@ public final class InputManager: ObservableObject {
     }
 
     public var currentConversionInput: String {
-        leadingKanaPrefix(of: displayKana)
+        convertiblePrefix(of: displayKana)
     }
 
     /// 次候補 (next-candidate). First call selects index 0; subsequent calls
@@ -119,6 +123,10 @@ public final class InputManager: ObservableObject {
     public func reset() {
         conversionTask?.cancel()
         conversionTask = nil
+        lastScheduledKanaPrefix = nil
+        if let adapter {
+            Task { await adapter.stopComposition() }
+        }
         buffer.reset()
         displayKana = ""
         if !candidates.isEmpty {
@@ -147,38 +155,46 @@ public final class InputManager: ObservableObject {
             isComposing = composing
         }
 
-        let kanaPrefix = leadingKanaPrefix(of: kana)
+        let kanaPrefix = convertiblePrefix(of: kana)
         if kanaPrefix.isEmpty {
             if !candidates.isEmpty {
                 candidates = []
             }
             conversionTask?.cancel()
             conversionTask = nil
+            lastScheduledKanaPrefix = nil
             notifyMarkedTextChange()
             return
         }
 
         notifyMarkedTextChange()
-        scheduleConversion(kanaPrefix: kanaPrefix, bufferSnapshot: kana)
+        if kanaPrefix == lastScheduledKanaPrefix { return }
+        scheduleConversion(kanaPrefix: kanaPrefix)
     }
 
-    private func scheduleConversion(kanaPrefix: String, bufferSnapshot: String) {
+    // No debounce: the kana preview is already on screen before this runs, the
+    // converter extends its lattice incrementally per keystroke, and the actor
+    // serializes requests — so converting eagerly costs a few ms off the main
+    // thread while a delay here is added candidate latency one-for-one.
+    private func scheduleConversion(kanaPrefix: String) {
         conversionTask?.cancel()
         guard let adapter else { return }
+        lastScheduledKanaPrefix = kanaPrefix
         conversionTask = Task { [weak self] in
-            // Short debounce so rapid keystrokes don't spawn many converter jobs,
-            // but small enough to feel responsive on slow typing.
-            try? await Task.sleep(nanoseconds: 15_000_000)
-            guard !Task.isCancelled else { return }
             let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 10)
             guard !Task.isCancelled else { return }
             guard let self else { return }
-            guard self.buffer.displayKana == bufferSnapshot else { return }
-            self.candidates = Self.rerankCandidates(
+            // Compare prefixes, not the full buffer: trailing unresolved
+            // romaji typed while we converted doesn't invalidate the result.
+            guard self.convertiblePrefix(of: self.buffer.displayKana) == kanaPrefix else { return }
+            let reranked = Self.rerankCandidates(
                 results,
                 input: kanaPrefix,
                 entries: self.cachedConversionPreferenceEntries
             )
+            if self.candidates != reranked {
+                self.candidates = reranked
+            }
             self.notifyMarkedTextChange()
         }
     }
@@ -190,11 +206,15 @@ public final class InputManager: ObservableObject {
         onMarkedTextDidChange?(text)
     }
 
-    private func leadingKanaPrefix(of s: String) -> String {
-        var prefix = ""
-        for c in s {
-            if c.isASCII && c.isLetter { break }
-            prefix.append(c)
+    /// The convertible portion of the display string: everything except the
+    /// trailing run of unresolved romaji (a partial syllable still being
+    /// typed). Unresolved letters *inside* the string — typos like the b in
+    /// たbもの — stay in, so conversion keeps covering the full input and the
+    /// candidate bar makes the typo visible, matching the native keyboard.
+    private func convertiblePrefix(of s: String) -> String {
+        var prefix = s
+        while let last = prefix.last, last.isASCII, last.isLetter {
+            prefix.removeLast()
         }
         return prefix
     }

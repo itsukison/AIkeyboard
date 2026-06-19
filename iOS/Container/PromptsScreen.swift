@@ -9,6 +9,17 @@ struct PromptsScreen: View {
     @State private var editorPayload: PromptEditorPayload?
     @State private var isSyncing = false
     @State private var errorMessage: String?
+    @State private var showAuth = false
+
+    private var isGuest: Bool { session.profile == nil }
+
+    private func openEditor(_ entry: UserPrompt) {
+        if isGuest {
+            showAuth = true
+        } else {
+            editorPayload = .existing(entry)
+        }
+    }
 
     private var mainEntry: UserPrompt? {
         entries.first(where: { $0.slot == .main })
@@ -27,6 +38,10 @@ struct PromptsScreen: View {
                     VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
                         PromptsHeader()
                             .padding(.top, BikeyMetrics.Spacing.s)
+
+                        if isGuest {
+                            GuestPromptsCTA { showAuth = true }
+                        }
 
                         if let errorMessage {
                             PromptsNotice(
@@ -47,11 +62,13 @@ struct PromptsScreen: View {
                     .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
                 }
 
-                PromptsFloatingActionButton {
-                    editorPayload = .newCustom(nextSortOrder: nextSortOrder())
+                if !isGuest {
+                    PromptsFloatingActionButton {
+                        editorPayload = .newCustom(nextSortOrder: nextSortOrder())
+                    }
+                    .padding(.trailing, BikeyMetrics.Sizing.screenHorizontalInset)
+                    .padding(.bottom, BikeyMetrics.Sizing.tabBarHeight + 18)
                 }
-                .padding(.trailing, BikeyMetrics.Sizing.screenHorizontalInset)
-                .padding(.bottom, BikeyMetrics.Sizing.tabBarHeight + 18)
             }
             .navigationBarHidden(true)
             .editorSheet(item: $editorPayload) { payload in
@@ -74,6 +91,7 @@ struct PromptsScreen: View {
             .onChange(of: session.profile) { _ in
                 entries = UserPromptStore.readEntries()
             }
+            .guestAuthCover(isPresented: $showAuth)
         }
     }
 
@@ -90,7 +108,7 @@ struct PromptsScreen: View {
         VStack(spacing: 0) {
             if let mainEntry {
                 PromptRow(entry: mainEntry) {
-                    editorPayload = .existing(mainEntry)
+                    openEditor(mainEntry)
                 }
             } else {
                 Text("敬語プロンプトが読み込まれていません")
@@ -120,7 +138,7 @@ struct PromptsScreen: View {
             VStack(spacing: 0) {
                 ForEach(Array(subEntries.enumerated()), id: \.element.id) { index, entry in
                     PromptRow(entry: entry) {
-                        editorPayload = .existing(entry)
+                        openEditor(entry)
                     }
 
                     if index < subEntries.count - 1 {
@@ -251,6 +269,42 @@ struct PromptEditorPayload: Identifiable {
 
     static func newCustom(nextSortOrder: Int) -> PromptEditorPayload {
         PromptEditorPayload(entry: nil, isNewCustom: true, nextSortOrder: nextSortOrder)
+    }
+}
+
+// MARK: - Guest CTA
+
+private struct GuestPromptsCTA: View {
+    let onSignIn: () -> Void
+
+    var body: some View {
+        VStack(spacing: BikeyMetrics.Spacing.m - 2) {
+            VStack(spacing: 6) {
+                Text("プロンプトを編集・追加するには")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(AppColor.ink)
+
+                Text("サインインすると、メインボタンや追加ボタンを自由にカスタマイズして同期できます。")
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button(action: onSignIn) {
+                Text("サインイン / アカウント作成")
+                    .bikeyFont(14, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 46)
+                    .background(AppColor.charcoalAction, in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(BikeyMetrics.Spacing.m)
+        .frame(maxWidth: .infinity)
+        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
     }
 }
 

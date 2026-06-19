@@ -65,14 +65,14 @@ struct AIKeyboardToolbarView: View {
             .accessibilityLabel("ログインまたは登録")
 
             Spacer()
-                .frame(width: 3)
+                .frame(width: 8)
 
             Divider()
                 .frame(height: KeyboardChromeMetrics.toolbarDividerHeight)
                 .opacity(0.35)
 
             Spacer()
-                .frame(width: 3)
+                .frame(width: 8)
 
             CandidateBar(
                 inputManager: inputManager,
@@ -107,7 +107,7 @@ struct AIKeyboardToolbarView: View {
 
             if !isOverflow {
                 Spacer()
-                    .frame(width: 3)
+                    .frame(width: 8)
                     .transition(.opacity)
 
                 Divider()
@@ -116,7 +116,7 @@ struct AIKeyboardToolbarView: View {
                     .transition(.opacity)
 
                 Spacer()
-                    .frame(width: 3)
+                    .frame(width: 8)
                     .transition(.opacity)
 
                 CandidateBar(
@@ -240,7 +240,7 @@ struct AIKeyboardToolbarView: View {
     /// container app. No text is sent; we point them to the app to enable it.
     private var consentRequiredBar: some View {
         HStack(spacing: 8) {
-            Text("AI機能はアプリで有効にできます")
+            Text("プライバシーの確認が必要です")
                 .font(.system(size: 13))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -248,8 +248,8 @@ struct AIKeyboardToolbarView: View {
 
             Spacer(minLength: 4)
 
-            pillLink(label: "アプリで開く", url: AIKeyboardController.settingsURL)
-            .accessibilityLabel("アプリでAI機能を有効にする")
+            pillLink(label: "プライバシーを確認", url: AIKeyboardController.consentURL)
+            .accessibilityLabel("アプリでプライバシーを確認する")
 
             Button {
                 aiController.close()
@@ -278,7 +278,7 @@ struct AIKeyboardToolbarView: View {
 
             Spacer(minLength: 4)
 
-            pillLink(label: "アプリで開く", url: AIKeyboardController.settingsURL)
+            pillLink(label: "フルアクセスを開く", url: AIKeyboardController.fullAccessURL)
             .accessibilityLabel("アプリでフルアクセスを有効にする")
 
             Button {

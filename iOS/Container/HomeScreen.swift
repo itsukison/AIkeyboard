@@ -411,18 +411,31 @@ private struct BikeyDemoSheet: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("敬語ボタンを試す")
+                        Text("お試し")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("キーボードを試す")
                             .bikeyFont(24, weight: .medium, relativeTo: .title2)
                             .foregroundStyle(AppColor.ink)
 
-                        Text("下の入力欄をタップし、地球儀キーからキーボードを切り替えてください。送る前にAIボタンを押すと、敬語やビジネス向けの候補を選べます。")
+                        Text("ここは入力を試すためのお試し欄です。送信ボタンはありません。\n1. 地球儀キー🌐を長押しして「敬語ボタン」に切り替え\n2. 文章を入力\n3. ツールバーのAIボタンを押すと敬語に書き直せます")
                             .bikeyFont(14, weight: .regular, relativeTo: .footnote)
                             .foregroundStyle(AppColor.muted)
-                            .lineSpacing(3)
+                            .lineSpacing(4)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
                     DemoTextField(text: $text, isFocused: $isFocused)
+
+                    Text("※ お試し用の入力欄です。入力した文章はどこにも送信されません。")
+                        .bikeyFont(12, weight: .regular, relativeTo: .caption)
+                        .foregroundStyle(AppColor.softText)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 0)
                 }
