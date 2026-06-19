@@ -86,3 +86,5 @@ Config/Local.xcconfig
 supabase/.temp/
 supabase/.branch/
 .env
+.agents/*
+.claude/*
