@@ -3,6 +3,7 @@ type RefinementIntent = "morePolite" | "moreDetailed" | "moreConcise";
 type RewriteRequest = {
   prompt: string;
   text: string;
+  replyTo?: string;
   commandKey?: string;
   title?: string;
   locale?: string;
@@ -109,6 +110,9 @@ Deno.serve(async (req) => {
   if ([...request.text].length > maxChars) {
     return jsonError("text_too_long", "Text is too long.", 413);
   }
+  if (request.replyTo && [...request.replyTo].length > maxChars) {
+    return jsonError("text_too_long", "Text is too long.", 413);
+  }
   if ([...request.prompt].length > MAX_PROMPT_CHARS) {
     return jsonError("prompt_too_long", "Prompt is too long.", 413);
   }
@@ -196,6 +200,7 @@ async function parseRewriteRequest(req: Request): Promise<
   const data = body as Record<string, unknown>;
   const prompt = data.prompt;
   const text = data.text;
+  const replyTo = data.replyTo;
   const commandKey = data.commandKey;
   const title = data.title;
   const locale = data.locale;
@@ -207,7 +212,11 @@ async function parseRewriteRequest(req: Request): Promise<
     return { error: jsonError("invalid_request", "Prompt is required.", 400) };
   }
 
-  if (typeof text !== "string" || text.trim().length === 0) {
+  const hasReplyTo = typeof replyTo === "string" && replyTo.trim().length > 0;
+
+  // In reply mode the message being replied to is the required input; the user's
+  // draft (`text`) is optional intent and may be empty.
+  if (typeof text !== "string" || (text.trim().length === 0 && !hasReplyTo)) {
     return { error: jsonError("invalid_request", "Text is required.", 400) };
   }
 
@@ -228,6 +237,7 @@ async function parseRewriteRequest(req: Request): Promise<
     value: {
       prompt,
       text,
+      replyTo: hasReplyTo ? (replyTo as string) : undefined,
       commandKey: typeof commandKey === "string" ? commandKey : undefined,
       title: typeof title === "string" ? title : undefined,
       locale: typeof locale === "string" ? locale : "ja-JP",
@@ -363,6 +373,7 @@ async function logRewriteEvent(
   const payload = {
     prompt: input.request.prompt,
     input: input.request.text,
+    reply_to: input.request.replyTo ?? null,
     candidates: input.result.candidates,
     language: input.result.language,
     command_key: input.request.commandKey ?? null,
@@ -485,10 +496,16 @@ async function rewriteWithProvider(
     ? Deno.env.get("CEREBRAS_REASONING_EFFORT")
     : Deno.env.get("GROQ_REASONING_EFFORT");
 
+  const isReply = typeof request.replyTo === "string" && request.replyTo.trim().length > 0;
   const body: Record<string, unknown> = {
     model,
     messages: [
-      { role: "system", content: systemInstructions(candidateCount) },
+      {
+        role: "system",
+        content: isReply
+          ? systemInstructionsForReply(candidateCount)
+          : systemInstructions(candidateCount),
+      },
       { role: "user", content: userPrompt(request) },
     ],
     max_completion_tokens: maxCompletionTokens,
@@ -660,7 +677,30 @@ function systemInstructions(candidateCount: number): string {
   ].join("\n");
 }
 
+function systemInstructionsForReply(candidateCount: number): string {
+  const candidateInstruction = candidateCount === 3
+    ? [
+      "Return exactly 3 candidate replies in this fixed order:",
+      "1. Standard: balanced and natural for the requested tone.",
+      "2. Slightly softer: warmer and a little more casual, without slang.",
+      "3. Slightly more polite: one notch more courteous, without becoming stiff.",
+      "Keep the differences subtle. Avoid near-duplicates.",
+    ].join("\n")
+    : `Return exactly ${candidateCount} distinct candidate replies that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`;
+
+  return [
+    "You are a Japanese mobile keyboard writing assistant that composes replies.",
+    "Compose a reply to the received message inside <reply_to>, applying the user-supplied command instruction for tone.",
+    "If the user provided their own draft/intent inside <target>, base the reply on it (it is what the user wants to say, not text to echo verbatim). If <target> is empty, infer an appropriate, natural reply from the received message.",
+    "Write only the reply body the user would send. Do not quote the received message, and do not add explanations, greetings beyond what is natural, markdown, quotes, or commentary.",
+    "Preserve any names, numbers, URLs, and dates that belong in the reply.",
+    candidateInstruction,
+    "Return strict JSON matching the schema.",
+  ].join("\n");
+}
+
 function userPrompt(request: RewriteRequest): string {
+  const isReply = typeof request.replyTo === "string" && request.replyTo.trim().length > 0;
   const lines = [
     `Command: ${request.prompt}`,
     `Locale: ${request.locale ?? "ja-JP"}`,
@@ -674,7 +714,12 @@ function userPrompt(request: RewriteRequest): string {
     );
   }
 
-  lines.push("Target text:", "<target>", request.text, "</target>");
+  if (isReply) {
+    lines.push("Received message to reply to:", "<reply_to>", request.replyTo as string, "</reply_to>");
+    lines.push("User's draft/intent for the reply (may be empty):", "<target>", request.text, "</target>");
+  } else {
+    lines.push("Target text:", "<target>", request.text, "</target>");
+  }
   return lines.join("\n");
 }
 

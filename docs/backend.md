@@ -53,8 +53,13 @@ Token lifecycle:
 
 - `prompt` (required): instruction string from the user-configured
   `UserPrompt.prompt`. Max 1000 chars.
-- `text` (required): the captured input. Max 2000 chars by default
-  (`MAX_REWRITE_CHARS`).
+- `text` (required, except in reply mode): the captured input. Max 2000 chars by
+  default (`MAX_REWRITE_CHARS`). In reply mode it carries the user's reply
+  intent and may be empty.
+- `replyTo` (optional): reply mode. The message being replied to (copied from
+  another app). When present and non-empty, the function composes a reply to it
+  using a reply-specific system prompt, and `text` becomes optional. Same length
+  cap as `text`.
 - `commandKey` (optional): builtin key like `polite` / `natural` /
   `email` / `translateToEnglish`, or nil for user-defined prompts. Used
   only for logging.

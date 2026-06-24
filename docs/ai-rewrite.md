@@ -41,6 +41,43 @@ Built-in defaults (created on first run, fully overridable):
 
 Exact strings live in `UserPromptDefaults.defaultPrompt(for:)`.
 
+### Reply mode (返信)
+
+Lets the user reply to a message that lives in **another app** (LINE, Mail,
+etc.) and is therefore invisible to `UITextDocumentProxy`. The clipboard is the
+bridge.
+
+- **Detection (no banner):** on the keyboard's lifecycle hooks
+  (`viewWillAppear` / `selectionDidChange` / `textDidChange`) plus a 0.6 s poll
+  while visible (`startClipboardMonitoring`; iOS fires no callback when another
+  app copies), `AIKeyboardController` compares `UIPasteboard.general.changeCount`
+  against a persisted last-seen value
+  (`KeyboardSettingsStore.lastSeenPasteboardChangeCount`, in the App Group). If
+  it changed and `hasStrings` is true, a context-appearing reply control appears
+  in the main bar. This reads pasteboard *metadata only* — no content, no banner.
+- **The control is a `UIPasteControl`** (`PasteReplyControl` in
+  `AIKeyboardToolbarView`), not a custom button. Tapping it grants one-time
+  clipboard access with **no permission prompt and no "pasted from" banner** —
+  the only programmatic way to read clipboard contents silently on iOS 16+. The
+  cost: it shows the system paste glyph + localized "ペースト" label and cannot
+  display custom "返信" text.
+- **On paste:** `PasteHostView.paste(itemProviders:)` (the control's next
+  responder) loads the string and calls
+  `AIKeyboardController.runReply(withCopiedText:)`, which captures the compose
+  field with `InputCapture.captureForReply` (empty field is allowed — the reply
+  is inserted at the cursor) and fires the normal pipeline with `replyTo` set.
+- **Two inputs:** the copied message is sent as `RewriteRequest.replyTo`
+  (context, what we reply *to*); the compose field is sent as `text` (the user's
+  intent for the reply, may be empty). The Edge Function uses a reply-specific
+  system prompt: empty `text` → compose a natural reply; non-empty `text` →
+  shape the reply around it. The chosen candidate **replaces** the compose
+  field, same as a rewrite.
+- The reply command is a synthetic `UserPrompt` (`UserPromptDefaults.replyKey`),
+  surfaced only by the pill — it is **not** in the editable prompt list and not
+  seeded.
+- `regenerate` re-replies to the same message; `refine` (より丁寧に etc.)
+  operates on the chosen candidate as a plain rewrite (no `replyTo`).
+
 ## UX state diagram
 
 ```
@@ -164,6 +201,13 @@ The container's privacy/settings screens must communicate:
 
 - Normal Japanese typing is **never** sent to the network.
 - Text is sent **only** when the user taps an AI prompt.
+- For **reply mode**, the clipboard's contents are read only when the user taps
+  the system paste control (`UIPasteControl`), which is itself the explicit
+  consent — no permission prompt, no "pasted from …" banner. The copied text is
+  then sent as the message being replied to. Deciding whether to show the
+  control uses pasteboard metadata only (no read). The public privacy policy
+  (`docs/web/privacy.md`) and App Store nutrition label still need a clipboard
+  line — see AGENTS.md §8.
 - Cloud AI needs Allow Full Access because iOS blocks keyboard network
   access without it. The base keyboard works without Full Access.
 - The backend does not log raw input/output — only command, length
@@ -179,5 +223,6 @@ The container's privacy/settings screens must communicate:
   proving keyboard-extension compatibility.
 - **Quality eval set** (~330 sentences across casual / business / mixed
   / translation / edge cases) for regression-testing prompt changes.
-- **Reply mode** (Slack / LINE quick replies) — see
-  `docs/archive/ai-reply-implementation.md`. Not on the active roadmap.
+- **Reply mode** — the LINE-style text-copy core is **shipped** (see "Reply
+  mode" above). The richer Slack-link resolution and tone strip from
+  `docs/archive/ai-reply-implementation.md` are not implemented.

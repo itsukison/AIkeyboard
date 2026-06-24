@@ -25,6 +25,10 @@ public enum RefinementIntent: String, Codable, CaseIterable, Sendable {
 public struct RewriteRequest: Codable, Sendable {
     public let prompt: String
     public let text: String
+    /// The message being replied to (reply mode). When present, the backend
+    /// composes a reply to this instead of rewriting `text`; `text` then carries
+    /// the user's intent/notes for the reply and may be empty.
+    public let replyTo: String?
     public let commandKey: String?
     public let title: String?
     public let locale: String
@@ -35,6 +39,7 @@ public struct RewriteRequest: Codable, Sendable {
     public init(
         prompt: String,
         text: String,
+        replyTo: String? = nil,
         commandKey: String? = nil,
         title: String? = nil,
         locale: String,
@@ -44,6 +49,7 @@ public struct RewriteRequest: Codable, Sendable {
     ) {
         self.prompt = prompt
         self.text = text
+        self.replyTo = replyTo
         self.commandKey = commandKey
         self.title = title
         self.locale = locale
@@ -123,11 +129,14 @@ public struct WholeInputCapture: Equatable, Codable, Sendable {
         afterCursor: String,
         documentIdentifierString: String?,
         maxCharacters: Int,
+        allowEmpty: Bool = false,
         capturedAt: Date = Date()
     ) throws -> WholeInputCapture {
         let target = beforeCursor + selectedText + afterCursor
-        guard !target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw WholeInputCaptureError.empty
+        if !allowEmpty {
+            guard !target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw WholeInputCaptureError.empty
+            }
         }
         guard target.count <= maxCharacters else {
             throw WholeInputCaptureError.tooLong

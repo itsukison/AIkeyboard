@@ -83,6 +83,12 @@ final class KeyboardViewController: KeyboardInputViewController {
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
         configureJapaneseKeyboardBehavior()
         aiKeyboardController.refreshPrompts()
+        aiKeyboardController.refreshReplyAvailabilityOnAppear()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        aiKeyboardController.stopClipboardMonitoring()
     }
 
     override func selectionDidChange(_ textInput: UITextInput?) {
@@ -90,6 +96,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
         aiKeyboardController.documentDidChange()
+        aiKeyboardController.refreshReplyAvailability()
     }
 
     override func textDidChange(_ textInput: UITextInput?) {
@@ -97,6 +104,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
         aiKeyboardController.documentDidChange()
+        aiKeyboardController.refreshReplyAvailability()
     }
 
     @MainActor

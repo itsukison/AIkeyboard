@@ -95,6 +95,38 @@ final class WholeInputReplacementEngineTests: XCTestCase {
         XCTAssertEqual(proxy.deleteCalls, 0)
     }
 
+    func testReplyInsertsIntoEmptyField() throws {
+        let proxy = FakeProxy(before: "", selected: "", after: "")
+        let capture = try InputCapture.captureForReply(from: proxy)
+
+        XCTAssertEqual(capture.targetText, "")
+
+        try WholeInputReplacementEngine.replace(
+            capture: capture,
+            with: "承知しました。よろしくお願いします。",
+            proxy: proxy
+        )
+
+        XCTAssertEqual(proxy.before, "承知しました。よろしくお願いします。")
+        XCTAssertEqual(proxy.after, "")
+        XCTAssertEqual(proxy.adjustCalls, 0)
+        XCTAssertEqual(proxy.deleteCalls, 0)
+    }
+
+    func testReplyReplacesExistingDraft() throws {
+        let proxy = FakeProxy(before: "金曜は無理", selected: "", after: "")
+        let capture = try InputCapture.captureForReply(from: proxy)
+
+        try WholeInputReplacementEngine.replace(
+            capture: capture,
+            with: "申し訳ありませんが、金曜日は都合がつきません。",
+            proxy: proxy
+        )
+
+        XCTAssertEqual(proxy.before, "申し訳ありませんが、金曜日は都合がつきません。")
+        XCTAssertEqual(proxy.deleteCalls, 5)
+    }
+
     func testCapturedThroughInputCaptureRoundTrips() throws {
         let proxy = FakeProxy(before: "あ", selected: "い", after: "う😀")
         let capture = try InputCapture.capture(from: proxy)

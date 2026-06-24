@@ -19,6 +19,7 @@ public enum KeyboardSettingsStore {
     public static let aiConsentGrantedKey = "aiConsentGranted"
     public static let anonymousDeviceIdKey = "anonymousDeviceId"
     public static let lastKnownFullAccessEnabledKey = "lastKnownFullAccessEnabled"
+    public static let lastSeenPasteboardChangeCountKey = "lastSeenPasteboardChangeCount"
 
     public static let aiAccessTokenKey = "aiAccessToken"
     public static let aiRefreshTokenKey = "aiRefreshToken"
@@ -89,6 +90,24 @@ public enum KeyboardSettingsStore {
         let id = UUID().uuidString
         defaults?.set(id, forKey: anonymousDeviceIdKey)
         return id
+    }
+
+    /// The `UIPasteboard.changeCount` the keyboard last offered a reply for.
+    /// Compared against the current count to detect a freshly copied message
+    /// without reading the clipboard contents (no privacy banner). Returns -1
+    /// when unset so the very first non-empty clipboard counts as "new".
+    public static func readLastSeenPasteboardChangeCount(defaults: UserDefaults? = sharedDefaults) -> Int {
+        guard let defaults, defaults.object(forKey: lastSeenPasteboardChangeCountKey) != nil else {
+            return -1
+        }
+        return defaults.integer(forKey: lastSeenPasteboardChangeCountKey)
+    }
+
+    public static func writeLastSeenPasteboardChangeCount(
+        _ count: Int,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(count, forKey: lastSeenPasteboardChangeCountKey)
     }
 
     public static func readLastKnownFullAccessEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {

@@ -86,6 +86,19 @@ struct AIKeyboardToolbarView: View {
 
     private func signedInMainBar(isOverflow: Bool) -> some View {
         HStack(spacing: 0) {
+            if !isOverflow && aiController.replyAvailable {
+                PasteReplyControl { text in
+                    aiController.runReply(withCopiedText: text)
+                }
+                .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
+                .fixedSize()
+                .transition(.move(edge: .leading).combined(with: .opacity))
+
+                Spacer()
+                    .frame(width: 6)
+                    .transition(.opacity)
+            }
+
             if !isOverflow {
                 pillButton(label: aiController.mainPrompt?.title ?? "AI", isSelected: false) {
                     aiController.runMain()
@@ -358,6 +371,60 @@ private struct PillShimmer: View {
             withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
                 phase = 1.6
             }
+        }
+    }
+}
+
+/// Context-appearing reply CTA. A system `UIPasteControl`: tapping it grants
+/// one-time clipboard access with NO permission prompt and NO "pasted from"
+/// banner. The price is the system paste glyph + localized "ペースト" label —
+/// it cannot display custom "返信" text. Shown only when a message was just
+/// copied (`aiController.replyAvailable`).
+private struct PasteReplyControl: UIViewRepresentable {
+    let onPaste: (String) -> Void
+
+    func makeUIView(context: Context) -> PasteHostView {
+        let host = PasteHostView()
+        host.onPaste = onPaste
+
+        var configuration = UIPasteControl.Configuration()
+        configuration.displayMode = .iconAndLabel
+        configuration.baseForegroundColor = UIColor(KeyboardPalette.accent)
+        configuration.baseBackgroundColor = UIColor.white.withAlphaComponent(0.72)
+        configuration.cornerStyle = .fixed
+
+        let control = UIPasteControl(configuration: configuration)
+        control.translatesAutoresizingMaskIntoConstraints = false
+        host.addSubview(control)
+        NSLayoutConstraint.activate([
+            control.topAnchor.constraint(equalTo: host.topAnchor),
+            control.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+            control.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            control.trailingAnchor.constraint(equalTo: host.trailingAnchor)
+        ])
+        return host
+    }
+
+    func updateUIView(_ uiView: PasteHostView, context: Context) {
+        uiView.onPaste = onPaste
+    }
+}
+
+/// Hosts the `UIPasteControl` and is its next responder, so the paste lands here
+/// (`paste(itemProviders:)`) without depending on the surrounding SwiftUI /
+/// input-view-controller responder chain.
+private final class PasteHostView: UIView {
+    var onPaste: ((String) -> Void)?
+
+    override func canPaste(_ itemProviders: [NSItemProvider]) -> Bool { true }
+
+    override func paste(itemProviders: [NSItemProvider]) {
+        for provider in itemProviders where provider.canLoadObject(ofClass: NSString.self) {
+            provider.loadObject(ofClass: NSString.self) { [weak self] object, _ in
+                guard let text = object as? String else { return }
+                DispatchQueue.main.async { self?.onPaste?(text) }
+            }
+            return
         }
     }
 }

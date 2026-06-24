@@ -72,6 +72,36 @@ final class WholeInputCaptureTests: XCTestCase {
         }
     }
 
+    func testAllowEmptyProducesZeroCountCapture() throws {
+        let capture = try WholeInputCapture.make(
+            beforeCursor: "",
+            selectedText: "",
+            afterCursor: "",
+            documentIdentifierString: "doc",
+            maxCharacters: 2_000,
+            allowEmpty: true
+        )
+
+        XCTAssertEqual(capture.targetText, "")
+        XCTAssertEqual(capture.moveToEndCharacterCount, 0)
+        XCTAssertEqual(capture.deleteBackwardCharacterCount, 0)
+    }
+
+    func testAllowEmptyStillRejectsTooLong() {
+        XCTAssertThrowsError(
+            try WholeInputCapture.make(
+                beforeCursor: String(repeating: "あ", count: 2_001),
+                selectedText: "",
+                afterCursor: "",
+                documentIdentifierString: "doc",
+                maxCharacters: 2_000,
+                allowEmpty: true
+            )
+        ) { error in
+            XCTAssertEqual(error as? WholeInputCaptureError, .tooLong)
+        }
+    }
+
     func testCountsComposedCharacters() throws {
         let capture = try WholeInputCapture.make(
             beforeCursor: "は",

@@ -44,6 +44,7 @@ public enum UserPromptDefaults {
     public static let naturalKey = "natural"
     public static let emailKey = "email"
     public static let translateToEnglishKey = "translateToEnglish"
+    public static let replyKey = "reply"
     private static let legacyDefaults: [String: (title: String, prompt: String)] = [
         politeKey: (
             title: "敬語",
@@ -103,6 +104,18 @@ public enum UserPromptDefaults {
     private static func seedEntry(_ key: String, slot: UserPrompt.Slot, sortOrder: Int) -> UserPrompt? {
         guard let title = defaultTitle(for: key), let prompt = defaultPrompt(for: key) else { return nil }
         return UserPrompt(slot: slot, builtinKey: key, title: title, prompt: prompt, sortOrder: sortOrder)
+    }
+
+    /// The reply command. Not part of `seedEntries()` — it is surfaced by a
+    /// context-appearing pill (when a message was just copied), not the editable
+    /// prompt list, and drives the two-input reply flow.
+    public static func replyPrompt() -> UserPrompt {
+        UserPrompt(
+            slot: .sub,
+            builtinKey: replyKey,
+            title: "返信",
+            prompt: "相手のメッセージに対する自然な返信を作成してください。文脈に合った丁寧で読みやすい日本語にし、相手の意図に過不足なく応じてください。"
+        )
     }
 
     static func normalized(_ prompt: UserPrompt) -> UserPrompt {
