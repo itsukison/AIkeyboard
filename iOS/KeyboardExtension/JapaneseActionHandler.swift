@@ -92,7 +92,7 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
                     // never forwarded to the host. Only when not composing
                     // does it fall through to KeyboardKit and insert a space.
                     if controller.inputManager.isComposing {
-                        controller.cycleCandidate()
+                        controller.handleSpace()
                         return true
                     }
                     return false

@@ -12,6 +12,12 @@ final class KeyboardViewController: KeyboardInputViewController {
     private var manualKeyboardCase: Keyboard.KeyboardCase?
     private var hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
     private var lastSyncedFullAccessStatus: Bool?
+    /// When the keyboard last became visible, used to tally active seconds on
+    /// disappear. In-memory only — never persisted.
+    private var keyboardAppearedAt: Date?
+    /// The day we last marked typing activity, so `textDidChange` writes to the
+    /// App Group at most once per day instead of on every keystroke.
+    private var typedDayMarker: String?
     private lazy var aiKeyboardController = AIKeyboardController(
         controller: self,
         inputManager: inputManager
@@ -19,6 +25,8 @@ final class KeyboardViewController: KeyboardInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        autoEnableHapticsDefaultIfNeeded()
+        hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
         configureInputManager(force: true)
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
@@ -78,13 +86,22 @@ final class KeyboardViewController: KeyboardInputViewController {
                             self?.handleBackspace()
                         },
                         onSpace: { [weak self] in
-                            self?.cycleCandidate()
+                            self?.handleSpace()
                         },
                         onReturn: { [weak self] in
                             self?.handleReturn()
                         },
-                        onSwitchToRomaji: { [weak self] in
-                            self?.switchKeyboardStyle(.japaneseRomaji)
+                        onMoveCursorRight: { [weak self] in
+                            self?.moveCursorRight()
+                        },
+                        onUndo: { [weak self] in
+                            self?.undoLastInput()
+                        },
+                        onNextKeyboard: { [weak self] in
+                            self?.switchToNextKeyboard()
+                        },
+                        onInsertText: { [weak self] text in
+                            self?.insertLiteralText(text)
                         },
                         toolbarContent: AnyView(
                             AIKeyboardToolbarView(
@@ -172,17 +189,27 @@ final class KeyboardViewController: KeyboardInputViewController {
     /// runs is what makes the first render lowercase.
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
         configureInputManager()
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
         aiKeyboardController.refreshPrompts()
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
+        KeyboardUsageDailyStore.recordKeyboardOpen()
+        keyboardAppearedAt = Date()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         aiKeyboardController.stopClipboardMonitoring()
+        if let appearedAt = keyboardAppearedAt {
+            let elapsed = Int(Date().timeIntervalSince(appearedAt))
+            if elapsed > 0 && elapsed < 3600 {
+                KeyboardUsageDailyStore.addActiveSeconds(elapsed)
+            }
+            keyboardAppearedAt = nil
+        }
     }
 
     override func selectionDidChange(_ textInput: UITextInput?) {
@@ -199,6 +226,24 @@ final class KeyboardViewController: KeyboardInputViewController {
         syncFullAccessStatus()
         aiKeyboardController.documentDidChange()
         aiKeyboardController.refreshReplyAvailability()
+        markTypedActivityIfNeeded()
+    }
+
+    /// Marks the user active for today at most once per day; the in-memory guard
+    /// keeps the hot text-change path off the App Group on every keystroke.
+    private func markTypedActivityIfNeeded() {
+        let today = Self.dayString(Date())
+        guard typedDayMarker != today else { return }
+        typedDayMarker = today
+        KeyboardUsageDailyStore.markTyped()
+    }
+
+    private static func dayString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 
     @MainActor
@@ -232,21 +277,32 @@ final class KeyboardViewController: KeyboardInputViewController {
         }
     }
 
+    /// Backspace. While composing, shrink the kana buffer; otherwise delete a
+    /// character from the host. (The QWERTY action handler only calls this while
+    /// composing — KeyboardKit handles the non-composing case there — but the
+    /// flick keyboard has no such fallback, so it must delete here.)
     @MainActor
     @discardableResult
     func handleBackspace() -> Bool {
-        guard inputManager.isComposing else { return false }
-        inputManager.backspace()
+        if inputManager.isComposing {
+            inputManager.backspace()
+        } else {
+            textDocumentProxy.deleteBackward()
+        }
         return true
     }
 
-    /// 次候補: cycle to the next candidate. Does not insert a space — space
-    /// during composition is consumed entirely by the cycle action, matching
-    /// native Japanese IME behavior.
+    /// Space. While composing, cycle to the next candidate (次候補) and never
+    /// forward to the host. Otherwise insert a full-width space, matching the
+    /// native Japanese keyboard. (As with backspace, QWERTY only reaches the
+    /// composing branch; the flick keyboard relies on the insert here.)
     @MainActor
-    func cycleCandidate() {
-        guard inputManager.isComposing else { return }
-        inputManager.selectNextCandidate()
+    func handleSpace() {
+        if inputManager.isComposing {
+            inputManager.selectNextCandidate()
+        } else {
+            textDocumentProxy.insertText("　")
+        }
     }
 
     /// Return key: confirm the composition (確定) while composing, otherwise
@@ -261,13 +317,36 @@ final class KeyboardViewController: KeyboardInputViewController {
         }
     }
 
-    /// Switch the keyboard style at runtime (romaji ↔ flick) and re-render.
+    /// → key: move the caret one character to the right. Only when not
+    /// composing — moving the caret through marked text is not meaningful.
     @MainActor
-    func switchKeyboardStyle(_ style: KeyboardPreferences.KeyboardStyle) {
-        KeyboardSettingsStore.writeKeyboardStyle(style)
-        configureInputManager(force: true)
-        viewWillSetupKeyboardView()
+    func moveCursorRight() {
+        guard !inputManager.isComposing else { return }
+        textDocumentProxy.adjustTextPosition(byCharacterOffset: 1)
     }
+
+    /// 🌐 key: advance to the next system keyboard.
+    @MainActor
+    func switchToNextKeyboard() {
+        advanceToNextInputMode()
+    }
+
+    /// Insert a literal string (kaomoji, or an ABC/number page character). If a
+    /// kana composition is active, commit it first so marked text isn't
+    /// disturbed, then insert.
+    @MainActor
+    func insertLiteralText(_ text: String) {
+        if inputManager.isComposing {
+            commitComposingForReturn()
+        }
+        textDocumentProxy.insertText(text)
+    }
+
+    /// ↺ key: "元に戻す". TODO(M2): real undo needs an input/undo stack; the
+    /// exact semantics (revert last flick vs last conversion) are still open,
+    /// so this is intentionally a no-op until that's specified.
+    @MainActor
+    func undoLastInput() {}
 
     @MainActor
     func commitCandidate(_ candidate: Candidate) {
@@ -347,14 +426,22 @@ final class KeyboardViewController: KeyboardInputViewController {
         // iOS's keyboard haptic preference is private to UIKit and unreadable
         // from a keyboard extension, so users opt in through our setting. We
         // fire haptics in JapaneseActionHandler because custom-composed keys
-        // return before KeyboardKit's standard feedback path.
-        if hapticsEnabled && !state.keyboardContext.hasFullAccess {
-            hapticsEnabled = false
-            KeyboardSettingsStore.writeHapticsEnabled(false)
-        }
+        // return before KeyboardKit's standard feedback path. The preference
+        // is runtime-gated on Full Access below; we never persist a downgrade
+        // so haptics auto-resume if Full Access is toggled back on.
         keyboardHaptics.setEnabled(hapticsEnabled && state.keyboardContext.hasFullAccess)
         state.feedbackContext.settings.isHapticFeedbackEnabled = false
         state.feedbackContext.hapticConfiguration = .disabled
+    }
+
+    /// One-time default seeding: the first time the keyboard loads with Full
+    /// Access on, opt the user into haptics. After this write the preference
+    /// key is explicitly set, so later manual toggles are respected and this
+    /// no-ops. Stays off if the user never grants Full Access.
+    private func autoEnableHapticsDefaultIfNeeded() {
+        guard !KeyboardSettingsStore.isHapticsEnabledSet(),
+              state.keyboardContext.hasFullAccess else { return }
+        KeyboardSettingsStore.writeHapticsEnabled(true)
     }
 
     private var shouldForceLowercaseAlphabeticCharacters: Bool {

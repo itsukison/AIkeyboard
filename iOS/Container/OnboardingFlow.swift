@@ -12,42 +12,59 @@ struct OnboardingFlow: View {
     let onFinish: () -> Void
 
     @State private var pageIndex = 0
+    @State private var selectedStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     @Environment(\.openURL) private var openURL
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
+    @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
 
-    private let totalPages = 6
+    private let totalPages = 7
 
     var body: some View {
         Group {
             switch pageIndex {
             case 0:
-                KeyboardSetupPage(
+                KeyboardInputStylePage(
                     progress: progress(for: 0),
                     onBack: nil,
+                    selectedStyle: $selectedStyle,
+                    onContinue: {
+                        KeyboardSettingsStore.writeKeyboardStyle(selectedStyle)
+                        PostHogSDK.shared.capture("onboarding_input_style_selected", properties: [
+                            "style": selectedStyle.rawValue,
+                        ])
+                        advance()
+                    }
+                )
+            case 1:
+                KeyboardSetupPage(
+                    progress: progress(for: 1),
+                    onBack: { goBack() },
                     onSkip: { advance() },
                     onContinue: { advance() }
                 )
-            case 1:
-                KeyboardUsagePage(
-                    progress: progress(for: 1),
-                    onBack: { goBack() },
-                    onContinue: { advance() }
-                )
             case 2:
-                KeyboardResultPage(
+                KeyboardUsagePage(
                     progress: progress(for: 2),
                     onBack: { goBack() },
-                    onContinue: { advance() }
+                    onContinue: { advance() },
+                    style: selectedStyle
                 )
             case 3:
-                KeyboardReplyPage(
+                KeyboardResultPage(
                     progress: progress(for: 3),
                     onBack: { goBack() },
                     onContinue: { advance() }
                 )
             case 4:
-                OnboardingSourcePage(
+                KeyboardReplyPage(
                     progress: progress(for: 4),
+                    onBack: { goBack() },
+                    onContinue: { advance() },
+                    style: selectedStyle
+                )
+            case 5:
+                OnboardingSourcePage(
+                    progress: progress(for: 5),
                     onBack: { goBack() },
                     onContinue: { source in
                         if let source {
@@ -59,9 +76,9 @@ struct OnboardingFlow: View {
                         advance()
                     }
                 )
-            case 5:
+            case 6:
                 KeyboardConsentPage(
-                    progress: progress(for: 5),
+                    progress: progress(for: 6),
                     onBack: { goBack() },
                     onAgree: { completeOnboarding(consentGranted: true) },
                     onDecline: { completeOnboarding(consentGranted: false) }
@@ -134,6 +151,7 @@ struct OnboardingFlow: View {
 
     private func completeOnboarding(consentGranted: Bool) {
         seenReplyFeature = true
+        seenFlickFeature = true
         KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
         PostHogSDK.shared.capture("ai_consent_decision", properties: [
             "granted": consentGranted,

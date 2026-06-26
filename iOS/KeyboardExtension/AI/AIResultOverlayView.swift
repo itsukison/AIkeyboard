@@ -8,12 +8,6 @@ struct AIResultOverlayView: View {
     let onSelectionHaptic: () -> Void
     @State private var centeredIndex: Int = 0
 
-    private static let keyboardSurfaceColor = Color(
-        red: 0xD2 / 255,
-        green: 0xD3 / 255,
-        blue: 0xD8 / 255
-    )
-
     // Critical: `if let` (not `switch`) so the same `panel()` call site is
     // reused across `.generating ↔ .result`, preserving carousel identity
     // and scroll offset across the skeleton → real-card swap.
@@ -60,7 +54,7 @@ struct AIResultOverlayView: View {
                 .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Self.keyboardSurfaceColor)
+        .background(KeyboardPalette.surface)
         .padding(.top, KeyboardChromeMetrics.toolbarHeight)
     }
 
@@ -157,7 +151,7 @@ private struct RefinementChip: View {
             .padding(.horizontal, 14)
             .frame(height: 34)
             .background(
-                Color.white.opacity(0.92),
+                KeyboardPalette.prominentPillBackground,
                 in: Capsule()
             )
             .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)

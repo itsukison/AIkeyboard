@@ -48,6 +48,10 @@ public enum KeyboardSettingsStore {
         defaults?.bool(forKey: hapticsEnabledKey) ?? false
     }
 
+    public static func isHapticsEnabledSet(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        defaults?.object(forKey: hapticsEnabledKey) != nil
+    }
+
     public static func writeHapticsEnabled(
         _ enabled: Bool,
         defaults: UserDefaults? = sharedDefaults

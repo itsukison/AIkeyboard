@@ -1,5 +1,61 @@
+import KeyboardPreferences
 import SwiftUI
 import UIKit
+
+// MARK: - Input style page
+
+struct KeyboardInputStylePage: View {
+    let progress: Double
+    let onBack: (() -> Void)?
+    @Binding var selectedStyle: KeyboardPreferences.KeyboardStyle
+    let onContinue: () -> Void
+
+    var body: some View {
+        OnboardingScaffold(
+            progress: progress,
+            canGoBack: onBack != nil,
+            onBack: onBack,
+            onSkip: nil,
+            ctaTitle: "次へ",
+            isCtaEnabled: true,
+            onCta: onContinue
+        ) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 24) {
+                    VStack(spacing: 14) {
+                        Text("入力方式を選ぶ")
+                            .font(.system(size: 31, weight: .medium))
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("ふだん使っているキーボードに合わせて選べます。あとから設定でいつでも変更できます。")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundStyle(OnboardingPalette.subInk)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 4)
+                    }
+                    .padding(.top, 28)
+
+                    HStack(spacing: 12) {
+                        ForEach(InputStyleOption.selectable, id: \.self) { style in
+                            InputStyleSelectionCard(
+                                style: style,
+                                isSelected: selectedStyle == style,
+                                onTap: { selectedStyle = style }
+                            )
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+        }
+    }
+}
 
 // MARK: - Setup page
 
@@ -240,6 +296,7 @@ struct KeyboardUsagePage: View {
     let progress: Double
     let onBack: () -> Void
     let onContinue: () -> Void
+    var style: KeyboardPreferences.KeyboardStyle = .japaneseRomaji
 
     var body: some View {
         OnboardingScaffold(
@@ -271,7 +328,7 @@ struct KeyboardUsagePage: View {
                     }
                     .padding(.top, 40)
 
-                    KeyboardMockCard()
+                    KeyboardMockCard(style: style)
                         .padding(.top, 8)
                 }
                 .padding(.horizontal, 20)
@@ -282,8 +339,10 @@ struct KeyboardUsagePage: View {
 }
 
 private struct KeyboardMockCard: View {
+    let style: KeyboardPreferences.KeyboardStyle
+
     var body: some View {
-        NativeKeyboardSurfaceMock(mode: .toolbar)
+        NativeKeyboardSurfaceMock(mode: .toolbar, style: style)
         .padding(18)
         .frame(maxWidth: .infinity)
         .background(
@@ -356,6 +415,7 @@ struct KeyboardReplyPage: View {
     let progress: Double
     let onBack: () -> Void
     let onContinue: () -> Void
+    var style: KeyboardPreferences.KeyboardStyle = .japaneseRomaji
 
     var body: some View {
         OnboardingScaffold(
@@ -387,7 +447,7 @@ struct KeyboardReplyPage: View {
                     }
                     .padding(.top, 40)
 
-                    KeyboardReplyMockCard()
+                    KeyboardReplyMockCard(style: style)
                         .padding(.top, 8)
                 }
                 .padding(.horizontal, 20)
@@ -398,8 +458,10 @@ struct KeyboardReplyPage: View {
 }
 
 private struct KeyboardReplyMockCard: View {
+    let style: KeyboardPreferences.KeyboardStyle
+
     var body: some View {
-        NativeKeyboardSurfaceMock(mode: .reply)
+        NativeKeyboardSurfaceMock(mode: .reply, style: style)
             .padding(18)
             .frame(maxWidth: .infinity)
             .background(
@@ -576,6 +638,7 @@ private enum NativeKeyboardSurfaceMode {
 
 private struct NativeKeyboardSurfaceMock: View {
     let mode: NativeKeyboardSurfaceMode
+    var style: KeyboardPreferences.KeyboardStyle = .japaneseRomaji
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isExpanded = false
@@ -608,8 +671,12 @@ private struct NativeKeyboardSurfaceMock: View {
         case .toolbar:
             VStack(spacing: 8) {
                 NativeToolbarDemo(isExpanded: isExpanded)
-                NativeKeyboardRows()
-                NativeKeyboardAccessoryRow()
+                if style == .japaneseFlick {
+                    NativeFlickRows(keyHeight: 45)
+                } else {
+                    NativeKeyboardRows()
+                    NativeKeyboardAccessoryRow()
+                }
             }
             .padding(.top, 6)
             .padding(.bottom, 8)
@@ -621,7 +688,11 @@ private struct NativeKeyboardSurfaceMock: View {
             VStack(spacing: 8) {
                 NativeIncomingMessageBubble()
                 NativeReplyToolbarDemo(showReply: showReply)
-                NativeKeyboardRows()
+                if style == .japaneseFlick {
+                    NativeFlickRows(keyHeight: 33)
+                } else {
+                    NativeKeyboardRows()
+                }
             }
             .padding(.top, 6)
             .padding(.bottom, 8)
@@ -817,6 +888,78 @@ private struct NativeReplyPill: View {
             Color.white.opacity(0.72),
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
+    }
+}
+
+// A static depiction of the 10-key flick kana grid, mirroring the real
+// `FlickKeyboardView` layout (function keys on the outer columns, kana in the
+// middle three, and the 改行 key spanning rows 3–4). `keyHeight` is set per
+// host mode so the grid fills the available space without overflowing the
+// fixed-aspect mock card.
+private struct NativeFlickRows: View {
+    let keyHeight: CGFloat
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                fnKey("arrow.right"); kanaKey("あ"); kanaKey("か"); kanaKey("さ"); fnKey("delete.left")
+            }
+            .frame(height: keyHeight)
+
+            HStack(spacing: 6) {
+                fnKey("arrow.counterclockwise"); kanaKey("た"); kanaKey("な"); kanaKey("は"); textKey("空白")
+            }
+            .frame(height: keyHeight)
+
+            GeometryReader { geo in
+                let keyWidth = (geo.size.width - 6 * 4) / 5
+                HStack(spacing: 6) {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 6) { textKey("ABC"); kanaKey("ま"); kanaKey("や"); kanaKey("ら") }
+                        HStack(spacing: 6) { fnKey("globe"); kanaKey("^_^"); kanaKey("わ"); kanaKey("、。") }
+                    }
+                    textKey("改行").frame(width: keyWidth)
+                }
+            }
+            .frame(height: keyHeight * 2 + 6)
+        }
+        .padding(.horizontal, 6)
+    }
+
+    private func kanaKey(_ label: String) -> some View {
+        flickKey(fill: NativeKeyboardStyle.keyFill) {
+            Text(label)
+                .font(.system(size: min(20, keyHeight * 0.42), weight: .regular))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+
+    private func textKey(_ label: String) -> some View {
+        flickKey(fill: NativeKeyboardStyle.specialKey) {
+            Text(label)
+                .font(.system(size: min(14, keyHeight * 0.34), weight: .regular))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+
+    private func fnKey(_ symbol: String) -> some View {
+        flickKey(fill: NativeKeyboardStyle.specialKey) {
+            Image(systemName: symbol)
+                .font(.system(size: min(20, keyHeight * 0.42), weight: .regular))
+        }
+    }
+
+    private func flickKey<Content: View>(fill: Color, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .foregroundStyle(.black.opacity(0.92))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(fill)
+                    .shadow(color: .black.opacity(0.18), radius: 0, x: 0, y: 1)
+            )
     }
 }
 
@@ -1347,10 +1490,123 @@ private struct ReplyFeaturePoint: View {
     }
 }
 
+// MARK: - Flick input announcement (existing users)
+//
+// Shown once to users who completed onboarding before the flick keyboard
+// existed. New users choose their input style on the onboarding
+// `KeyboardInputStylePage`, so the sheet is suppressed for them. Mirrors
+// `ReplyFeatureSheet`'s layout; the keyboard depiction renders the real
+// 10-key flick grid.
+
+struct FlickFeatureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(.white, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("新機能")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("片手でも、\nフリックで入力。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("10キー配列のフリック入力に対応しました。ローマ字と同じように、AIボタンや返信もそのまま使えます。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    NativeKeyboardSurfaceMock(mode: .toolbar, style: .japaneseFlick)
+                        .padding(16)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                        )
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "square.grid.3x3", text: "10キー配列でフリック入力")
+                        ReplyFeaturePoint(icon: "arrow.left.arrow.right", text: "ローマ字との切り替えはいつでも設定から")
+                        ReplyFeaturePoint(icon: "sparkles", text: "AIの書き直し・返信はそのまま使える")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            VStack(spacing: 8) {
+                Button {
+                    KeyboardSettingsStore.writeKeyboardStyle(.japaneseFlick)
+                    dismiss()
+                } label: {
+                    Text("フリックに切り替える")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(AppColor.charcoalAction, in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("今はローマ字のまま使う")
+                        .bikeyFont(14, weight: .regular, relativeTo: .body)
+                        .foregroundStyle(AppColor.muted)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Setup page") {
     KeyboardSetupPage(progress: 0.66, onBack: {}, onSkip: nil, onContinue: {})
+}
+
+#Preview("Flick feature sheet") {
+    FlickFeatureSheet()
 }
 
 #Preview("Usage page") {

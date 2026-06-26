@@ -15,8 +15,6 @@ struct ProfileScreen: View {
     @State private var promptCount: Int = UserPromptStore.readEntries().count
     @Binding var showAbout: Bool
     @State private var showAuth = false
-    @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
-    private var consentGranted = false
     @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
     private var hapticsEnabled = false
 
@@ -84,12 +82,6 @@ struct ProfileScreen: View {
                                 action: { showKeyboardStyle = true }
                             ),
                             .init(
-                                icon: "hand.raised",
-                                title: "AI変換とプライバシー",
-                                highlight: !consentGranted,
-                                action: { overlay.present(.aiConsent) }
-                            ),
-                            .init(
                                 icon: "hand.tap",
                                 title: "触覚フィードバック",
                                 toggle: hapticsBinding
@@ -154,9 +146,6 @@ struct ProfileScreen: View {
 
     private func refreshFullAccessState() {
         keyboardStatus.refresh()
-        if !keyboardStatus.isFullAccessEnabled {
-            hapticsEnabled = false
-        }
     }
 }
 
@@ -1023,61 +1012,26 @@ struct DeleteAccountConfirmModal: View {
 
 private struct KeyboardStylePickerView: View {
     @Binding var selection: KeyboardPreferences.KeyboardStyle
-    @Environment(\.dismiss) private var dismiss
-
-    private struct Option {
-        let style: KeyboardPreferences.KeyboardStyle
-        let title: String
-        let subtitle: String
-        let icon: String
-    }
-
-    private var options: [Option] {
-        [
-            .init(style: .japaneseRomaji, title: "ローマ字", subtitle: "QWERTY配列で入力", icon: "textformat"),
-            .init(style: .japaneseFlick, title: "フリック", subtitle: "10キー配列でフリック入力", icon: "square.grid.3x3.fill"),
-        ]
-    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: BikeyMetrics.Spacing.s) {
-                ForEach(options, id: \.style) { option in
-                    Button {
-                        selection = option.style
-                        KeyboardSettingsStore.writeKeyboardStyle(option.style)
-                        dismiss()
-                    } label: {
-                        HStack(spacing: BikeyMetrics.Spacing.m) {
-                            Image(systemName: option.icon)
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundStyle(AppColor.purple)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(option.title)
-                                    .bikeyFont(16, weight: .semibold, relativeTo: .body)
-                                    .foregroundStyle(AppColor.ink)
-                                Text(option.subtitle)
-                                    .bikeyFont(13, weight: .regular, relativeTo: .subheadline)
-                                    .foregroundStyle(AppColor.ink.opacity(0.6))
+            VStack(spacing: BikeyMetrics.Spacing.l) {
+                HStack(spacing: BikeyMetrics.Spacing.m) {
+                    ForEach(InputStyleOption.selectable, id: \.self) { style in
+                        InputStyleSelectionCard(
+                            style: style,
+                            isSelected: selection == style,
+                            onTap: {
+                                selection = style
+                                KeyboardSettingsStore.writeKeyboardStyle(style)
                             }
-
-                            Spacer()
-
-                            if selection == option.style {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundStyle(AppColor.purple)
-                            }
-                        }
-                        .padding(.horizontal, BikeyMetrics.Spacing.l)
-                        .padding(.vertical, BikeyMetrics.Spacing.m)
-                        .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 4)
+                        )
                     }
-                    .buttonStyle(.plain)
                 }
+
+                Text("入力方式はいつでも変更できます。")
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
             }
             .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
             .padding(.top, BikeyMetrics.Spacing.l)

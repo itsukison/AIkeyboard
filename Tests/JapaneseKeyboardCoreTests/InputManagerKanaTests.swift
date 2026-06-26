@@ -26,6 +26,72 @@ final class InputManagerKanaTests: XCTestCase {
         XCTAssertEqual(im.displayKana, "きょう")
     }
 
+    func testTapCycleReplacesLastKanaWithinTimeout() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start)
+        XCTAssertEqual(im.displayKana, "あ")
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(0.2))
+        XCTAssertEqual(im.displayKana, "い")
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(0.4))
+        XCTAssertEqual(im.displayKana, "う")
+    }
+
+    func testTapCycleAfterTimeoutStartsNewKana() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(0.9))
+        XCTAssertEqual(im.displayKana, "ああ")
+    }
+
+    func testTapCycleDifferentKeyAppends() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start)
+        im.appendKanaFromTapCycle(FlickKanaTable.ka, now: start.addingTimeInterval(0.2))
+        XCTAssertEqual(im.displayKana, "あか")
+    }
+
+    func testTapCycleWraps() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        for offset in stride(from: 0.0, through: 1.0, by: 0.2) {
+            im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(offset))
+        }
+        XCTAssertEqual(im.displayKana, "あ")
+    }
+
+    func testDirectKanaAppendResetsTapCycle() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start)
+        im.appendKana("お")
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(0.2))
+        XCTAssertEqual(im.displayKana, "あおあ")
+    }
+
+    func testBackspaceResetsTapCycle() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start)
+        XCTAssertTrue(im.backspace())
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(0.2))
+        XCTAssertEqual(im.displayKana, "あ")
+    }
+
+    func testToggleLastKanaResetsTapCycle() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        im.appendKanaFromTapCycle(FlickKanaTable.ta, now: start)
+        im.appendKanaFromTapCycle(FlickKanaTable.ta, now: start.addingTimeInterval(0.2))
+        XCTAssertEqual(im.displayKana, "ち")
+        im.toggleLastKanaCharacterType()
+        XCTAssertEqual(im.displayKana, "ぢ")
+        im.appendKanaFromTapCycle(FlickKanaTable.ta, now: start.addingTimeInterval(0.4))
+        XCTAssertEqual(im.displayKana, "ぢた")
+    }
+
     func testTypingKyouProducesCandidates() async {
         let im = makeManagerWithAdapter()
         im.appendKana("き")
@@ -139,5 +205,15 @@ final class InputManagerKanaTests: XCTestCase {
         XCTAssertEqual(notified, ["あ"])
         im.appendKana("い")
         XCTAssertEqual(notified, ["あ", "あい"])
+    }
+
+    func testCallbackFiresOnTapCycleReplacement() {
+        let im = InputManager(buffer: KanaInputBuffer())
+        let start = Date(timeIntervalSince1970: 1_000)
+        var notified: [String] = []
+        im.onMarkedTextDidChange = { notified.append($0) }
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start)
+        im.appendKanaFromTapCycle(FlickKanaTable.a, now: start.addingTimeInterval(0.2))
+        XCTAssertEqual(notified, ["あ", "い"])
     }
 }

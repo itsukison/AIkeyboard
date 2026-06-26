@@ -64,6 +64,22 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         throw CloudRewriteError.backend("AI rewrite failed.")
     }
 
+    public func submitSelection(eventId: String, selectedIndex: Int) async {
+        guard let accessToken = try? await ensureFreshAccessToken() else { return }
+
+        var urlRequest = URLRequest(url: configuration.endpoint)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        urlRequest.timeoutInterval = 10
+        urlRequest.httpBody = try? JSONEncoder().encode(
+            SelectionFeedback(eventId: eventId, selectedIndex: selectedIndex)
+        )
+
+        _ = try? await session.data(for: urlRequest)
+    }
+
     private func ensureFreshAccessToken() async throws -> String {
         guard let accessToken = AIAuthStore.readAccessToken() else {
             throw CloudRewriteError.notSignedIn
@@ -102,6 +118,11 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         )
         return payload.access_token
     }
+}
+
+private struct SelectionFeedback: Encodable {
+    let eventId: String
+    let selectedIndex: Int
 }
 
 private struct CloudRewriteErrorPayload: Decodable {

@@ -31,6 +31,7 @@ public final class InputManager: ObservableObject {
 
     private let buffer: any InputBuffer
     private let conversionPreferenceEntries: () -> [ConversionPreferenceEntry]
+    private let kanaTapCycleTimeout: TimeInterval
     private var cachedConversionPreferenceEntries: [ConversionPreferenceEntry]
     private var adapter: KanaKanjiAdapter?
     private var conversionTask: Task<Void, Never>?
@@ -40,15 +41,18 @@ public final class InputManager: ObservableObject {
     /// don't change the convertible prefix (e.g. the trailing "k" of the next
     /// syllable) reuse the in-flight or already-published candidates.
     private var lastScheduledKanaPrefix: String?
+    private var kanaTapCycleState: KanaTapCycleState?
 
     public init(
         buffer: any InputBuffer = RomajiInputBuffer(),
         conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
             ConversionPreferenceStore.readEntries()
-        }
+        },
+        kanaTapCycleTimeout: TimeInterval = 0.8
     ) {
         self.buffer = buffer
         self.conversionPreferenceEntries = conversionPreferenceEntries
+        self.kanaTapCycleTimeout = kanaTapCycleTimeout
         self.cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
 
@@ -94,6 +98,7 @@ public final class InputManager: ObservableObject {
     /// advance and wrap. No-op if conversion hasn't produced candidates yet.
     public func selectNextCandidate() {
         guard !candidates.isEmpty else { return }
+        kanaTapCycleState = nil
         let next: Int
         if let current = selectedCandidateIndex, candidates.indices.contains(current) {
             next = (current + 1) % candidates.count
@@ -105,6 +110,7 @@ public final class InputManager: ObservableObject {
     }
 
     public func appendRomaji(_ character: Character) {
+        kanaTapCycleState = nil
         clearPredictions()
         if selectedCandidateIndex != nil {
             selectedCandidateIndex = nil
@@ -117,6 +123,7 @@ public final class InputManager: ObservableObject {
     /// one kana (or a small-kana modifier) to the buffer; conversion runs
     /// through the same pipeline as romaji.
     public func appendKana(_ kana: String) {
+        kanaTapCycleState = nil
         clearPredictions()
         if selectedCandidateIndex != nil {
             selectedCandidateIndex = nil
@@ -125,11 +132,45 @@ public final class InputManager: ObservableObject {
         refresh()
     }
 
+    public func appendKanaFromTapCycle(_ key: FlickKanaTable.FlickKey, now: Date = Date()) {
+        guard let cycle = FlickKanaTable.tapCycle(for: key), !cycle.isEmpty else {
+            appendKana(key.center)
+            return
+        }
+        clearPredictions()
+        if selectedCandidateIndex != nil {
+            selectedCandidateIndex = nil
+        }
+
+        if let state = kanaTapCycleState,
+           state.keyCenter == key.center,
+           now.timeIntervalSince(state.lastTapAt) <= kanaTapCycleTimeout,
+           buffer.displayKana.last.map({ String($0) }) == cycle[state.index] {
+            let nextIndex = (state.index + 1) % cycle.count
+            _ = buffer.backspace()
+            buffer.append(cycle[nextIndex])
+            kanaTapCycleState = KanaTapCycleState(
+                keyCenter: key.center,
+                index: nextIndex,
+                lastTapAt: now
+            )
+        } else {
+            buffer.append(cycle[0])
+            kanaTapCycleState = KanaTapCycleState(
+                keyCenter: key.center,
+                index: 0,
+                lastTapAt: now
+            )
+        }
+        refresh()
+    }
+
     /// 小書き key center tap: cycles the last kana through its
     /// small/dakuten/handakuten form (e.g. か→が, は→ば→ぱ, つ→っ, や→ゃ).
     /// No-op if the buffer is empty or the last kana has no alternate form.
     /// Only meaningful in kana (flick) input mode.
     public func toggleLastKanaCharacterType() {
+        kanaTapCycleState = nil
         clearPredictions()
         if selectedCandidateIndex != nil {
             selectedCandidateIndex = nil
@@ -147,6 +188,7 @@ public final class InputManager: ObservableObject {
     /// otherwise it shrinks the romaji buffer by one visible kana unit.
     @discardableResult
     public func backspace() -> Bool {
+        kanaTapCycleState = nil
         if selectedCandidateIndex != nil {
             selectedCandidateIndex = nil
             notifyMarkedTextChange()
@@ -184,6 +226,7 @@ public final class InputManager: ObservableObject {
         conversionTask?.cancel()
         conversionTask = nil
         lastScheduledKanaPrefix = nil
+        kanaTapCycleState = nil
         if let adapter {
             Task { await adapter.stopComposition() }
         }
@@ -300,5 +343,11 @@ public final class InputManager: ObservableObject {
             candidates: candidateTexts,
             entries: entries
         ).compactMap { candidateByText[$0] }
+    }
+
+    private struct KanaTapCycleState {
+        let keyCenter: String
+        let index: Int
+        let lastTapAt: Date
     }
 }

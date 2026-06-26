@@ -50,6 +50,18 @@ final class FlickKanaTableTests: XCTestCase {
         XCTAssertEqual(FlickKanaTable.kanaKeys.count, 10)
     }
 
+    func testTapCycles() {
+        XCTAssertEqual(FlickKanaTable.tapCycle(for: FlickKanaTable.a), ["あ", "い", "う", "え", "お"])
+        XCTAssertEqual(FlickKanaTable.tapCycle(for: FlickKanaTable.ya), ["や", "ゆ", "よ"])
+        XCTAssertEqual(FlickKanaTable.tapCycle(for: FlickKanaTable.wa), ["わ", "を", "ん", "ー"])
+        XCTAssertEqual(FlickKanaTable.tapCycle(for: FlickKanaTable.kutoten), ["、", "。", "？", "！", "・"])
+    }
+
+    func testSpecialKeysDoNotHaveTapCycles() {
+        XCTAssertNil(FlickKanaTable.tapCycle(for: FlickKanaTable.kogaki))
+        XCTAssertNil(FlickKanaTable.tapCycle(for: FlickKanaTable.kaomoji))
+    }
+
     func testKogakiFlicks() {
         XCTAssertEqual(FlickKanaTable.kogaki.center, "小ﾞﾟ")
         XCTAssertEqual(FlickKanaTable.kogaki.character(for: .left), "ぁ")

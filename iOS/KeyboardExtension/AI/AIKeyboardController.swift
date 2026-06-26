@@ -25,6 +25,10 @@ final class AIKeyboardController: ObservableObject {
         controller?.inputManager ?? fallbackInputManager
     }
     private var rewriteTask: Task<Void, Never>?
+    /// Maps the combined candidate list back to the rewrite event that produced
+    /// each segment (start index → event id), so an accepted candidate is
+    /// reported to the right event. Reset when a fresh generation begins.
+    private var generationSegments: [(eventId: String, start: Int)] = []
     /// The copied message for the active reply session. Set on `runReply`, reused
     /// by `regenerate`, cleared by `runFresh` and `close`.
     private var replyContext: String?
@@ -212,9 +216,22 @@ final class AIKeyboardController: ObservableObject {
                 proxy: controller.textDocumentProxy.ai
             )
             KeyboardUsageStatsStore.recordAcceptedRewrite()
+            submitSelectionFeedback(for: selectedIndex)
             state = .hidden
         } catch {
             state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")
+        }
+    }
+
+    /// Reports the accepted candidate back to its originating rewrite event.
+    /// Fire-and-forget so the replace UI never waits on the network.
+    private func submitSelectionFeedback(for selectedIndex: Int) {
+        guard let segment = generationSegments.last(where: { $0.start <= selectedIndex }) else { return }
+        let eventId = segment.eventId
+        let localIndex = selectedIndex - segment.start
+        let service = CloudRewriteService(configuration: CloudRewriteConfiguration(appVersion: Self.appVersion))
+        Task.detached {
+            await service.submitSelection(eventId: eventId, selectedIndex: localIndex)
         }
     }
 
@@ -263,6 +280,10 @@ final class AIKeyboardController: ObservableObject {
 
         guard let controller else { return }
 
+        if existing.isEmpty {
+            generationSegments = []
+        }
+
         guard KeyboardSettingsStore.readAIConsentGranted() else {
             state = .consentRequired(prompt: prompt)
             return
@@ -304,6 +325,9 @@ final class AIKeyboardController: ObservableObject {
                     : result.candidates
                 await MainActor.run {
                     let combined = existing + newCandidates
+                    if let eventId = result.eventId {
+                        self?.generationSegments.append((eventId: eventId, start: existing.count))
+                    }
                     self?.state = .result(
                         prompt: prompt,
                         capture: capture,

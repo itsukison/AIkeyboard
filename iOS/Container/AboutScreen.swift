@@ -1,4 +1,5 @@
 import KeyboardKit
+import KeyboardPreferences
 import SwiftUI
 import UIKit
 
@@ -6,6 +7,9 @@ struct AboutScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var overlay: AppOverlay
+    @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var consentGranted = false
     @State private var activeURL: IdentifiedURL?
     @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
 
@@ -17,6 +21,13 @@ struct AboutScreen: View {
 
                 AboutListCard(
                     rows: [
+                        AboutRowModel(
+                            icon: "wand.and.stars",
+                            title: "AI変換とプライバシー",
+                            highlight: !consentGranted
+                        ) {
+                            overlay.present(.aiConsent)
+                        },
                         AboutRowModel(
                             icon: "lock.shield",
                             title: "フルアクセス",

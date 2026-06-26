@@ -1,59 +1,97 @@
 import JapaneseKeyboardCore
 import SwiftUI
 
-/// The popup that appears when a flick key is held, showing the center
-/// character enlarged and the 4 flick alternatives positioned in their
-/// respective directions. Styled to match the native iOS keyboard: light
-/// gray popup bubbles, system font, no Bikey design tokens.
+/// The popup that appears when a flick key is held. Renders the native iOS
+/// "flick cross": five tiles in a plus, the selected tile filled blue with
+/// white text. Tiles are sized to the pressed key (passed in) so each option
+/// is the same footprint as the original key, matching native.
 struct FlickSuggestView: View {
     let key: FlickKanaTable.FlickKey
     let selectedDirection: FlickKanaTable.FlickDirection?
+    var tileWidth: CGFloat = 52
+    var tileHeight: CGFloat = 48
 
-    private let bubbleColor = Color(uiColor: .secondarySystemBackground)
-    private let selectedColor = Color(uiColor: .systemBackground)
-    private let keySize: CGFloat = 56
-    private let bubbleSize: CGFloat = 40
-    private let offset: CGFloat = 44
+    private enum Role { case center, top, bottom, left, right }
+    private enum Corner { case topLeading, topTrailing, bottomLeading, bottomTrailing }
+    private let cornerRadius: CGFloat = 7
 
     var body: some View {
         ZStack {
-            centerBubble
-            if let left = key.left {
-                suggestBubble(text: left, direction: .left, isOn: selectedDirection == .left)
-                    .offset(x: -offset, y: 0)
-            }
             if let top = key.top {
-                suggestBubble(text: top, direction: .top, isOn: selectedDirection == .top)
-                    .offset(x: 0, y: -offset)
-            }
-            if let right = key.right {
-                suggestBubble(text: right, direction: .right, isOn: selectedDirection == .right)
-                    .offset(x: offset, y: 0)
+                tile(top, role: .top, isOn: selectedDirection == .top).offset(y: -tileHeight)
             }
             if let bottom = key.bottom {
-                suggestBubble(text: bottom, direction: .bottom, isOn: selectedDirection == .bottom)
-                    .offset(x: 0, y: offset)
+                tile(bottom, role: .bottom, isOn: selectedDirection == .bottom).offset(y: tileHeight)
+            }
+            if let left = key.left {
+                tile(left, role: .left, isOn: selectedDirection == .left).offset(x: -tileWidth)
+            }
+            if let right = key.right {
+                tile(right, role: .right, isOn: selectedDirection == .right).offset(x: tileWidth)
+            }
+            tile(key.center, role: .center, isOn: selectedDirection == nil)
+        }
+        .shadow(color: .black.opacity(0.2), radius: 6, y: 2)
+    }
+
+    private func tile(_ text: String, role: Role, isOn: Bool) -> some View {
+        Text(text)
+            .font(.system(size: 24, weight: .regular))
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .foregroundStyle(isOn ? Color.white : Color.primary)
+            .frame(width: tileWidth, height: tileHeight)
+            .background(
+                // Only the cross's outer corners are rounded; the edges where
+                // tiles meet stay square so the plus reads as one connected shape.
+                UnevenRoundedRectangle(
+                    topLeadingRadius: radius(role, .topLeading),
+                    bottomLeadingRadius: radius(role, .bottomLeading),
+                    bottomTrailingRadius: radius(role, .bottomTrailing),
+                    topTrailingRadius: radius(role, .topTrailing),
+                    style: .continuous
+                )
+                .fill(isOn ? Color(uiColor: .systemBlue) : FlickKeyPalette.kanaKey)
+            )
+    }
+
+    private func radius(_ role: Role, _ corner: Corner) -> CGFloat {
+        switch role {
+        case .top:
+            return corner == .topLeading || corner == .topTrailing ? cornerRadius : 0
+        case .bottom:
+            return corner == .bottomLeading || corner == .bottomTrailing ? cornerRadius : 0
+        case .left:
+            return corner == .topLeading || corner == .bottomLeading ? cornerRadius : 0
+        case .right:
+            return corner == .topTrailing || corner == .bottomTrailing ? cornerRadius : 0
+        case .center:
+            // A center corner is outer (rounded) only when neither adjacent
+            // direction has a tile to connect to.
+            switch corner {
+            case .topLeading: return key.top == nil && key.left == nil ? cornerRadius : 0
+            case .topTrailing: return key.top == nil && key.right == nil ? cornerRadius : 0
+            case .bottomLeading: return key.bottom == nil && key.left == nil ? cornerRadius : 0
+            case .bottomTrailing: return key.bottom == nil && key.right == nil ? cornerRadius : 0
             }
         }
     }
+}
 
-    private var centerBubble: some View {
-        Text(key.center)
-            .font(.system(size: 26, weight: .regular))
-            .frame(width: keySize, height: keySize)
-            .foregroundStyle(.primary)
-            .background(selectedDirection == nil ? selectedColor : bubbleColor)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
-    }
+/// Describes the flick popup to render at the keyboard level: which key, the
+/// selected direction, and the pressed key's frame in the keyboard coordinate
+/// space. Published via `FlickPopupKey` so the popup is drawn in a single
+/// top-level overlay — above every key, so it is never clipped or hidden.
+struct FlickPopup: Equatable {
+    let key: FlickKanaTable.FlickKey
+    let direction: FlickKanaTable.FlickDirection?
+    let frame: CGRect
+}
 
-    private func suggestBubble(text: String, direction: FlickKanaTable.FlickDirection, isOn: Bool) -> some View {
-        Text(text)
-            .font(.system(size: 18, weight: .regular))
-            .frame(width: bubbleSize, height: bubbleSize)
-            .foregroundStyle(.primary)
-            .background(isOn ? selectedColor : bubbleColor)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+struct FlickPopupKey: PreferenceKey {
+    static let space = "flickKeyboard"
+    static let defaultValue: FlickPopup? = nil
+    static func reduce(value: inout FlickPopup?, nextValue: () -> FlickPopup?) {
+        value = value ?? nextValue()
     }
 }

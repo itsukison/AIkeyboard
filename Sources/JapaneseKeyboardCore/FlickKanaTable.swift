@@ -5,12 +5,14 @@ import Foundation
 /// 小書き (small kana / dakuten) key, the くてんてん (punctuation) key, and
 /// the character-type toggle table used by the 小書き key's center tap.
 ///
-/// Kana key layout (4×5 grid, columns left→right):
+/// Kana key layout (columns left→right), matching the native iOS keyboard.
+/// The return key spans the bottom two rows in the right column. The bottom-row
+/// 小ﾞﾟ slot shows ^_^ when idle and 小ﾞﾟ while composing:
 /// ```
-///  [123] [あ] [か] [さ] [⌫]
-///  [ABC] [た] [な] [は] [␣]
-///  [かな] [ま] [や] [ら] [⏎]
-///  [🌐]  [小ﾞﾟ] [わ] [、。]
+///  [→ ]  [あ] [か] [さ] [⌫]
+///  [↺ ]  [た] [な] [は] [空白]
+///  [ABC] [ま] [や] [ら] [⏎ ]
+///  [🌐]  [^_^/小ﾞﾟ][わ] [、。][⏎ ]
 /// ```
 public enum FlickKanaTable {
 
@@ -22,18 +24,25 @@ public enum FlickKanaTable {
     /// alternatives. A nil direction means that flick is unavailable.
     public struct FlickKey: Sendable, Equatable {
         public let center: String
+        /// Face label when it differs from the inserted center char (e.g. an
+        /// "ABC" key whose center tap inserts "a"). Defaults to `center`.
+        public let display: String?
         public let left: String?
         public let top: String?
         public let right: String?
         public let bottom: String?
 
-        public init(center: String, left: String? = nil, top: String? = nil, right: String? = nil, bottom: String? = nil) {
+        public init(center: String, display: String? = nil, left: String? = nil, top: String? = nil, right: String? = nil, bottom: String? = nil) {
             self.center = center
+            self.display = display
             self.left = left
             self.top = top
             self.right = right
             self.bottom = bottom
         }
+
+        /// What's drawn on the key cap.
+        public var face: String { display ?? center }
 
         public func character(for direction: FlickDirection) -> String? {
             switch direction {
@@ -68,9 +77,43 @@ public enum FlickKanaTable {
     /// small kana directly.
     public static let kogaki = FlickKey(center: "小ﾞﾟ", left: "ぁ", top: "ゃ", right: "っ", bottom: "ゔ")
 
+    /// Shown in the 小書き slot when not composing (native swaps the two): a
+    /// kaomoji key whose center inserts "^_^". No flick alternatives.
+    public static let kaomoji = FlickKey(center: "^_^")
+
     // MARK: - くてんてん key (punctuation)
 
     public static let kutoten = FlickKey(center: "、", left: "。", top: "？", right: "！", bottom: "・")
+
+    // MARK: - ABC (English) page — center tap inserts the first letter, flicks
+    // insert the rest. Letters are lowercase; the a/A key toggles case.
+
+    public static let abcSymbols = FlickKey(center: "@", display: "@#/&_", left: "#", top: "/", right: "&", bottom: "_")
+    public static let abcABC = FlickKey(center: "a", display: "ABC", left: "b", top: "c")
+    public static let abcDEF = FlickKey(center: "d", display: "DEF", left: "e", top: "f")
+    public static let abcGHI = FlickKey(center: "g", display: "GHI", left: "h", top: "i")
+    public static let abcJKL = FlickKey(center: "j", display: "JKL", left: "k", top: "l")
+    public static let abcMNO = FlickKey(center: "m", display: "MNO", left: "n", top: "o")
+    public static let abcPQRS = FlickKey(center: "p", display: "PQRS", left: "q", top: "r", right: "s")
+    public static let abcTUV = FlickKey(center: "t", display: "TUV", left: "u", top: "v")
+    public static let abcWXYZ = FlickKey(center: "w", display: "WXYZ", left: "x", top: "y", right: "z")
+    public static let abcQuotes = FlickKey(center: "'", display: "'\"()", left: "\"", top: "(", right: ")")
+    public static let abcPunct = FlickKey(center: ".", display: ".,?!", left: ",", top: "?", right: "!")
+
+    // MARK: - Number / symbol page
+
+    public static let num1 = FlickKey(center: "1", left: "☆", top: "♪", right: "→")
+    public static let num2 = FlickKey(center: "2", left: "¥", top: "$", right: "€")
+    public static let num3 = FlickKey(center: "3", left: "%", top: "°", right: "#")
+    public static let num4 = FlickKey(center: "4", left: "○", top: "*", right: "・")
+    public static let num5 = FlickKey(center: "5", left: "+", top: "×", right: "÷")
+    public static let num6 = FlickKey(center: "6", left: "<", top: "=", right: ">")
+    public static let num7 = FlickKey(center: "7", left: "「", top: "」", right: ":")
+    public static let num8 = FlickKey(center: "8", left: "〒", top: "々", right: "〆")
+    public static let num9 = FlickKey(center: "9", left: "^", top: "¦", right: "\\")
+    public static let numParens = FlickKey(center: "(", display: "()[]", left: ")", top: "[", right: "]")
+    public static let num0 = FlickKey(center: "0", left: "~", top: "…")
+    public static let numPunct = FlickKey(center: ".", display: ".,-/", left: ",", top: "-", right: "/")
 
     // MARK: - Character-type toggle (小書き center tap)
 
@@ -117,4 +160,22 @@ public enum FlickKanaTable {
     public static func toggledForm(of kana: String) -> String? {
         toggleCycle[kana]
     }
+
+    public static func tapCycle(for key: FlickKey) -> [String]? {
+        tapCycles[key.center]
+    }
+
+    private static let tapCycles: [String: [String]] = [
+        "あ": ["あ", "い", "う", "え", "お"],
+        "か": ["か", "き", "く", "け", "こ"],
+        "さ": ["さ", "し", "す", "せ", "そ"],
+        "た": ["た", "ち", "つ", "て", "と"],
+        "な": ["な", "に", "ぬ", "ね", "の"],
+        "は": ["は", "ひ", "ふ", "へ", "ほ"],
+        "ま": ["ま", "み", "む", "め", "も"],
+        "や": ["や", "ゆ", "よ"],
+        "ら": ["ら", "り", "る", "れ", "ろ"],
+        "わ": ["わ", "を", "ん", "ー"],
+        "、": ["、", "。", "？", "！", "・"],
+    ]
 }

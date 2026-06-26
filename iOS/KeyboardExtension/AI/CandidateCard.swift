@@ -19,7 +19,7 @@ struct CandidateCard: View {
             .padding(.vertical, 12)
             .frame(width: CandidateCardMetrics.size.width, height: CandidateCardMetrics.size.height, alignment: .topLeading)
             .background(
-                Color.white,
+                KeyboardPalette.cardBackground,
                 in: RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous)
             )
             .overlay(

@@ -100,7 +100,18 @@ Deno.serve(async (req) => {
     return jsonError("unauthorized", "Invalid session.", 401);
   }
 
-  const parsed = await parseRewriteRequest(req);
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonError("invalid_json", "Request body must be JSON.", 400);
+  }
+
+  if (isFeedbackRequest(body)) {
+    return await handleFeedback(userId, body);
+  }
+
+  const parsed = parseRewriteRequest(body);
   if ("error" in parsed) {
     return parsed.error;
   }
@@ -183,16 +194,9 @@ Deno.serve(async (req) => {
   }
 });
 
-async function parseRewriteRequest(req: Request): Promise<
+function parseRewriteRequest(body: unknown):
   { value: Required<Pick<RewriteRequest, "prompt" | "text" | "candidateCount">> & RewriteRequest } | { error: Response }
-> {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return { error: jsonError("invalid_json", "Request body must be JSON.", 400) };
-  }
-
+{
   if (!body || typeof body !== "object") {
     return { error: jsonError("invalid_request", "Request body must be an object.", 400) };
   }
@@ -246,6 +250,67 @@ async function parseRewriteRequest(req: Request): Promise<
       refinement,
     },
   };
+}
+
+function isFeedbackRequest(body: unknown): body is { eventId: string; selectedIndex: number } {
+  if (!body || typeof body !== "object") return false;
+  const data = body as Record<string, unknown>;
+  return typeof data.eventId === "string" && typeof data.selectedIndex === "number";
+}
+
+// Records which candidate the user accepted, turning a logged rewrite into a
+// labeled (input, chosen) preference example. Scoped by user_id so a caller can
+// only annotate their own events. Best-effort: the client does not block on it.
+async function handleFeedback(
+  userId: string,
+  body: { eventId: string; selectedIndex: number },
+): Promise<Response> {
+  const eventId = body.eventId.trim();
+  const selectedIndex = Math.floor(body.selectedIndex);
+  if (!/^[0-9a-fA-F-]{36}$/.test(eventId) || !Number.isFinite(selectedIndex) || selectedIndex < 0) {
+    return jsonError("invalid_request", "Invalid feedback.", 400);
+  }
+
+  const supabaseURL = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseURL || !serviceRoleKey) {
+    return jsonError("configuration_missing", "Feedback storage is not configured.", 503);
+  }
+
+  try {
+    const response = await fetch(
+      `${supabaseURL}/rest/v1/ai_rewrite_events?id=eq.${eventId}&user_id=eq.${userId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${serviceRoleKey}`,
+          "apikey": serviceRoleKey,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify({
+          selected_index: selectedIndex,
+          selected_at: new Date().toISOString(),
+        }),
+      },
+    );
+    if (!response.ok) {
+      console.error(JSON.stringify({
+        event: "ai_rewrite_feedback_failed",
+        httpStatus: response.status,
+        message: (await response.text()).slice(0, 400),
+      }));
+      return jsonError("provider_error", "Failed to record feedback.", 502);
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "ai_rewrite_feedback_failed",
+      message: error instanceof Error ? error.message : "unknown error",
+    }));
+    return jsonError("provider_error", "Failed to record feedback.", 502);
+  }
+
+  return json({ ok: true });
 }
 
 async function reserveUsage(userId: string, units: number): Promise<{ allowed: boolean; message: string }> {

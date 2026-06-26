@@ -34,7 +34,23 @@ struct KeigoButtonApp: App {
                 .task { await session.bootstrap() }
                 .onAppear {
                     KeyboardSettingsStore.writeCloudAIEnabled(true)
+                    flushKeyboardUsageDays()
                 }
+        }
+    }
+
+    /// Forwards the keyboard extension's completed daily usage tallies to
+    /// PostHog. The extension can't emit analytics itself (memory ceiling +
+    /// no network in the typing path), so the container drains the App Group
+    /// counters on launch. Group by the `date` property for DAU / time-in-app.
+    private func flushKeyboardUsageDays() {
+        for day in KeyboardUsageDailyStore.flushCompletedDays() {
+            PostHogSDK.shared.capture("keyboard_usage_day", properties: [
+                "date": day.date,
+                "opens": day.opens,
+                "active_seconds": day.activeSeconds,
+                "typed": day.typed,
+            ])
         }
     }
 }

@@ -21,6 +21,7 @@ struct AIKeyboardToolbarView: View {
             }
         }
         .frame(height: KeyboardChromeMetrics.toolbarHeight)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .clipped()
     }
 
@@ -183,7 +184,7 @@ struct AIKeyboardToolbarView: View {
             .padding(.horizontal, 11)
             .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
             .background(
-                Color.white.opacity(0.72),
+                KeyboardPalette.pillBackground,
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
         }
@@ -203,7 +204,7 @@ struct AIKeyboardToolbarView: View {
                 .padding(.horizontal, 11)
                 .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
                 .background(
-                    Color.white.opacity(0.72),
+                    KeyboardPalette.pillBackground,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                 )
         }
@@ -373,7 +374,7 @@ struct AIKeyboardToolbarView: View {
             .padding(.horizontal, 12)
             .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
             .background(
-                isSelected ? KeyboardPalette.accentSoft : Color.white.opacity(0.72),
+                isSelected ? KeyboardPalette.accentSoft : KeyboardPalette.pillBackground,
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
             .overlay(

@@ -86,10 +86,14 @@ public struct RewriteCandidate: Codable, Equatable, Identifiable, Sendable {
 public struct RewriteResult: Codable, Equatable, Sendable {
     public let candidates: [RewriteCandidate]
     public let language: String
+    /// Server id of the logged rewrite event. Sent back via `submitSelection`
+    /// when the user accepts a candidate so the choice can be recorded.
+    public let eventId: String?
 
-    public init(candidates: [RewriteCandidate], language: String) {
+    public init(candidates: [RewriteCandidate], language: String, eventId: String? = nil) {
         self.candidates = candidates
         self.language = language
+        self.eventId = eventId
     }
 }
 

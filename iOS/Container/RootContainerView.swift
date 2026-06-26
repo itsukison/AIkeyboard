@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 import UIKit
 
@@ -55,9 +56,18 @@ struct RootContainerView: View {
     @StateObject private var overlay = AppOverlay()
     @EnvironmentObject private var session: UserSession
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.requestReview) private var requestReview
     @AppStorage("aikJP.hasCompletedFirstRun") private var hasCompletedFirstRun = false
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
-    @State private var showReplyFeatureSheet = false
+    @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
+    @AppStorage("aikJP.lastReviewPromptVersion") private var lastReviewPromptVersion = ""
+    @State private var whatsNewSheet: WhatsNewSheet?
+
+    private enum WhatsNewSheet: String, Identifiable {
+        case reply
+        case flick
+        var id: String { rawValue }
+    }
 
     init(initialTab: AppTab = .home) {
         _selectedTab = State(initialValue: initialTab)
@@ -85,6 +95,7 @@ struct RootContainerView: View {
         .onChange(of: scenePhase) { phase in
             if phase == .active {
                 stats.refresh()
+                maybeRequestReview()
             }
         }
         .onOpenURL { url in
@@ -93,12 +104,24 @@ struct RootContainerView: View {
             case "fullaccess":
                 profileShowsAbout = true
             case "consent":
+                profileShowsAbout = true
                 overlay.present(.aiConsent)
             default:
                 break
             }
             selectedTab = .profile
         }
+    }
+
+    /// Ask for an App Store review only once the keyboard has clearly paid off
+    /// (3+ accepted AI rewrites), at most once per app version, and never on top
+    /// of a what's-new sheet. The system itself caps prompts at 3 / 365 days.
+    private func maybeRequestReview() {
+        guard stats.conversionsTotal >= 3, whatsNewSheet == nil else { return }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        guard !version.isEmpty, version != lastReviewPromptVersion else { return }
+        lastReviewPromptVersion = version
+        requestReview()
     }
 
     @ViewBuilder
@@ -142,18 +165,30 @@ struct RootContainerView: View {
             .frame(width: proxy.size.width, height: proxy.size.height)
             .animation(.easeOut(duration: 0.18), value: overlay.modal)
         }
-        .sheet(isPresented: $showReplyFeatureSheet) {
-            ReplyFeatureSheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(32)
-                .presentationBackground(AppColor.background)
+        .sheet(item: $whatsNewSheet) { sheet in
+            Group {
+                switch sheet {
+                case .reply: ReplyFeatureSheet()
+                case .flick: FlickFeatureSheet()
+                }
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(32)
+            .presentationBackground(AppColor.background)
         }
         .task {
-            guard !seenReplyFeature else { return }
-            seenReplyFeature = true
+            // One "what's new" sheet per launch, oldest unseen first. A user who
+            // jumped versions sees the reply sheet now and the flick sheet on the
+            // next launch, rather than both at once.
             try? await Task.sleep(nanoseconds: 700_000_000)
-            showReplyFeatureSheet = true
+            if !seenReplyFeature {
+                seenReplyFeature = true
+                whatsNewSheet = .reply
+            } else if !seenFlickFeature {
+                seenFlickFeature = true
+                whatsNewSheet = .flick
+            }
         }
     }
 
