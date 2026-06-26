@@ -53,19 +53,21 @@ bridge.
   app copies), `AIKeyboardController` compares `UIPasteboard.general.changeCount`
   against a persisted last-seen value
   (`KeyboardSettingsStore.lastSeenPasteboardChangeCount`, in the App Group). If
-  it changed and `hasStrings` is true, a context-appearing reply control appears
+  it changed and `hasStrings` is true, a context-appearing **返信** pill appears
   in the main bar. This reads pasteboard *metadata only* — no content, no banner.
-- **The control is a `UIPasteControl`** (`PasteReplyControl` in
-  `AIKeyboardToolbarView`), not a custom button. Tapping it grants one-time
-  clipboard access with **no permission prompt and no "pasted from" banner** —
-  the only programmatic way to read clipboard contents silently on iOS 16+. The
-  cost: it shows the system paste glyph + localized "ペースト" label and cannot
-  display custom "返信" text.
-- **On paste:** `PasteHostView.paste(itemProviders:)` (the control's next
-  responder) loads the string and calls
-  `AIKeyboardController.runReply(withCopiedText:)`, which captures the compose
-  field with `InputCapture.captureForReply` (empty field is allowed — the reply
-  is inserted at the cursor) and fires the normal pipeline with `replyTo` set.
+- **On tap (`runReplyFromClipboard`):** reads `UIPasteboard.general.string` —
+  this triggers the iOS paste permission prompt — then calls
+  `runReply(withCopiedText:)`, which captures the compose field with
+  `InputCapture.captureForReply` (empty field is allowed — the reply is inserted
+  at the cursor) and fires the normal pipeline with `replyTo` set.
+- **Deferred — prompt-free `UIPasteControl`:** the bannerless/promptless path
+  uses a system `UIPasteControl`, but a SwiftUI-wrapped control collapsed to
+  zero width inside the keyboard (the `UIViewRepresentable` deferred-intrinsic-
+  size pitfall), and its responder-chain enablement in a keyboard extension is
+  unverified. Deferred until it can be made to render and fire reliably; the
+  custom pill (with the prompt) ships meanwhile. `runReply(withCopiedText:)` is
+  kept generic so that path can reuse it. See `docs/archive/uipastecontrol-research.md`
+  for detailed findings from the implementation attempt.
 - **Two inputs:** the copied message is sent as `RewriteRequest.replyTo`
   (context, what we reply *to*); the compose field is sent as `text` (the user's
   intent for the reply, may be empty). The Edge Function uses a reply-specific
@@ -202,10 +204,10 @@ The container's privacy/settings screens must communicate:
 - Normal Japanese typing is **never** sent to the network.
 - Text is sent **only** when the user taps an AI prompt.
 - For **reply mode**, the clipboard's contents are read only when the user taps
-  the system paste control (`UIPasteControl`), which is itself the explicit
-  consent — no permission prompt, no "pasted from …" banner. The copied text is
-  then sent as the message being replied to. Deciding whether to show the
-  control uses pasteboard metadata only (no read). The public privacy policy
+  the 返信 pill, and are then sent as the message being replied to. That tap
+  read triggers the iOS paste permission prompt (a prompt-free `UIPasteControl`
+  path is deferred — see Reply mode above). Deciding whether to show the pill
+  uses pasteboard metadata only (no read, no banner). The public privacy policy
   (`docs/web/privacy.md`) and App Store nutrition label still need a clipboard
   line — see AGENTS.md §8.
 - Cloud AI needs Allow Full Access because iOS blocks keyboard network
