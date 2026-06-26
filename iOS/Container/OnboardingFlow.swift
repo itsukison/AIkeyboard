@@ -13,8 +13,9 @@ struct OnboardingFlow: View {
 
     @State private var pageIndex = 0
     @Environment(\.openURL) private var openURL
+    @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
 
-    private let totalPages = 5
+    private let totalPages = 6
 
     var body: some View {
         Group {
@@ -39,8 +40,14 @@ struct OnboardingFlow: View {
                     onContinue: { advance() }
                 )
             case 3:
-                OnboardingSourcePage(
+                KeyboardReplyPage(
                     progress: progress(for: 3),
+                    onBack: { goBack() },
+                    onContinue: { advance() }
+                )
+            case 4:
+                OnboardingSourcePage(
+                    progress: progress(for: 4),
                     onBack: { goBack() },
                     onContinue: { source in
                         if let source {
@@ -52,9 +59,9 @@ struct OnboardingFlow: View {
                         advance()
                     }
                 )
-            case 4:
+            case 5:
                 KeyboardConsentPage(
-                    progress: progress(for: 4),
+                    progress: progress(for: 5),
                     onBack: { goBack() },
                     onAgree: { completeOnboarding(consentGranted: true) },
                     onDecline: { completeOnboarding(consentGranted: false) }
@@ -126,6 +133,7 @@ struct OnboardingFlow: View {
     }
 
     private func completeOnboarding(consentGranted: Bool) {
+        seenReplyFeature = true
         KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
         PostHogSDK.shared.capture("ai_consent_decision", properties: [
             "granted": consentGranted,

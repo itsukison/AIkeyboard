@@ -7,6 +7,7 @@ final class AppOverlay: ObservableObject {
         case signOut
         case deleteAccount
         case aiConsent
+        case hapticsFullAccessRequired
     }
 
     @Published var modal: Modal?
@@ -55,6 +56,8 @@ struct RootContainerView: View {
     @EnvironmentObject private var session: UserSession
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("aikJP.hasCompletedFirstRun") private var hasCompletedFirstRun = false
+    @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
+    @State private var showReplyFeatureSheet = false
 
     init(initialTab: AppTab = .home) {
         _selectedTab = State(initialValue: initialTab)
@@ -139,6 +142,19 @@ struct RootContainerView: View {
             .frame(width: proxy.size.width, height: proxy.size.height)
             .animation(.easeOut(duration: 0.18), value: overlay.modal)
         }
+        .sheet(isPresented: $showReplyFeatureSheet) {
+            ReplyFeatureSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(32)
+                .presentationBackground(AppColor.background)
+        }
+        .task {
+            guard !seenReplyFeature else { return }
+            seenReplyFeature = true
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            showReplyFeatureSheet = true
+        }
     }
 
     @ViewBuilder
@@ -173,6 +189,15 @@ struct RootContainerView: View {
             )
         case .aiConsent:
             AIConsentInfoModal(onClose: { overlay.dismiss() })
+        case .hapticsFullAccessRequired:
+            HapticsFullAccessRequiredModal(
+                onCancel: { overlay.dismiss() },
+                onOpenSettings: {
+                    overlay.dismiss()
+                    guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                    UIApplication.shared.open(url)
+                }
+            )
         }
     }
 }
@@ -181,15 +206,7 @@ private struct LiquidTabBar: View {
     @Binding var selectedTab: AppTab
 
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: 0) {
-                    tabRow
-                }
-            } else {
-                tabRow
-            }
-        }
+        tabRow
     }
 
     private var tabRow: some View {
@@ -198,15 +215,13 @@ private struct LiquidTabBar: View {
                 let isSelected = selectedTab == tab
                 Button {
                     guard !isSelected else { return }
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-                        selectedTab = tab
-                    }
+                    selectedTab = tab
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 } label: {
                     ZStack {
                         if isSelected {
                             TabSelectionHighlight()
-                                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                                .transition(.opacity)
                         }
 
                         VStack(spacing: 4) {
@@ -219,6 +234,7 @@ private struct LiquidTabBar: View {
                         .foregroundStyle(isSelected ? AppColor.ink : Color.black.opacity(0.72))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -226,7 +242,8 @@ private struct LiquidTabBar: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 5)
         .frame(height: 70)
-        .bikeyGlass(in: Capsule(), fallback: .white.opacity(0.92))
+        .animation(.spring(response: 0.32, dampingFraction: 0.9), value: selectedTab)
+        .bikeyInteractiveGlass(in: Capsule(), fallback: .white.opacity(0.92))
         .shadow(color: Color(red: 0.42, green: 0.42, blue: 0.44).opacity(0.20), radius: 18, x: 0, y: 8)
         .shadowIfLegacyChrome(color: .white.opacity(0.75), radius: 2, y: -1)
     }

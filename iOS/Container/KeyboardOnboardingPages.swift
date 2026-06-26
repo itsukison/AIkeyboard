@@ -350,6 +350,65 @@ private struct KeyboardResultMockCard: View {
     }
 }
 
+// MARK: - Reply page
+
+struct KeyboardReplyPage: View {
+    let progress: Double
+    let onBack: () -> Void
+    let onContinue: () -> Void
+
+    var body: some View {
+        OnboardingScaffold(
+            progress: progress,
+            canGoBack: true,
+            onBack: onBack,
+            onSkip: nil,
+            ctaTitle: "次へ",
+            isCtaEnabled: true,
+            onCta: onContinue
+        ) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 24) {
+                    VStack(spacing: 14) {
+                        Text("コピーした文に\nワンタップで返信。")
+                            .font(.system(size: 30, weight: .medium))
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("相手のメッセージをコピーすると、ツールバーに返信ボタンが出ます。押すだけで返信文の候補を作成します。")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundStyle(OnboardingPalette.subInk)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 4)
+                    }
+                    .padding(.top, 40)
+
+                    KeyboardReplyMockCard()
+                        .padding(.top, 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+        }
+    }
+}
+
+private struct KeyboardReplyMockCard: View {
+    var body: some View {
+        NativeKeyboardSurfaceMock(mode: .reply)
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+            )
+    }
+}
+
 // MARK: - Consent page
 
 struct KeyboardConsentPage: View {
@@ -512,6 +571,7 @@ private struct ConsentDataRow: View {
 private enum NativeKeyboardSurfaceMode {
     case toolbar
     case result
+    case reply
 }
 
 private struct NativeKeyboardSurfaceMock: View {
@@ -520,6 +580,7 @@ private struct NativeKeyboardSurfaceMock: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isExpanded = false
     @State private var cardIndex = 0
+    @State private var showReply = false
 
     private let designSize = CGSize(width: 390, height: 266)
 
@@ -556,6 +617,15 @@ private struct NativeKeyboardSurfaceMock: View {
         case .result:
             NativeResultDemo(selectedIndex: cardIndex)
                 .background(NativeKeyboardStyle.surface)
+        case .reply:
+            VStack(spacing: 8) {
+                NativeIncomingMessageBubble()
+                NativeReplyToolbarDemo(showReply: showReply)
+                NativeKeyboardRows()
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+            .background(NativeKeyboardStyle.surface)
         }
     }
 
@@ -564,6 +634,7 @@ private struct NativeKeyboardSurfaceMock: View {
         guard !reduceMotion else {
             isExpanded = mode == .toolbar
             cardIndex = 0
+            showReply = mode == .reply
             return
         }
 
@@ -586,6 +657,18 @@ private struct NativeKeyboardSurfaceMock: View {
                 try? await Task.sleep(nanoseconds: 1_350_000_000)
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
                     cardIndex = (cardIndex + 1) % 3
+                }
+            }
+        case .reply:
+            showReply = false
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                    showReply = true
+                }
+                try? await Task.sleep(nanoseconds: 1_900_000_000)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                    showReply = false
                 }
             }
         }
@@ -654,6 +737,86 @@ private struct NativeToolbarPill: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(isSelected ? NativeKeyboardStyle.accent : Color.clear, lineWidth: 1.2)
             )
+    }
+}
+
+private struct NativeIncomingMessageBubble: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(NativeKeyboardStyle.accentSoft)
+                .frame(width: 26, height: 26)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(NativeKeyboardStyle.accent.opacity(0.7))
+                )
+
+            Text("明日の10時で大丈夫ですか？")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(NativeKeyboardStyle.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            Spacer(minLength: 6)
+
+            HStack(spacing: 3) {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 10, weight: .semibold))
+                Text("コピー済み")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(NativeKeyboardStyle.accent)
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(NativeKeyboardStyle.accentSoft, in: Capsule())
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 6)
+    }
+}
+
+private struct NativeReplyToolbarDemo: View {
+    let showReply: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if showReply {
+                NativeReplyPill()
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+
+            NativeToolbarPill(title: "敬語", isSelected: false)
+            NativeToolbarPill(title: "…", isSelected: false, minWidth: 36)
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: 46)
+        .padding(.horizontal, 6)
+        .clipped()
+        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: showReply)
+    }
+}
+
+private struct NativeReplyPill: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "arrowshape.turn.up.left")
+                .font(.system(size: 15, weight: .semibold))
+            Text("返信")
+                .font(.system(size: 17, weight: .medium))
+                .lineLimit(1)
+        }
+        .foregroundStyle(NativeKeyboardStyle.accent)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 38)
+        .background(
+            Color.white.opacity(0.72),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
     }
 }
 
@@ -1068,6 +1231,122 @@ private struct KeepKey: View {
     }
 }
 
+// MARK: - Reply feature announcement (existing users)
+//
+// Shown once as a bottom sheet to users who completed onboarding before the
+// reply feature existed. New users meet the same demo on the onboarding
+// `KeyboardReplyPage`, so the sheet is suppressed for them. Container chrome
+// uses the Bikey Design System; the keyboard depiction keeps the native look.
+
+struct ReplyFeatureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(.white, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("新機能")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("コピーした文に、\nワンタップで返信。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("LINEやメールで相手のメッセージをコピーすると、キーボードのツールバーに「返信」ボタンが表示されます。押すだけで、文脈に合った返信文の候補を作成します。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    NativeKeyboardSurfaceMock(mode: .reply)
+                        .padding(16)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                        )
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "doc.on.doc", text: "他のアプリでメッセージをコピー")
+                        ReplyFeaturePoint(icon: "arrowshape.turn.up.left", text: "ツールバーの「返信」ボタンをタップ")
+                        ReplyFeaturePoint(icon: "sparkles", text: "返信文の候補から選んで置き換え")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            Button {
+                dismiss()
+            } label: {
+                Text("使ってみる")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(AppColor.charcoalAction, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
+private struct ReplyFeaturePoint: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(AppColor.purple.opacity(0.78))
+                .frame(width: 26, height: 26)
+                .background(AppColor.paleLavender.opacity(0.85), in: Circle())
+
+            Text(text)
+                .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                .foregroundStyle(AppColor.ink.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Setup page") {
@@ -1082,6 +1361,14 @@ private struct KeepKey: View {
     KeyboardResultPage(progress: 0.75, onBack: {}, onContinue: {})
 }
 
+#Preview("Reply page") {
+    KeyboardReplyPage(progress: 0.66, onBack: {}, onContinue: {})
+}
+
 #Preview("Consent page") {
     KeyboardConsentPage(progress: 1.0, onBack: {}, onAgree: {}, onDecline: {})
+}
+
+#Preview("Reply feature sheet") {
+    ReplyFeatureSheet()
 }

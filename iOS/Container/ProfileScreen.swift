@@ -1,12 +1,17 @@
 import KeyboardPreferences
+import KeyboardKit
 import SwiftUI
 import UIKit
 
 struct ProfileScreen: View {
     @EnvironmentObject private var session: UserSession
     @EnvironmentObject private var overlay: AppOverlay
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var stats = ConversionStats.shared
+    @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
     @State private var showPersonalInfo = false
+    @State private var showKeyboardStyle = false
+    @State private var keyboardStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     @State private var promptCount: Int = UserPromptStore.readEntries().count
     @Binding var showAbout: Bool
     @State private var showAuth = false
@@ -17,6 +22,14 @@ struct ProfileScreen: View {
 
     init(showAbout: Binding<Bool> = .constant(false)) {
         _showAbout = showAbout
+    }
+
+    private var keyboardStyleDisplayName: String {
+        switch keyboardStyle {
+        case .japaneseFlick: return "フリック"
+        case .japaneseRomaji: return "ローマ字"
+        case .standard: return "ローマ字"
+        }
     }
 
     private var accountRows: [ProfileRowModel] {
@@ -65,6 +78,12 @@ struct ProfileScreen: View {
                     ProfileListCard(
                         rows: [
                             .init(
+                                icon: "keyboard",
+                                title: "キーボード入力方式",
+                                trailing: keyboardStyleDisplayName,
+                                action: { showKeyboardStyle = true }
+                            ),
+                            .init(
                                 icon: "hand.raised",
                                 title: "AI変換とプライバシー",
                                 highlight: !consentGranted,
@@ -73,7 +92,7 @@ struct ProfileScreen: View {
                             .init(
                                 icon: "hand.tap",
                                 title: "触覚フィードバック",
-                                toggle: $hapticsEnabled
+                                toggle: hapticsBinding
                             ),
                             .init(
                                 icon: "info.circle",
@@ -92,18 +111,51 @@ struct ProfileScreen: View {
             .navigationDestination(isPresented: $showPersonalInfo) {
                 PersonalInformationView(profile: session.profile)
             }
+            .navigationDestination(isPresented: $showKeyboardStyle) {
+                KeyboardStylePickerView(selection: $keyboardStyle)
+            }
             .navigationDestination(isPresented: $showAbout) {
                 AboutScreen()
             }
             .onAppear {
                 KeyboardSettingsStore.writeCloudAIEnabled(true)
                 promptCount = UserPromptStore.readEntries().count
+                refreshFullAccessState()
             }
             .onChange(of: session.profile) { _ in
                 KeyboardSettingsStore.writeCloudAIEnabled(true)
                 promptCount = UserPromptStore.readEntries().count
             }
+            .onChange(of: scenePhase) { phase in
+                if phase == .active {
+                    refreshFullAccessState()
+                }
+            }
             .guestAuthCover(isPresented: $showAuth)
+        }
+    }
+
+    private var hapticsBinding: Binding<Bool> {
+        Binding(
+            get: { hapticsEnabled },
+            set: { enabled in
+                if enabled {
+                    refreshFullAccessState()
+                    guard keyboardStatus.isFullAccessEnabled else {
+                        hapticsEnabled = false
+                        overlay.present(.hapticsFullAccessRequired)
+                        return
+                    }
+                }
+                hapticsEnabled = enabled
+            }
+        )
+    }
+
+    private func refreshFullAccessState() {
+        keyboardStatus.refresh()
+        if !keyboardStatus.isFullAccessEnabled {
+            hapticsEnabled = false
         }
     }
 }
@@ -636,6 +688,81 @@ struct AIConsentInfoModal: View {
     }
 }
 
+struct HapticsFullAccessRequiredModal: View {
+    let onCancel: () -> Void
+    let onOpenSettings: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.34)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onCancel)
+
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle()
+                        .fill(AppColor.purple.opacity(0.10))
+                        .frame(width: 58, height: 58)
+                    Image(systemName: "hand.tap")
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundStyle(AppColor.purple)
+                }
+                .padding(.top, BikeyMetrics.Spacing.l + 2)
+
+                Text("フルアクセスが必要です")
+                    .bikeyFont(18, weight: .semibold, relativeTo: .headline)
+                    .foregroundStyle(AppColor.ink)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, BikeyMetrics.Spacing.m)
+
+                Text("触覚フィードバックを使うには、iOS設定で敬語ボタンのフルアクセスをオンにしてください。")
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+                    .padding(.horizontal, BikeyMetrics.Spacing.l)
+
+                VStack(spacing: 8) {
+                    Button(action: onOpenSettings) {
+                        Text("設定を開く")
+                            .bikeyFont(15, weight: .semibold, relativeTo: .body)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(AppColor.charcoalAction, in: Capsule())
+                            .shadow(color: AppColor.charcoalAction.opacity(0.22), radius: 10, x: 0, y: 5)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: onCancel) {
+                        Text("あとで")
+                            .bikeyFont(15, weight: .medium, relativeTo: .body)
+                            .foregroundStyle(AppColor.ink)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(.white, in: Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppColor.rule.opacity(0.45), lineWidth: 0.6)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.m)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.m)
+            }
+            .frame(maxWidth: 320)
+            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
+            .padding(.horizontal, BikeyMetrics.Spacing.xl)
+        }
+    }
+}
+
 private struct AIConsentCompactSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -891,5 +1018,72 @@ struct DeleteAccountConfirmModal: View {
             .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
             .padding(.horizontal, BikeyMetrics.Spacing.xl)
         }
+    }
+}
+
+private struct KeyboardStylePickerView: View {
+    @Binding var selection: KeyboardPreferences.KeyboardStyle
+    @Environment(\.dismiss) private var dismiss
+
+    private struct Option {
+        let style: KeyboardPreferences.KeyboardStyle
+        let title: String
+        let subtitle: String
+        let icon: String
+    }
+
+    private var options: [Option] {
+        [
+            .init(style: .japaneseRomaji, title: "ローマ字", subtitle: "QWERTY配列で入力", icon: "textformat"),
+            .init(style: .japaneseFlick, title: "フリック", subtitle: "10キー配列でフリック入力", icon: "square.grid.3x3.fill"),
+        ]
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: BikeyMetrics.Spacing.s) {
+                ForEach(options, id: \.style) { option in
+                    Button {
+                        selection = option.style
+                        KeyboardSettingsStore.writeKeyboardStyle(option.style)
+                        dismiss()
+                    } label: {
+                        HStack(spacing: BikeyMetrics.Spacing.m) {
+                            Image(systemName: option.icon)
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundStyle(AppColor.purple)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(option.title)
+                                    .bikeyFont(16, weight: .semibold, relativeTo: .body)
+                                    .foregroundStyle(AppColor.ink)
+                                Text(option.subtitle)
+                                    .bikeyFont(13, weight: .regular, relativeTo: .subheadline)
+                                    .foregroundStyle(AppColor.ink.opacity(0.6))
+                            }
+
+                            Spacer()
+
+                            if selection == option.style {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(AppColor.purple)
+                            }
+                        }
+                        .padding(.horizontal, BikeyMetrics.Spacing.l)
+                        .padding(.vertical, BikeyMetrics.Spacing.m)
+                        .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
+            .padding(.top, BikeyMetrics.Spacing.l)
+        }
+        .background(AppColor.canvas.ignoresSafeArea())
+        .navigationTitle("キーボード入力方式")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

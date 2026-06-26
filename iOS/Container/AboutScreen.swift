@@ -1,4 +1,4 @@
-import KeyboardPreferences
+import KeyboardKit
 import SwiftUI
 import UIKit
 
@@ -7,7 +7,7 @@ struct AboutScreen: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @State private var activeURL: IdentifiedURL?
-    @State private var fullAccessEnabled = KeyboardSettingsStore.readLastKnownFullAccessEnabled()
+    @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -20,8 +20,8 @@ struct AboutScreen: View {
                         AboutRowModel(
                             icon: "lock.shield",
                             title: "フルアクセス",
-                            trailing: fullAccessEnabled ? "オン" : "オフ",
-                            highlight: !fullAccessEnabled
+                            trailing: keyboardStatus.isFullAccessEnabled ? "オン" : "オフ",
+                            highlight: !keyboardStatus.isFullAccessEnabled
                         ) {
                             openSystemSettings()
                         },
@@ -67,11 +67,11 @@ struct AboutScreen: View {
         }
         .sheet(item: $activeURL) { SafariView(url: $0.url) }
         .onAppear {
-            fullAccessEnabled = KeyboardSettingsStore.readLastKnownFullAccessEnabled()
+            keyboardStatus.refresh()
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
-                fullAccessEnabled = KeyboardSettingsStore.readLastKnownFullAccessEnabled()
+                keyboardStatus.refresh()
             }
         }
     }
