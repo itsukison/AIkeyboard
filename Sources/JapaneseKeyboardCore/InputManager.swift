@@ -11,6 +11,10 @@ public final class InputManager: ObservableObject {
 
     @Published public private(set) var candidates: [Candidate] = []
 
+    /// Next-word (予測変換) suggestions shown after a commit, while nothing is
+    /// being composed. Cleared the moment the user starts the next word.
+    @Published public private(set) var predictionSuggestions: [Candidate] = []
+
     /// Index into `candidates` of the currently-cycled candidate, or nil when
     /// the user has not yet pressed space to enter candidate-cycling mode.
     /// When nil, marked text shows kana; when set, marked text shows the
@@ -25,11 +29,12 @@ public final class InputManager: ObservableObject {
     /// The controller wires this up to `textDocumentProxy.setMarkedText`.
     public var onMarkedTextDidChange: ((String) -> Void)?
 
-    private let buffer = RomajiInputBuffer()
+    private let buffer: any InputBuffer
     private let conversionPreferenceEntries: () -> [ConversionPreferenceEntry]
     private var cachedConversionPreferenceEntries: [ConversionPreferenceEntry]
     private var adapter: KanaKanjiAdapter?
     private var conversionTask: Task<Void, Never>?
+    private var predictionTask: Task<Void, Never>?
     private var lastNotifiedMarkedText: String = ""
     /// Kana prefix of the most recently scheduled conversion. Keystrokes that
     /// don't change the convertible prefix (e.g. the trailing "k" of the next
@@ -37,10 +42,12 @@ public final class InputManager: ObservableObject {
     private var lastScheduledKanaPrefix: String?
 
     public init(
+        buffer: any InputBuffer = RomajiInputBuffer(),
         conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
             ConversionPreferenceStore.readEntries()
         }
     ) {
+        self.buffer = buffer
         self.conversionPreferenceEntries = conversionPreferenceEntries
         self.cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
@@ -98,10 +105,40 @@ public final class InputManager: ObservableObject {
     }
 
     public func appendRomaji(_ character: Character) {
+        clearPredictions()
         if selectedCandidateIndex != nil {
             selectedCandidateIndex = nil
         }
-        buffer.append(Character(character.lowercased()))
+        buffer.append(String(character.lowercased()))
+        refresh()
+    }
+
+    /// Direct kana entry for the flick/10-key input mode. Each call appends
+    /// one kana (or a small-kana modifier) to the buffer; conversion runs
+    /// through the same pipeline as romaji.
+    public func appendKana(_ kana: String) {
+        clearPredictions()
+        if selectedCandidateIndex != nil {
+            selectedCandidateIndex = nil
+        }
+        buffer.append(kana)
+        refresh()
+    }
+
+    /// 小書き key center tap: cycles the last kana through its
+    /// small/dakuten/handakuten form (e.g. か→が, は→ば→ぱ, つ→っ, や→ゃ).
+    /// No-op if the buffer is empty or the last kana has no alternate form.
+    /// Only meaningful in kana (flick) input mode.
+    public func toggleLastKanaCharacterType() {
+        clearPredictions()
+        if selectedCandidateIndex != nil {
+            selectedCandidateIndex = nil
+        }
+        let current = buffer.displayKana
+        guard let last = current.last else { return }
+        guard let toggled = FlickKanaTable.toggledForm(of: String(last)) else { return }
+        buffer.backspace()
+        buffer.append(toggled)
         refresh()
     }
 
@@ -120,7 +157,30 @@ public final class InputManager: ObservableObject {
         return true
     }
 
+    /// Fetch next-word suggestions for the just-committed word. Call after the
+    /// commit's `reset()` so the suggestions survive into the idle state.
+    public func requestPrediction(after committedText: String) {
+        predictionTask?.cancel()
+        guard let adapter else { return }
+        predictionTask = Task { [weak self] in
+            let suggestions = await adapter.predictNextWords(after: committedText)
+            guard !Task.isCancelled, let self else { return }
+            if self.predictionSuggestions != suggestions {
+                self.predictionSuggestions = suggestions
+            }
+        }
+    }
+
+    public func clearPredictions() {
+        predictionTask?.cancel()
+        predictionTask = nil
+        if !predictionSuggestions.isEmpty {
+            predictionSuggestions = []
+        }
+    }
+
     public func reset() {
+        clearPredictions()
         conversionTask?.cancel()
         conversionTask = nil
         lastScheduledKanaPrefix = nil

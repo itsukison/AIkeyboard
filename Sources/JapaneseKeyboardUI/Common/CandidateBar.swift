@@ -4,6 +4,8 @@ import SwiftUI
 public struct CandidateBar: View {
     @ObservedObject var inputManager: InputManager
     let onSelect: (Candidate) -> Void
+    let onSelectPrediction: (Candidate) -> Void
+    let onTriggerHaptic: () -> Void
     let horizontalPadding: CGFloat
     let firstCandidateLeadingPadding: CGFloat
 
@@ -11,15 +13,27 @@ public struct CandidateBar: View {
         inputManager: InputManager,
         horizontalPadding: CGFloat = 6,
         firstCandidateLeadingPadding: CGFloat = 14,
-        onSelect: @escaping (Candidate) -> Void
+        onTriggerHaptic: @escaping () -> Void = {},
+        onSelect: @escaping (Candidate) -> Void,
+        onSelectPrediction: @escaping (Candidate) -> Void = { _ in }
     ) {
         self.inputManager = inputManager
         self.horizontalPadding = horizontalPadding
         self.firstCandidateLeadingPadding = firstCandidateLeadingPadding
+        self.onTriggerHaptic = onTriggerHaptic
         self.onSelect = onSelect
+        self.onSelectPrediction = onSelectPrediction
     }
 
     public var body: some View {
+        if !inputManager.candidates.isEmpty {
+            candidateScroll
+        } else if !inputManager.predictionSuggestions.isEmpty {
+            predictionScroll
+        }
+    }
+
+    private var candidateScroll: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 0) {
@@ -28,7 +42,10 @@ public struct CandidateBar: View {
                             candidate: candidate,
                             isSelected: index == inputManager.selectedCandidateIndex,
                             leadingPadding: index == 0 ? firstCandidateLeadingPadding : 14,
-                            onSelect: { onSelect(candidate) }
+                            onSelect: {
+                                onTriggerHaptic()
+                                onSelect(candidate)
+                            }
                         )
                         .id(index)
 
@@ -49,6 +66,32 @@ public struct CandidateBar: View {
                 }
             }
         }
+    }
+
+    private var predictionScroll: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Array(inputManager.predictionSuggestions.enumerated()), id: \.element.id) { index, candidate in
+                    CandidateButton(
+                        candidate: candidate,
+                        isSelected: false,
+                        leadingPadding: index == 0 ? firstCandidateLeadingPadding : 14,
+                        onSelect: {
+                            onTriggerHaptic()
+                            onSelectPrediction(candidate)
+                        }
+                    )
+
+                    if index < inputManager.predictionSuggestions.count - 1 {
+                        Divider()
+                            .frame(height: KeyboardChromeMetrics.toolbarDividerHeight - 4)
+                            .opacity(0.4)
+                    }
+                }
+            }
+            .padding(.horizontal, horizontalPadding)
+        }
+        .frame(height: KeyboardChromeMetrics.toolbarHeight)
     }
 }
 

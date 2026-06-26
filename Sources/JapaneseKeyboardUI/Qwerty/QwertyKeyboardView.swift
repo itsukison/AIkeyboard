@@ -12,6 +12,7 @@ public struct QwertyKeyboardView: View {
     // (`CandidateBar`, `PrimaryKeyLabel`).
     public let inputManager: InputManager
     public let onSelectCandidate: (Candidate) -> Void
+    public let onTriggerHaptic: () -> Void
     public let toolbarContent: AnyView?
     public let overlayContent: AnyView?
     public let shouldForceLowercaseAlphabeticCharacters: () -> Bool
@@ -22,6 +23,7 @@ public struct QwertyKeyboardView: View {
         keyboardContext: KeyboardContext,
         inputManager: InputManager,
         onSelectCandidate: @escaping (Candidate) -> Void,
+        onTriggerHaptic: @escaping () -> Void = {},
         toolbarContent: AnyView? = nil,
         overlayContent: AnyView? = nil,
         shouldForceLowercaseAlphabeticCharacters: @escaping () -> Bool = { false },
@@ -31,6 +33,7 @@ public struct QwertyKeyboardView: View {
         self.keyboardContext = keyboardContext
         self.inputManager = inputManager
         self.onSelectCandidate = onSelectCandidate
+        self.onTriggerHaptic = onTriggerHaptic
         self.toolbarContent = toolbarContent
         self.overlayContent = overlayContent
         self.shouldForceLowercaseAlphabeticCharacters = shouldForceLowercaseAlphabeticCharacters
@@ -76,10 +79,28 @@ public struct QwertyKeyboardView: View {
                     if let toolbarContent {
                         toolbarContent
                     } else {
-                        AnyView(CandidateBar(inputManager: inputManager, onSelect: onSelectCandidate))
+                        AnyView(CandidateBar(inputManager: inputManager, onTriggerHaptic: onTriggerHaptic, onSelect: onSelectCandidate))
                     }
                 }
             )
+            .keyboardButtonStyle { params in
+                var style = params.standardStyle()
+                // KeyboardKit paints an inactive shift key near-white, so it
+                // reads as "active" against the other (gray) function keys. Pin
+                // it to the system function-key background — borrowed from the
+                // backspace key's own standard style so it tracks the system
+                // color across themes/appearances. The active shift
+                // (uppercased / caps-locked) keeps its white highlight.
+                if case .shift(let shiftCase) = params.action, shiftCase == .lowercased {
+                    let systemKey = Keyboard.ButtonStyleBuilderParams(
+                        action: .backspace,
+                        context: params.context,
+                        isPressed: false
+                    ).standardStyle()
+                    style.backgroundColor = systemKey.backgroundColor
+                }
+                return style
+            }
 
             if let overlayContent {
                 overlayContent
@@ -90,6 +111,12 @@ public struct QwertyKeyboardView: View {
     private var keyboardLayout: KeyboardLayout {
         var layout = KeyboardLayout.standard(for: keyboardContext)
         layout.deviceConfiguration.inputToolbarHeight = KeyboardChromeMetrics.toolbarHeight
+        // KeyboardKit's default key caps are ~2pt taller with ~2pt tighter row
+        // gaps than native iOS. Widening the vertical button insets by 1pt per
+        // side rebalances within the same row pitch (caps 44→42pt, gaps
+        // 10→12pt). Horizontal insets already match native, so leave them.
+        layout.deviceConfiguration.buttonInsets.top += 1
+        layout.deviceConfiguration.buttonInsets.bottom += 1
         if shouldForceLowercaseAlphabeticCharacters() {
             layout.forceLowercasedAlphabeticCharacters(for: keyboardContext.keyboardType)
             layout.forceInactiveAlphabeticShift(for: keyboardContext.keyboardType)

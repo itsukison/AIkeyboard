@@ -3,6 +3,7 @@ import Foundation
 public enum KeyboardStyle: String, Codable, Sendable, CaseIterable {
     case standard
     case japaneseRomaji
+    case japaneseFlick
 
     public var showsLongVowelKey: Bool {
         self == .japaneseRomaji

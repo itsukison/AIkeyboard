@@ -4,6 +4,12 @@ import KanaKanjiConverterModuleWithDefaultDictionary
 public actor KanaKanjiAdapter {
     private let converter: KanaKanjiConverter
     private var options: ConvertRequestOptions
+    /// The most recent conversion result, retained so post-commit prediction
+    /// can recover the rich AzooKey candidate (with its dictionary data /
+    /// right-context id) for the word the user just committed. Our own
+    /// `Candidate` only carries text + reading, which isn't enough context for
+    /// `requestPostCompositionPredictionCandidates`.
+    private var lastConversion: ConversionResult?
 
     public init(supportDirectoryURL: URL? = nil) {
         let supportURL = supportDirectoryURL
@@ -16,8 +22,14 @@ public actor KanaKanjiAdapter {
         // post-composition prediction, which we never request.
         self.options = .init(
             N_best: 10,
-            needTypoCorrection: false,
-            requireJapanesePrediction: false,
+            // AzooKey's own iOS keyboard defaults this on for live typing. It
+            // corrects mistyped romaji in the lattice; the kana echo is
+            // unaffected and conversion already runs off-main and cancellable.
+            needTypoCorrection: true,
+            // Blends in-composition prediction candidates (e.g. き → 今日) into
+            // the conversion results, and is also required for the post-commit
+            // next-word prediction path below.
+            requireJapanesePrediction: true,
             requireEnglishPrediction: false,
             keyboardLanguage: .ja_JP,
             englishCandidateInRoman2KanaInput: false,
@@ -46,6 +58,7 @@ public actor KanaKanjiAdapter {
 
         options.N_best = maxCandidates
         let results = converter.requestCandidates(composingText, options: options)
+        lastConversion = results
 
         let texts = Array(results.mainResults.prefix(maxCandidates).map(\.text))
         var candidates = texts.map { Candidate(text: $0, reading: kana) }
@@ -53,6 +66,28 @@ public actor KanaKanjiAdapter {
             candidates.append(Candidate(text: kana, reading: kana))
         }
         return candidates
+    }
+
+    /// Next-word (予測変換) suggestions to show after the user commits a word,
+    /// while nothing is being composed. `committedText` must match a candidate
+    /// from the most recent `convert(...)`; otherwise (e.g. a raw-kana commit)
+    /// we have no rich left-side context and return nothing rather than guess.
+    public func predictNextWords(after committedText: String, maxCandidates: Int = 3) -> [Candidate] {
+        guard let leftSideCandidate = lastConversion?.mainResults.first(where: { $0.text == committedText }) else {
+            return []
+        }
+        let predictions = converter.requestPostCompositionPredictionCandidates(
+            leftSideCandidate: leftSideCandidate,
+            options: options
+        )
+        var seen = Set<String>()
+        var result: [Candidate] = []
+        for prediction in predictions {
+            guard seen.insert(prediction.text).inserted else { continue }
+            result.append(Candidate(text: prediction.text, reading: ""))
+            if result.count == maxCandidates { break }
+        }
+        return result
     }
 
     /// Clears the converter's incremental lattice state when a composition

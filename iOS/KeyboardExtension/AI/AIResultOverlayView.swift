@@ -4,6 +4,8 @@ import SwiftUI
 
 struct AIResultOverlayView: View {
     @ObservedObject var aiController: AIKeyboardController
+    let onTriggerHaptic: () -> Void
+    let onSelectionHaptic: () -> Void
     @State private var centeredIndex: Int = 0
 
     private static let keyboardSurfaceColor = Color(
@@ -79,7 +81,11 @@ struct AIResultOverlayView: View {
             showSkeletons: showSkeletons,
             focusedIndex: focusedIndex,
             animatesProgrammaticScroll: !resetToFirstCard,
-            onTapCentered: { aiController.replaceFocusedCandidate() }
+            onSelectionChanged: onSelectionHaptic,
+            onTapCentered: {
+                onTriggerHaptic()
+                aiController.replaceFocusedCandidate()
+            }
         )
         .frame(height: CandidateCardMetrics.size.height)
         .onAppear {
@@ -110,10 +116,12 @@ struct AIResultOverlayView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 RefinementChip(icon: "arrow.clockwise", label: "再作成") {
+                    onTriggerHaptic()
                     aiController.regenerate()
                 }
                 ForEach(RefinementIntent.allCases, id: \.self) { intent in
                     RefinementChip(icon: intent.iconName, label: intent.title) {
+                        onTriggerHaptic()
                         aiController.refine(intent)
                     }
                 }

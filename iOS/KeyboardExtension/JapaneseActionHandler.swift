@@ -39,6 +39,13 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
     }
 
     override func handle(_ gesture: Keyboard.Gesture, on action: KeyboardAction) {
+        if gesture == .press || gesture == .repeatPress {
+            let controller = jpController
+            MainActor.assumeIsolated {
+                controller?.triggerKeyHaptic()
+            }
+        }
+
         if gesture == .press, case .backspace = action {
             backspaceSequenceConsumed = false
         }

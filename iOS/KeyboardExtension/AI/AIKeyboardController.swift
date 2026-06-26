@@ -20,7 +20,10 @@ final class AIKeyboardController: ObservableObject {
     @Published private(set) var replyAvailable: Bool = false
 
     private weak var controller: KeyboardViewController?
-    private let inputManager: InputManager
+    private let fallbackInputManager: InputManager
+    private var inputManager: InputManager {
+        controller?.inputManager ?? fallbackInputManager
+    }
     private var rewriteTask: Task<Void, Never>?
     /// The copied message for the active reply session. Set on `runReply`, reused
     /// by `regenerate`, cleared by `runFresh` and `close`.
@@ -32,7 +35,7 @@ final class AIKeyboardController: ObservableObject {
 
     init(controller: KeyboardViewController, inputManager: InputManager) {
         self.controller = controller
-        self.inputManager = inputManager
+        self.fallbackInputManager = inputManager
     }
 
     var isActive: Bool {
@@ -100,11 +103,20 @@ final class AIKeyboardController: ObservableObject {
         let current = pasteboard.changeCount
         guard current != KeyboardSettingsStore.readLastSeenPasteboardChangeCount() else { return }
         KeyboardSettingsStore.writeLastSeenPasteboardChangeCount(current)
-        replyAvailable = pasteboard.hasStrings
+        withAnimation(.easeInOut(duration: 0.28)) {
+            replyAvailable = pasteboard.hasStrings
+        }
     }
 
-    /// Called with the message text delivered by the system paste control (a
-    /// `UIPasteControl` tap grants clipboard access with no permission prompt).
+    /// Reads the clipboard and starts a reply. Reading `UIPasteboard.general.string`
+    /// here triggers the iOS paste permission prompt. (A `UIPasteControl`-based
+    /// path that avoids the prompt is deferred — see docs/ai-rewrite.md.)
+    func runReplyFromClipboard() {
+        runReply(withCopiedText: UIPasteboard.general.string ?? "")
+    }
+
+    /// Starts a reply with the given message text (e.g. delivered by a future
+    /// system paste control). Empty text surfaces a Japanese error.
     func runReply(withCopiedText text: String) {
         guard let controller else { return }
         let copied = text.trimmingCharacters(in: .whitespacesAndNewlines)

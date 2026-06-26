@@ -4,7 +4,7 @@ import Foundation
 /// live kana representation. The buffer holds the entire pending romaji
 /// (including any partial trailing input that has not yet resolved to kana).
 @MainActor
-public final class RomajiInputBuffer {
+public final class RomajiInputBuffer: InputBuffer {
     public private(set) var pendingRomaji: String = ""
 
     public init() {}

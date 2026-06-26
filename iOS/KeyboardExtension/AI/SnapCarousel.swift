@@ -12,6 +12,7 @@ struct SnapCarousel: UIViewRepresentable {
     let showSkeletons: Bool
     let focusedIndex: Int?
     let animatesProgrammaticScroll: Bool
+    let onSelectionChanged: () -> Void
     let onTapCentered: () -> Void
 
     private var totalCount: Int {
@@ -27,6 +28,7 @@ struct SnapCarousel: UIViewRepresentable {
 
     func updateUIView(_ view: SnapCarouselView, context: Context) {
         context.coordinator.indexBinding = $centeredIndex
+        context.coordinator.onSelectionChanged = onSelectionChanged
 
         let count = totalCount
         let centered = max(0, min(max(count - 1, 0), centeredIndex))
@@ -81,13 +83,8 @@ struct SnapCarousel: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate {
         weak var view: SnapCarouselView?
         var indexBinding: Binding<Int>?
+        var onSelectionChanged: (() -> Void)?
         var isProgrammaticallyScrolling = false
-        private let haptic = UISelectionFeedbackGenerator()
-
-        override init() {
-            super.init()
-            haptic.prepare()
-        }
 
         func scrollViewWillEndDragging(
             _ scrollView: UIScrollView,
@@ -108,8 +105,7 @@ struct SnapCarousel: UIViewRepresentable {
             let newIndex = view.computedCenteredIndex
             guard newIndex != view.currentCenteredIndex else { return }
             view.currentCenteredIndex = newIndex
-            haptic.selectionChanged()
-            haptic.prepare()
+            onSelectionChanged?()
             indexBinding?.wrappedValue = newIndex
         }
 
