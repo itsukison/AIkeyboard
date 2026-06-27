@@ -61,7 +61,10 @@ struct RootContainerView: View {
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
     @AppStorage("aikJP.lastReviewPromptVersion") private var lastReviewPromptVersion = ""
+    @AppStorage("aikJP.dismissedUpdateVersion") private var dismissedUpdateVersion = ""
+    @AppStorage("aikJP.lastUpdateCheckAt") private var lastUpdateCheckAt: Double = 0
     @State private var whatsNewSheet: WhatsNewSheet?
+    @State private var updateInfo: AppUpdateChecker.UpdateInfo?
 
     private enum WhatsNewSheet: String, Identifiable {
         case reply
@@ -117,7 +120,7 @@ struct RootContainerView: View {
     /// (3+ accepted AI rewrites), at most once per app version, and never on top
     /// of a what's-new sheet. The system itself caps prompts at 3 / 365 days.
     private func maybeRequestReview() {
-        guard stats.conversionsTotal >= 3, whatsNewSheet == nil else { return }
+        guard stats.conversionsTotal >= 3, whatsNewSheet == nil, updateInfo == nil else { return }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         guard !version.isEmpty, version != lastReviewPromptVersion else { return }
         lastReviewPromptVersion = version
@@ -161,9 +164,25 @@ struct RootContainerView: View {
                         .transition(.opacity)
                         .zIndex(10)
                 }
+
+                if let info = updateInfo {
+                    UpdateAvailableModal(
+                        onUpdate: {
+                            updateInfo = nil
+                            UIApplication.shared.open(info.appStoreURL)
+                        },
+                        onLater: {
+                            dismissedUpdateVersion = info.latestVersion
+                            updateInfo = nil
+                        }
+                    )
+                    .transition(.opacity)
+                    .zIndex(20)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .animation(.easeOut(duration: 0.18), value: overlay.modal)
+            .animation(.easeOut(duration: 0.18), value: updateInfo)
         }
         .sheet(item: $whatsNewSheet) { sheet in
             Group {
@@ -189,7 +208,21 @@ struct RootContainerView: View {
                 seenFlickFeature = true
                 whatsNewSheet = .flick
             }
+            await maybeCheckForUpdate()
         }
+    }
+
+    /// Soft "new version available" prompt: checks the App Store at most once a day,
+    /// never on top of a what's-new sheet, and never re-nags a version the user has
+    /// already dismissed with "あとで".
+    private func maybeCheckForUpdate() async {
+        guard whatsNewSheet == nil else { return }
+        let now = Date().timeIntervalSince1970
+        guard now - lastUpdateCheckAt > 24 * 60 * 60 else { return }
+        lastUpdateCheckAt = now
+        guard let info = await AppUpdateChecker.check(),
+              info.latestVersion != dismissedUpdateVersion else { return }
+        updateInfo = info
     }
 
     @ViewBuilder
