@@ -38,6 +38,21 @@ final class UserPromptStoreTests: XCTestCase {
         )
     }
 
+    func testWriteEntriesNormalizesPriorPoliteDefaultToCurrent() {
+        let priorDefault = UserPrompt(
+            slot: .main,
+            builtinKey: UserPromptDefaults.politeKey,
+            title: "敬語",
+            prompt: "ビジネスで通用する自然な敬語に書き直してください。過度に堅苦しい表現は避け、読みやすい丁寧語にしてください。",
+            sortOrder: 0
+        )
+
+        UserPromptStore.writeEntries([priorDefault], defaults: defaults)
+
+        let entry = UserPromptStore.readEntries(defaults: defaults).first
+        XCTAssertEqual(entry?.prompt, UserPromptDefaults.defaultPrompt(for: UserPromptDefaults.politeKey))
+    }
+
     func testWriteEntriesDoesNotNormalizeCustomBuiltinPrompt() {
         let custom = UserPrompt(
             slot: .main,

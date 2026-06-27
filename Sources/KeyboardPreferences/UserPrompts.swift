@@ -45,23 +45,35 @@ public enum UserPromptDefaults {
     public static let emailKey = "email"
     public static let translateToEnglishKey = "translateToEnglish"
     public static let replyKey = "reply"
-    private static let legacyDefaults: [String: (title: String, prompt: String)] = [
-        politeKey: (
-            title: "敬語",
-            prompt: "Rewrite into polite, business-appropriate Japanese (敬語) while preserving meaning."
-        ),
-        naturalKey: (
-            title: "自然に書き直し",
-            prompt: "Rewrite into natural, idiomatic Japanese while preserving meaning. Make it sound like a native speaker wrote it."
-        ),
-        emailKey: (
-            title: "メール",
-            prompt: "Rewrite into formal Japanese business email style (件名を要さず、本文のみ). Use 拝啓 only if culturally appropriate, otherwise typical メール本文 register with お世話になっております level politeness when applicable."
-        ),
-        translateToEnglishKey: (
-            title: "英訳",
-            prompt: "Translate into natural English."
-        ),
+    private static let legacyDefaults: [String: [(title: String, prompt: String)]] = [
+        politeKey: [
+            (
+                title: "敬語",
+                prompt: "Rewrite into polite, business-appropriate Japanese (敬語) while preserving meaning."
+            ),
+            (
+                title: "敬語",
+                prompt: "ビジネスで通用する自然な敬語に書き直してください。過度に堅苦しい表現は避け、読みやすい丁寧語にしてください。"
+            ),
+        ],
+        naturalKey: [
+            (
+                title: "自然に書き直し",
+                prompt: "Rewrite into natural, idiomatic Japanese while preserving meaning. Make it sound like a native speaker wrote it."
+            ),
+        ],
+        emailKey: [
+            (
+                title: "メール",
+                prompt: "Rewrite into formal Japanese business email style (件名を要さず、本文のみ). Use 拝啓 only if culturally appropriate, otherwise typical メール本文 register with お世話になっております level politeness when applicable."
+            ),
+        ],
+        translateToEnglishKey: [
+            (
+                title: "英訳",
+                prompt: "Translate into natural English."
+            ),
+        ],
     ]
 
     public static func defaultTitle(for builtinKey: String) -> String? {
@@ -77,7 +89,7 @@ public enum UserPromptDefaults {
     public static func defaultPrompt(for builtinKey: String) -> String? {
         switch builtinKey {
         case politeKey:
-            return "ビジネスで通用する自然な敬語に書き直してください。過度に堅苦しい表現は避け、読みやすい丁寧語にしてください。"
+            return "次の文章を、日常でそのまま送れる自然でやわらかい丁寧語に変換してください。\n\nビジネス敬語ではなく、相手に失礼がない普通の丁寧語にしてください。\nただし、命令・指示・お願いの文章は「〜してください」ではなく、「〜してもらえますか？」「〜しておいてもらえないでしょうか？」のような、やわらかいお願いの形にしてください。\n\n「〜しておいて」「〜しといて」「〜やっといて」は、原則として「〜しておいてもらえないでしょうか？」に変換してください。\n「ございます」「いただけますでしょうか」「ご〜される」などの堅すぎる敬語は使わないでください。\n出力は変換後の文章だけにしてください。"
         case naturalKey:
             return "ネイティブが書いたような自然で読みやすい日本語に書き直してください。直訳調や不自然な言い回しは修正してください。"
         case emailKey:
@@ -121,9 +133,8 @@ public enum UserPromptDefaults {
     static func normalized(_ prompt: UserPrompt) -> UserPrompt {
         guard
             let key = prompt.builtinKey,
-            let legacy = legacyDefaults[key],
-            prompt.title == legacy.title,
-            prompt.prompt == legacy.prompt,
+            let legacyVariants = legacyDefaults[key],
+            legacyVariants.contains(where: { $0.title == prompt.title && $0.prompt == prompt.prompt }),
             let currentTitle = defaultTitle(for: key),
             let currentPrompt = defaultPrompt(for: key)
         else {
