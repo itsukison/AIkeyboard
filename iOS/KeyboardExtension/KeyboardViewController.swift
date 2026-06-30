@@ -127,15 +127,26 @@ final class KeyboardViewController: KeyboardInputViewController {
                             )
                         ),
                         overlayContent: AnyView(
-                            AIResultOverlayView(
-                                aiController: self.aiKeyboardController,
-                                onTriggerHaptic: { [weak self] in
-                                    self?.triggerKeyHaptic()
-                                },
-                                onSelectionHaptic: { [weak self] in
-                                    self?.triggerSelectionHaptic()
-                                }
-                            )
+                            ZStack {
+                                AIResultOverlayView(
+                                    aiController: self.aiKeyboardController,
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    },
+                                    onSelectionHaptic: { [weak self] in
+                                        self?.triggerSelectionHaptic()
+                                    }
+                                )
+                                ExpandedCandidateView(
+                                    inputManager: manager,
+                                    onSelect: { [weak self] candidate in
+                                        self?.commitCandidate(candidate)
+                                    },
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    }
+                                )
+                            }
                         )
                     )
                 )
@@ -167,15 +178,26 @@ final class KeyboardViewController: KeyboardInputViewController {
                             )
                         ),
                         overlayContent: AnyView(
-                            AIResultOverlayView(
-                                aiController: self.aiKeyboardController,
-                                onTriggerHaptic: { [weak self] in
-                                    self?.triggerKeyHaptic()
-                                },
-                                onSelectionHaptic: { [weak self] in
-                                    self?.triggerSelectionHaptic()
-                                }
-                            )
+                            ZStack {
+                                AIResultOverlayView(
+                                    aiController: self.aiKeyboardController,
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    },
+                                    onSelectionHaptic: { [weak self] in
+                                        self?.triggerSelectionHaptic()
+                                    }
+                                )
+                                ExpandedCandidateView(
+                                    inputManager: manager,
+                                    onSelect: { [weak self] candidate in
+                                        self?.commitCandidate(candidate)
+                                    },
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    }
+                                )
+                            }
                         ),
                         shouldForceLowercaseAlphabeticCharacters: { [weak self] in
                             self?.shouldForceLowercaseAlphabeticCharacters ?? false

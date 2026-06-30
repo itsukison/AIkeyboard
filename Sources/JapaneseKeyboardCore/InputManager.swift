@@ -9,7 +9,21 @@ public final class InputManager: ObservableObject {
     /// from invalidating any view that observes the manager.
     public private(set) var displayKana: String = ""
 
-    @Published public private(set) var candidates: [Candidate] = []
+    @Published public private(set) var candidates: [Candidate] = [] {
+        didSet {
+            // The full-candidate grid only makes sense while there are
+            // candidates; auto-collapse when they clear (commit, backspace to
+            // empty, etc.) so it can't linger over an empty keyboard.
+            if candidates.isEmpty && isCandidateListExpanded {
+                isCandidateListExpanded = false
+            }
+        }
+    }
+
+    /// Whether the full "show all candidates" grid (native ∧ expander) is open.
+    /// Owned here so both the candidate bar (expand button) and the grid overlay
+    /// observe one source of truth.
+    @Published public private(set) var isCandidateListExpanded: Bool = false
 
     /// Next-word (予測変換) suggestions shown after a commit, while nothing is
     /// being composed. Cleared the moment the user starts the next word.
@@ -105,6 +119,18 @@ public final class InputManager: ObservableObject {
         }
         selectedCandidateIndex = next
         notifyMarkedTextChange()
+    }
+
+    /// Open the full-candidate grid (native ∧ expander). No-op with no candidates.
+    public func expandCandidateList() {
+        guard !candidates.isEmpty, !isCandidateListExpanded else { return }
+        isCandidateListExpanded = true
+    }
+
+    /// Close the full-candidate grid (native ∨ / selecting a candidate).
+    public func collapseCandidateList() {
+        guard isCandidateListExpanded else { return }
+        isCandidateListExpanded = false
     }
 
     public func appendRomaji(_ character: Character) {

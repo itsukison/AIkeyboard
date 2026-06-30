@@ -231,4 +231,41 @@ final class InputManagerTests: XCTestCase {
         im.requestPrediction(after: "知らない")
         XCTAssertTrue(im.predictionSuggestions.isEmpty)
     }
+
+    func testExpandCandidateListNoOpWithoutCandidates() async {
+        let im = InputManager()
+        im.setAdapter(KanaKanjiAdapter())
+        im.expandCandidateList()
+        XCTAssertFalse(im.isCandidateListExpanded)
+    }
+
+    func testExpandAndCollapseCandidateList() async {
+        let im = InputManager()
+        im.setAdapter(KanaKanjiAdapter())
+        for ch in "kyou" {
+            im.appendRomaji(ch)
+        }
+        await im.currentConversionTask()?.value
+        XCTAssertFalse(im.candidates.isEmpty)
+
+        im.expandCandidateList()
+        XCTAssertTrue(im.isCandidateListExpanded)
+
+        im.collapseCandidateList()
+        XCTAssertFalse(im.isCandidateListExpanded)
+    }
+
+    func testResetAutoCollapsesCandidateList() async {
+        let im = InputManager()
+        im.setAdapter(KanaKanjiAdapter())
+        for ch in "kyou" {
+            im.appendRomaji(ch)
+        }
+        await im.currentConversionTask()?.value
+        im.expandCandidateList()
+        XCTAssertTrue(im.isCandidateListExpanded)
+
+        im.reset()
+        XCTAssertFalse(im.isCandidateListExpanded)
+    }
 }
