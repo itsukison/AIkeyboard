@@ -362,7 +362,6 @@ final class KeyboardViewController: KeyboardInputViewController {
     func commitCandidate(_ candidate: Candidate) {
         guard inputManager.isComposing else { return }
         finalizeMarkedText(replacement: candidate.text)
-        recordConversionSelection(input: candidate.reading, replacement: candidate.text)
         recordNextWord(candidate.text)
         inputManager.recordCommitForLearning(candidate.text)
         inputManager.reset()
@@ -386,10 +385,8 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func commitComposingForReturn() {
         guard inputManager.isComposing else { return }
-        let input = inputManager.currentConversionInput
         let replacement = inputManager.commitText
         finalizeMarkedText(replacement: replacement)
-        recordConversionSelection(input: input, replacement: replacement)
         recordNextWord(replacement)
         inputManager.recordCommitForLearning(replacement)
         inputManager.reset()
@@ -399,10 +396,8 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func flushBufferToHost() {
         guard inputManager.isComposing else { return }
-        let input = inputManager.currentConversionInput
         let replacement = inputManager.commitText
         finalizeMarkedText(replacement: replacement)
-        recordConversionSelection(input: input, replacement: replacement)
         inputManager.recordCommitForLearning(replacement)
         inputManager.reset()
     }
@@ -423,15 +418,6 @@ final class KeyboardViewController: KeyboardInputViewController {
         textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
         textDocumentProxy.unmarkText()
         textDocumentProxy.insertText(replacement)
-    }
-
-    private func recordConversionSelection(input: String, replacement: String) {
-        ConversionPreferenceStore.recordSelection(
-            scope: .japanese,
-            input: input,
-            candidate: replacement
-        )
-        inputManager.refreshConversionPreferenceEntries()
     }
 
     /// Learn the just-committed word as the next word after the previous one,

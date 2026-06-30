@@ -30,13 +30,11 @@ public final class InputManager: ObservableObject {
     public var onMarkedTextDidChange: ((String) -> Void)?
 
     private let buffer: any InputBuffer
-    private let conversionPreferenceEntries: () -> [ConversionPreferenceEntry]
     /// Learned next-word (予測変換) suggestions for a just-committed word. Read
     /// fresh from `NextWordPreferenceStore` on each commit; injected so tests
     /// can supply deterministic data without touching the App Group.
     private let nextWordSuggestions: (String) -> [Candidate]
     private let kanaTapCycleTimeout: TimeInterval
-    private var cachedConversionPreferenceEntries: [ConversionPreferenceEntry]
     private var adapter: KanaKanjiAdapter?
     private var conversionTask: Task<Void, Never>?
     private var predictionTask: Task<Void, Never>?
@@ -49,9 +47,6 @@ public final class InputManager: ObservableObject {
 
     public init(
         buffer: any InputBuffer = RomajiInputBuffer(),
-        conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
-            ConversionPreferenceStore.readEntries()
-        },
         nextWordSuggestions: @escaping (String) -> [Candidate] = { committedText in
             NextWordPreferenceStore.suggestions(after: committedText)
                 .map { Candidate(text: $0, reading: "") }
@@ -59,10 +54,8 @@ public final class InputManager: ObservableObject {
         kanaTapCycleTimeout: TimeInterval = 0.8
     ) {
         self.buffer = buffer
-        self.conversionPreferenceEntries = conversionPreferenceEntries
         self.nextWordSuggestions = nextWordSuggestions
         self.kanaTapCycleTimeout = kanaTapCycleTimeout
-        self.cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
 
     public func setAdapter(_ adapter: KanaKanjiAdapter) {
@@ -70,10 +63,6 @@ public final class InputManager: ObservableObject {
         if !buffer.isEmpty {
             refresh()
         }
-    }
-
-    public func refreshConversionPreferenceEntries() {
-        cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
 
     /// Live preview shown as marked text in the host. Default: kana being
@@ -346,13 +335,10 @@ public final class InputManager: ObservableObject {
             // Compare prefixes, not the full buffer: trailing unresolved
             // romaji typed while we converted doesn't invalidate the result.
             guard self.convertiblePrefix(of: self.buffer.displayKana) == kanaPrefix else { return }
-            let reranked = Self.rerankCandidates(
-                results,
-                input: kanaPrefix,
-                entries: self.cachedConversionPreferenceEntries
-            )
-            if self.candidates != reranked {
-                self.candidates = reranked
+            // azooKey's own adaptive learning already personalizes the lattice
+            // order, so show the converter's ranking directly.
+            if self.candidates != results {
+                self.candidates = results
             }
             self.notifyMarkedTextChange()
         }
@@ -376,29 +362,6 @@ public final class InputManager: ObservableObject {
             prefix.removeLast()
         }
         return prefix
-    }
-
-    private static func rerankCandidates(
-        _ candidates: [Candidate],
-        input: String,
-        entries: [ConversionPreferenceEntry]
-    ) -> [Candidate] {
-        guard candidates.count > 1 else { return candidates }
-
-        var candidateByText: [String: Candidate] = [:]
-        var candidateTexts: [String] = []
-        for candidate in candidates {
-            guard candidateByText[candidate.text] == nil else { continue }
-            candidateByText[candidate.text] = candidate
-            candidateTexts.append(candidate.text)
-        }
-
-        return ConversionPreferenceStore.rerank(
-            scope: .japanese,
-            input: input,
-            candidates: candidateTexts,
-            entries: entries
-        ).compactMap { candidateByText[$0] }
     }
 
     private struct KanaTapCycleState {

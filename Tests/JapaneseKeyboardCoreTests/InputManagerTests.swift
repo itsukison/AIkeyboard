@@ -231,30 +231,4 @@ final class InputManagerTests: XCTestCase {
         im.requestPrediction(after: "知らない")
         XCTAssertTrue(im.predictionSuggestions.isEmpty)
     }
-
-    func testPreferenceEntriesRerankCandidates() async {
-        let now = Date()
-        let im = InputManager(conversionPreferenceEntries: {
-            [
-                ConversionPreferenceEntry(
-                    scope: .japanese,
-                    inputKey: "きょう",
-                    candidateKey: "きょう",
-                    displayText: "きょう",
-                    acceptedCount: 4,
-                    lastUsedAt: now,
-                    updatedAt: now
-                )
-            ]
-        })
-        im.setAdapter(KanaKanjiAdapter())
-
-        for ch in "kyou" {
-            im.appendRomaji(ch)
-        }
-        await im.currentConversionTask()?.value
-
-        XCTAssertFalse(im.candidates.isEmpty)
-        XCTAssertEqual(im.candidates.first?.text, "きょう")
-    }
 }
