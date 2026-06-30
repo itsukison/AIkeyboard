@@ -252,6 +252,21 @@ public final class InputManager: ObservableObject {
         return result
     }
 
+    /// Record the committed word into azooKey's adaptive learning so future
+    /// conversions of the same reading rank it higher. Fire-and-forget and off
+    /// the typing path; no-op for raw-kana commits with no rich candidate.
+    public func recordCommitForLearning(_ committedText: String) {
+        guard let adapter else { return }
+        Task { await adapter.recordCommit(committedText) }
+    }
+
+    /// Persist learned conversions to disk. Call on keyboard dismiss, never
+    /// while composing — the on-disk merge is heavy.
+    public func persistLearning() {
+        guard let adapter else { return }
+        Task { await adapter.persistLearning() }
+    }
+
     public func clearPredictions() {
         predictionTask?.cancel()
         predictionTask = nil
@@ -323,7 +338,9 @@ public final class InputManager: ObservableObject {
         guard let adapter else { return }
         lastScheduledKanaPrefix = kanaPrefix
         conversionTask = Task { [weak self] in
-            let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 10)
+            // Request a deeper candidate list (was 10) so the intended word is
+            // far more likely to be present and reachable in the candidate bar.
+            let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 20)
             guard !Task.isCancelled else { return }
             guard let self else { return }
             // Compare prefixes, not the full buffer: trailing unresolved

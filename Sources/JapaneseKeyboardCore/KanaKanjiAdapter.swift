@@ -35,8 +35,15 @@ public actor KanaKanjiAdapter {
             englishCandidateInRoman2KanaInput: false,
             fullWidthRomanCandidate: false,
             halfWidthKanaCandidate: false,
-            learningType: .nothing,
-            maxMemoryCount: 0,
+            // Use azooKey's own adaptive lattice learning: committed choices
+            // re-rank future conversions of the same/related readings, and —
+            // unlike our exact-match reranker — can pull a learned word up into
+            // the candidate list. Requires a persistent `memoryDirectoryURL`
+            // (App Group, passed by the caller); the temp-dir fallback would
+            // make learning evaporate. Bounded count keeps resident memory and
+            // the on-dismiss merge cost in check under the extension jetsam ceiling.
+            learningType: .inputAndOutput,
+            maxMemoryCount: 5000,
             shouldResetMemory: false,
             memoryDirectoryURL: supportURL,
             sharedContainerURL: supportURL,
@@ -100,6 +107,24 @@ public actor KanaKanjiAdapter {
             if result.count == maxCandidates { break }
         }
         return result
+    }
+
+    /// Record a committed word into azooKey's adaptive learning so the same
+    /// reading ranks this choice higher next time. Cheap (in-RAM trie); the
+    /// on-disk persistence happens separately in `persistLearning()`. No-op for
+    /// a raw-kana commit that doesn't match a rich candidate from the last
+    /// conversion — we'd have no morpheme data to learn from.
+    public func recordCommit(_ committedText: String) {
+        guard let candidate = lastConversion?.mainResults.first(where: { $0.text == committedText }) else {
+            return
+        }
+        converter.updateLearningData(candidate)
+    }
+
+    /// Flush in-RAM learning into the on-disk long-term memory. Expensive
+    /// (LOUDS rebuild) — call only off the typing path, e.g. keyboard dismiss.
+    public func persistLearning() {
+        converter.commitUpdateLearningData()
     }
 
     /// Clears the converter's incremental lattice state when a composition

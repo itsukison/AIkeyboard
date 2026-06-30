@@ -51,7 +51,12 @@ final class KeyboardViewController: KeyboardInputViewController {
             self?.applyMarkedText(text)
         }
         Task.detached(priority: .userInitiated) { [weak self] in
-            let adapter = KanaKanjiAdapter()
+            // Persist learning in the App Group so it survives keyboard
+            // restarts; the default temp dir would be purged by iOS.
+            let adapter = KanaKanjiAdapter(
+                supportDirectoryURL: AppGroup.sharedContainerURL?
+                    .appendingPathComponent("conversion-learning", isDirectory: true)
+            )
             await adapter.prewarm()
             await MainActor.run {
                 self?.inputManager.setAdapter(adapter)
@@ -205,6 +210,8 @@ final class KeyboardViewController: KeyboardInputViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        // Flush learned conversions to disk off the typing path.
+        inputManager.persistLearning()
         aiKeyboardController.stopClipboardMonitoring()
         if let appearedAt = keyboardAppearedAt {
             let elapsed = Int(Date().timeIntervalSince(appearedAt))
@@ -357,6 +364,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         finalizeMarkedText(replacement: candidate.text)
         recordConversionSelection(input: candidate.reading, replacement: candidate.text)
         recordNextWord(candidate.text)
+        inputManager.recordCommitForLearning(candidate.text)
         inputManager.reset()
         inputManager.requestPrediction(after: candidate.text)
     }
@@ -383,6 +391,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         finalizeMarkedText(replacement: replacement)
         recordConversionSelection(input: input, replacement: replacement)
         recordNextWord(replacement)
+        inputManager.recordCommitForLearning(replacement)
         inputManager.reset()
         inputManager.requestPrediction(after: replacement)
     }
@@ -394,6 +403,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         let replacement = inputManager.commitText
         finalizeMarkedText(replacement: replacement)
         recordConversionSelection(input: input, replacement: replacement)
+        inputManager.recordCommitForLearning(replacement)
         inputManager.reset()
     }
 
