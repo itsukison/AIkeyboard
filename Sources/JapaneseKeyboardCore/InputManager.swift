@@ -31,6 +31,10 @@ public final class InputManager: ObservableObject {
 
     private let buffer: any InputBuffer
     private let conversionPreferenceEntries: () -> [ConversionPreferenceEntry]
+    /// Learned next-word (予測変換) suggestions for a just-committed word. Read
+    /// fresh from `NextWordPreferenceStore` on each commit; injected so tests
+    /// can supply deterministic data without touching the App Group.
+    private let nextWordSuggestions: (String) -> [Candidate]
     private let kanaTapCycleTimeout: TimeInterval
     private var cachedConversionPreferenceEntries: [ConversionPreferenceEntry]
     private var adapter: KanaKanjiAdapter?
@@ -48,10 +52,15 @@ public final class InputManager: ObservableObject {
         conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
             ConversionPreferenceStore.readEntries()
         },
+        nextWordSuggestions: @escaping (String) -> [Candidate] = { committedText in
+            NextWordPreferenceStore.suggestions(after: committedText)
+                .map { Candidate(text: $0, reading: "") }
+        },
         kanaTapCycleTimeout: TimeInterval = 0.8
     ) {
         self.buffer = buffer
         self.conversionPreferenceEntries = conversionPreferenceEntries
+        self.nextWordSuggestions = nextWordSuggestions
         self.kanaTapCycleTimeout = kanaTapCycleTimeout
         self.cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
@@ -203,14 +212,44 @@ public final class InputManager: ObservableObject {
     /// commit's `reset()` so the suggestions survive into the idle state.
     public func requestPrediction(after committedText: String) {
         predictionTask?.cancel()
-        guard let adapter else { return }
+        // The user's own next-word history takes priority over azooKey's static
+        // guess; show it immediately, then fill remaining slots with azooKey's
+        // predictions once they return.
+        let learned = nextWordSuggestions(committedText)
+        guard let adapter else {
+            let merged = Self.mergePredictions(learned: learned, azoo: [])
+            if predictionSuggestions != merged {
+                predictionSuggestions = merged
+            }
+            return
+        }
+        if !learned.isEmpty, predictionSuggestions != learned {
+            predictionSuggestions = learned
+        }
         predictionTask = Task { [weak self] in
-            let suggestions = await adapter.predictNextWords(after: committedText)
+            let azoo = await adapter.predictNextWords(after: committedText)
             guard !Task.isCancelled, let self else { return }
-            if self.predictionSuggestions != suggestions {
-                self.predictionSuggestions = suggestions
+            let merged = Self.mergePredictions(learned: learned, azoo: azoo)
+            if self.predictionSuggestions != merged {
+                self.predictionSuggestions = merged
             }
         }
+    }
+
+    /// Learned suggestions first (deduped), then azooKey's to fill the bar.
+    private static func mergePredictions(
+        learned: [Candidate],
+        azoo: [Candidate],
+        limit: Int = 4
+    ) -> [Candidate] {
+        var seen = Set<String>()
+        var result: [Candidate] = []
+        for candidate in learned + azoo {
+            guard seen.insert(candidate.text).inserted else { continue }
+            result.append(candidate)
+            if result.count == limit { break }
+        }
+        return result
     }
 
     public func clearPredictions() {

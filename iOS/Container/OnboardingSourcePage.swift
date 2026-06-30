@@ -12,11 +12,11 @@ struct OnboardingScaffold<Content: View>: View {
     let canGoBack: Bool
     let onBack: (() -> Void)?
     let onSkip: (() -> Void)?
-    let ctaTitle: String
+    let ctaTitle: LocalizedStringKey
     let isCtaEnabled: Bool
     var isCtaLoading: Bool = false
     let onCta: () -> Void
-    var secondaryTitle: String? = nil
+    var secondaryTitle: LocalizedStringKey? = nil
     var onSecondary: (() -> Void)? = nil
     @ViewBuilder var content: () -> Content
 
@@ -64,7 +64,6 @@ struct OnboardingScaffold<Content: View>: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.light)
     }
 }
 
@@ -79,7 +78,7 @@ private struct OnboardingTopBar: View {
             Button(action: { onBack?() }) {
                 ZStack {
                     Circle()
-                        .fill(Color.white)
+                        .fill(OnboardingPalette.fieldFill)
                         .frame(width: 36, height: 36)
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
@@ -126,7 +125,7 @@ private struct OnboardingProgressBar: View {
 }
 
 struct OnboardingPrimaryButton: View {
-    let title: String
+    let title: LocalizedStringKey
     var isEnabled: Bool = true
     var isLoading: Bool = false
     let action: () -> Void
@@ -139,14 +138,14 @@ struct OnboardingPrimaryButton: View {
                 } else {
                     Text(title)
                         .font(.system(size: 17, weight: .regular))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isEnabled ? .white : .white.opacity(0.55))
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
                 Capsule()
-                    .fill((isEnabled && !isLoading) ? OnboardingPalette.ink : OnboardingPalette.ctaDisabled)
+                    .fill((isEnabled && !isLoading) ? OnboardingPalette.primaryActionFill : OnboardingPalette.ctaDisabled)
             )
         }
         .buttonStyle(.plain)
@@ -232,7 +231,7 @@ enum SourceOption: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringKey {
         switch self {
         case .google:      return "Google"
         case .twitter:     return "Twitter/X"
@@ -275,11 +274,11 @@ private struct SourceOptionCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.white)
+                    .fill(OnboardingPalette.fieldFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(isSelected ? OnboardingPalette.ink : Color.clear, lineWidth: isSelected ? 1.5 : 0)
+                    .stroke(isSelected ? AppColor.purple : Color.clear, lineWidth: isSelected ? 1.5 : 0)
             )
             .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
         }
@@ -301,13 +300,27 @@ private struct SourceCardPressStyle: ButtonStyle {
 
 enum OnboardingPalette {
     static let background = AppColor.canvas
-    static let ink = Color(red: 0.10, green: 0.10, blue: 0.22)
-    static let subInk = Color(red: 0.36, green: 0.36, blue: 0.46)
-    static let progressTrack = Color(red: 0.90, green: 0.88, blue: 0.93)
-    static let ctaDisabled = Color(red: 0.69, green: 0.69, blue: 0.69)
-    static let fieldFill = Color.white
-    static let fieldStroke = Color(red: 0.91, green: 0.89, blue: 0.94)
-    static let danger = Color(red: 0.78, green: 0.22, blue: 0.30)
+    static let ink = AppColor.ink
+    static let subInk = AppColor.muted
+    static let progressTrack = AppColor.rule.opacity(0.55)
+    // A dimmed version of the enabled charcoal so the disabled state always reads
+    // as a faded form of the real button — and never ends up *lighter* than the
+    // enabled fill on the dark canvas (which made "enabled" look inactive).
+    static let ctaDisabled = AppColor.charcoalAction.opacity(0.4)
+    static let primaryActionFill = AppColor.charcoalAction
+    static let selectedControlFill = AppColor.purple
+    static let fieldFill = AppColor.surface
+    static let fieldStroke = AppColor.rule
+    static let danger = adaptive(
+        light: Color(red: 0.78, green: 0.22, blue: 0.30),
+        dark: Color(red: 0.94, green: 0.35, blue: 0.42)
+    )
+
+    static func adaptive(light: Color, dark: Color) -> Color {
+        Color(uiColor: UIColor { trait in
+            trait.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
+    }
 }
 
 // MARK: - Brand badges
@@ -367,7 +380,7 @@ private struct FriendBadge: View {
 private struct NewsletterBadge: View {
     var body: some View {
         ZStack {
-            Circle().fill(Color.white)
+            Circle().fill(OnboardingPalette.fieldFill)
             Image(systemName: "envelope")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(OnboardingPalette.ink)
@@ -379,7 +392,7 @@ private struct NewsletterBadge: View {
 private struct OtherBadge: View {
     var body: some View {
         ZStack {
-            Circle().fill(Color.white)
+            Circle().fill(OnboardingPalette.fieldFill)
             Image(systemName: "ellipsis")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(OnboardingPalette.ink)

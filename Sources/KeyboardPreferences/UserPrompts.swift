@@ -67,6 +67,10 @@ public enum UserPromptDefaults {
                 title: "メール",
                 prompt: "Rewrite into formal Japanese business email style (件名を要さず、本文のみ). Use 拝啓 only if culturally appropriate, otherwise typical メール本文 register with お世話になっております level politeness when applicable."
             ),
+            (
+                title: "メール",
+                prompt: "ビジネスメールの本文として送れる文体に書き直してください。件名・宛名・署名は付けず、拝啓・敬具は使わず、挨拶文は文脈に合う場合のみ添えてください。"
+            ),
         ],
         translateToEnglishKey: [
             (
@@ -93,7 +97,7 @@ public enum UserPromptDefaults {
         case naturalKey:
             return "ネイティブが書いたような自然で読みやすい日本語に書き直してください。直訳調や不自然な言い回しは修正してください。"
         case emailKey:
-            return "ビジネスメールの本文として送れる文体に書き直してください。件名・宛名・署名は付けず、拝啓・敬具は使わず、挨拶文は文脈に合う場合のみ添えてください。"
+            return "次の文章を、日本のビジネスメールとしてそのまま送れる本文に整えてください。用件を先に示し、挨拶・本文・結びを自然に段落分けしてください。文脈に合う場合のみ挨拶と結びを補い、原文にない氏名・会社名・事実は作らないでください。件名・署名・拝啓・敬具は付けず、自然で簡潔な敬語にしてください。出力は本文だけにしてください。"
         case translateToEnglishKey:
             return "自然で読みやすい英語に翻訳してください。直訳ではなく、ネイティブが日常的に書く文体・語順にしてください。"
         default:

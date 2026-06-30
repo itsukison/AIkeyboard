@@ -246,7 +246,8 @@ struct AIKeyboardToolbarView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 13, weight: .medium))
-                    .frame(width: KeyboardChromeMetrics.toolbarButtonHeight, height: KeyboardChromeMetrics.toolbarButtonHeight)
+                    .frame(width: KeyboardChromeMetrics.toolbarHeight, height: KeyboardChromeMetrics.toolbarHeight)
+                    .contentShape(Rectangle())
                     .foregroundStyle(KeyboardPalette.ink)
             }
             .buttonStyle(.plain)

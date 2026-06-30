@@ -18,6 +18,9 @@ final class KeyboardViewController: KeyboardInputViewController {
     /// The day we last marked typing activity, so `textDidChange` writes to the
     /// App Group at most once per day instead of on every keystroke.
     private var typedDayMarker: String?
+    /// The previous committed word, so the next commit can be recorded as a
+    /// next-word (予測変換) transition in `NextWordPreferenceStore`.
+    private var lastCommittedWord: String?
     private lazy var aiKeyboardController = AIKeyboardController(
         controller: self,
         inputManager: inputManager
@@ -353,17 +356,20 @@ final class KeyboardViewController: KeyboardInputViewController {
         guard inputManager.isComposing else { return }
         finalizeMarkedText(replacement: candidate.text)
         recordConversionSelection(input: candidate.reading, replacement: candidate.text)
+        recordNextWord(candidate.text)
         inputManager.reset()
         inputManager.requestPrediction(after: candidate.text)
     }
 
     /// Tapping a next-word (予測変換) suggestion: nothing is being composed, so
-    /// just insert the word directly. v1 does not chain to a further prediction
-    /// (a suggestion carries no rich left-side context to predict from).
+    /// insert the word directly. Records the transition and chains to the next
+    /// prediction, which surfaces the user's learned next-words for this word
+    /// (azooKey has no rich context to add here).
     @MainActor
     func commitPrediction(_ candidate: Candidate) {
         textDocumentProxy.insertText(candidate.text)
-        inputManager.clearPredictions()
+        recordNextWord(candidate.text)
+        inputManager.requestPrediction(after: candidate.text)
     }
 
     /// 確定: commit the currently-displayed preview (selected candidate if the
@@ -376,6 +382,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         let replacement = inputManager.commitText
         finalizeMarkedText(replacement: replacement)
         recordConversionSelection(input: input, replacement: replacement)
+        recordNextWord(replacement)
         inputManager.reset()
         inputManager.requestPrediction(after: replacement)
     }
@@ -415,6 +422,17 @@ final class KeyboardViewController: KeyboardInputViewController {
             candidate: replacement
         )
         inputManager.refreshConversionPreferenceEntries()
+    }
+
+    /// Learn the just-committed word as the next word after the previous one,
+    /// then carry it forward as the new "previous" for the following commit.
+    private func recordNextWord(_ committed: String) {
+        let word = committed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !word.isEmpty else { return }
+        if let previous = lastCommittedWord {
+            NextWordPreferenceStore.recordTransition(previous: previous, next: word)
+        }
+        lastCommittedWord = word
     }
 
     private func configureJapaneseKeyboardBehavior() {
@@ -496,7 +514,7 @@ private final class KeyboardHapticFeedback {
 
     func triggerKeyPress() {
         guard isEnabled else { return }
-        keyPressGenerator.impactOccurred(intensity: 0.65)
+        keyPressGenerator.impactOccurred(intensity: 0.6)
         keyPressGenerator.prepare()
     }
 

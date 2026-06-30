@@ -72,19 +72,31 @@ public actor KanaKanjiAdapter {
     /// while nothing is being composed. `committedText` must match a candidate
     /// from the most recent `convert(...)`; otherwise (e.g. a raw-kana commit)
     /// we have no rich left-side context and return nothing rather than guess.
-    public func predictNextWords(after committedText: String, maxCandidates: Int = 3) -> [Candidate] {
+    public func predictNextWords(after committedText: String, maxCandidates: Int = 4) -> [Candidate] {
         guard let leftSideCandidate = lastConversion?.mainResults.first(where: { $0.text == committedText }) else {
             return []
         }
+        // Corpus prior keyed on the committed chunk's trailing morpheme(s)
+        // (Japanese is head-final). Trigram (last two morphemes) goes first for
+        // sharper context, backing off to the bigram table; both rank ahead of
+        // azooKey's zero-hint guesses, which surface rare junk (ラー油).
+        let morphemes = leftSideCandidate.data
+        let bigramTexts = morphemes.last
+            .map { NextWordPrior.shared?.suggestions(after: $0.word) ?? [] } ?? []
+        let lastTwo = Array(morphemes.suffix(2))
+        let trigramTexts = lastTwo.count == 2
+            ? (NextWordPrior.sharedTrigram?.suggestions(after: lastTwo[0].word, lastTwo[1].word) ?? [])
+            : []
+        let priorTexts = trigramTexts + bigramTexts
         let predictions = converter.requestPostCompositionPredictionCandidates(
             leftSideCandidate: leftSideCandidate,
             options: options
         )
         var seen = Set<String>()
         var result: [Candidate] = []
-        for prediction in predictions {
-            guard seen.insert(prediction.text).inserted else { continue }
-            result.append(Candidate(text: prediction.text, reading: ""))
+        for text in priorTexts + predictions.map(\.text) {
+            guard !text.isEmpty, seen.insert(text).inserted else { continue }
+            result.append(Candidate(text: text, reading: ""))
             if result.count == maxCandidates { break }
         }
         return result

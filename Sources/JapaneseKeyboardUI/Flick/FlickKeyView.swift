@@ -212,11 +212,9 @@ struct FlickUtilityKeyView: View {
 /// Native iOS keyboard surface colors, replicated for the hand-built flick grid.
 /// KeyboardKit paints these automatically for the QWERTY layout; the flick grid
 /// is pure SwiftUI, so it needs its own tokens. Values approximate the system
-/// keyboard — a gray surface, lighter "input" (kana) keys, darker function keys
-/// — in both light and dark mode.
+/// keyboard — lighter "input" (kana) keys, darker function keys — in both
+/// light and dark mode.
 enum FlickKeyPalette {
-    static let surface = dynamic(light: UIColor(red: 0.82, green: 0.83, blue: 0.85, alpha: 1),
-                                 dark: UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1))
     static let kanaKey = dynamic(light: .white,
                                  dark: UIColor(white: 0.42, alpha: 1))
     static let kanaKeyPressed = dynamic(light: UIColor(white: 0.90, alpha: 1),

@@ -132,7 +132,7 @@ private struct SettingsMockCard: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
         )
     }
 }
@@ -144,34 +144,34 @@ private struct PhoneFrameMock<Inner: View>: View {
         VStack(spacing: 0) {
             // Mini status bar
             HStack {
-                Text("4:36")
+                Text(verbatim: "4:36")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color(uiColor: .label))
                 Spacer()
                 Capsule()
-                    .fill(.black)
+                    .fill(Color(uiColor: .label))
                     .frame(width: 78, height: 18)
                 Spacer()
                 HStack(spacing: 4) {
                     Image(systemName: "wifi")
                         .font(.system(size: 9, weight: .semibold))
                     RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(.black)
+                        .fill(Color(uiColor: .label))
                         .frame(width: 18, height: 9)
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(Color(uiColor: .label))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Color.white)
+            .background(Color(uiColor: .systemBackground))
 
             inner()
-                .background(Color(red: 0.95, green: 0.95, blue: 0.96))
+                .background(Color(uiColor: .systemGroupedBackground))
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.black.opacity(0.04), lineWidth: 0.5)
+                .stroke(Color(uiColor: .separator), lineWidth: 0.5)
         )
     }
 }
@@ -181,15 +181,15 @@ private struct SettingsKeyboardsMock: View {
         VStack(spacing: 12) {
             // Nav bar
             ZStack {
-                Text("キーボード")
+                Text(verbatim: "キーボード")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color(uiColor: .label))
                 HStack {
                     ZStack {
-                        Circle().fill(Color.black.opacity(0.06)).frame(width: 22, height: 22)
+                        Circle().fill(Color(uiColor: .tertiarySystemFill)).frame(width: 22, height: 22)
                         Image(systemName: "chevron.left")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.black.opacity(0.7))
+                            .foregroundStyle(Color(uiColor: .secondaryLabel))
                     }
                     Spacer()
                 }
@@ -202,31 +202,31 @@ private struct SettingsKeyboardsMock: View {
                 SettingsToggleRow(label: "敬語ボタン", isOn: true, showDivider: true)
                 SettingsToggleRow(label: "フルアクセスを許可", isOn: true, showDivider: false, iconName: "keyboard")
             }
-            .background(Color.white)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .padding(.horizontal, 14)
 
-            Text("AIで書き直すために必要です。通常の入力中に勝手に送信されることはありません。")
+            Text(verbatim: "AIで書き直すために必要です。通常の入力中に勝手に送信されることはありません。")
                 .font(.system(size: 9, weight: .regular))
-                .foregroundStyle(.black.opacity(0.5))
+                .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .padding(.horizontal, 22)
                 .padding(.top, 2)
                 .lineSpacing(2)
 
             // Permission dialog
             VStack(alignment: .leading, spacing: 6) {
-                Text("“敬語ボタン”に\nフルアクセスを許可しますか？")
+                Text(verbatim: "“敬語ボタン”に\nフルアクセスを許可しますか？")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color(uiColor: .label))
                     .lineSpacing(1)
-                Text("AIボタンを押した時だけ、今の文章を敬語に書き直します。")
+                Text(verbatim: "AIボタンを押した時だけ、今の文章を敬語に書き直します。")
                     .font(.system(size: 10, weight: .regular))
-                    .foregroundStyle(.black.opacity(0.6))
+                    .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .lineSpacing(1)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .padding(.horizontal, 22)
             .padding(.top, 4)
@@ -246,7 +246,7 @@ private struct SettingsToggleRow: View {
             HStack(spacing: 8) {
                 if let iconName {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(Color(red: 0.85, green: 0.85, blue: 0.87))
+                        .fill(Color(uiColor: .systemGray3))
                         .frame(width: 18, height: 18)
                         .overlay(
                             Image(systemName: iconName)
@@ -254,9 +254,9 @@ private struct SettingsToggleRow: View {
                                 .foregroundStyle(.white)
                         )
                 }
-                Text(label)
+                Text(verbatim: label)
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color(uiColor: .label))
                 Spacer()
                 MiniToggle(isOn: isOn)
             }
@@ -265,7 +265,7 @@ private struct SettingsToggleRow: View {
 
             if showDivider {
                 Rectangle()
-                    .fill(Color.black.opacity(0.06))
+                    .fill(Color(uiColor: .separator))
                     .frame(height: 0.5)
                     .padding(.leading, iconName == nil ? 12 : 38)
             }
@@ -279,7 +279,7 @@ private struct MiniToggle: View {
     var body: some View {
         ZStack(alignment: isOn ? .trailing : .leading) {
             Capsule()
-                .fill(isOn ? Color(red: 0.20, green: 0.78, blue: 0.35) : Color(red: 0.78, green: 0.78, blue: 0.80))
+                .fill(isOn ? Color(red: 0.20, green: 0.78, blue: 0.35) : Color(uiColor: .systemGray3))
                 .frame(width: 28, height: 16)
             Circle()
                 .fill(.white)
@@ -343,12 +343,12 @@ private struct KeyboardMockCard: View {
 
     var body: some View {
         NativeKeyboardSurfaceMock(mode: .toolbar, style: style)
-        .padding(18)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
-        )
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(AppColor.surfaceElevated)
+            )
     }
 }
 
@@ -404,7 +404,7 @@ private struct KeyboardResultMockCard: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                    .fill(AppColor.surfaceElevated)
             )
     }
 }
@@ -466,8 +466,171 @@ private struct KeyboardReplyMockCard: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                    .fill(AppColor.surfaceElevated)
             )
+    }
+}
+
+// MARK: - Prompts customization page
+
+struct KeyboardPromptsPage: View {
+    let progress: Double
+    let onBack: () -> Void
+    let onContinue: () -> Void
+
+    var body: some View {
+        OnboardingScaffold(
+            progress: progress,
+            canGoBack: true,
+            onBack: onBack,
+            onSkip: nil,
+            ctaTitle: "次へ",
+            isCtaEnabled: true,
+            onCta: onContinue
+        ) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 24) {
+                    VStack(spacing: 14) {
+                        Text("ボタンは自由に\nカスタマイズできる。")
+                            .font(.system(size: 30, weight: .medium))
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("「敬語」ボタンの変換のしかたを変えたり、よく使う言い換えを自分のボタンとして追加できます。設定の「プロンプト」からいつでも編集できます。")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundStyle(OnboardingPalette.subInk)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 4)
+                    }
+                    .padding(.top, 28)
+
+                    PromptsCustomizeMock()
+                        .padding(.top, 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+        }
+    }
+}
+
+/// A faithful 1:1 slice of the real `PromptsScreen`: "メインボタン" and
+/// "追加ボタン" sections of white cards with a floating "+" action. On a loop,
+/// a new custom button springs into the 追加ボタン list to show that users can
+/// add their own. Uses the same Bikey tokens as the live screen so it matches
+/// the app exactly. Honors reduce-motion by resting fully shown.
+private struct PromptsCustomizeMock: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showNew = false
+    @State private var pressFAB = false
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                section("メインボタン") {
+                    MockPromptRow(title: "敬語", detail: "丁寧でやわらかい敬語に変換します。")
+                }
+
+                section("追加ボタン") {
+                    VStack(spacing: 0) {
+                        MockPromptRow(title: "やさしく", detail: "もっとやわらかい言い方に。")
+                        rule
+                        MockPromptRow(title: "短く", detail: "要点だけ簡潔にまとめます。")
+                        if showNew {
+                            rule
+                            MockPromptRow(title: "カジュアル", detail: "友達に送る軽い感じに。")
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
+                }
+            }
+
+            Circle()
+                .fill(AppColor.charcoalAction)
+                .frame(width: 56, height: 56)
+                .overlay(
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                )
+                .scaleEffect(pressFAB ? 0.86 : 1.0)
+                .shadow(color: .black.opacity(0.22), radius: 14, x: 0, y: 8)
+                .padding(.trailing, 6)
+                .padding(.bottom, 6)
+        }
+        .task(id: reduceMotion) { await runLoop() }
+    }
+
+    @ViewBuilder
+    private func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.s) {
+            Text(verbatim: title)
+                .bikeyFont(13, weight: .medium, relativeTo: .footnote)
+                .foregroundStyle(AppColor.muted)
+                .padding(.leading, 4)
+
+            content()
+                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
+        }
+    }
+
+    private var rule: some View {
+        Rectangle()
+            .fill(AppColor.rule.opacity(0.35))
+            .frame(height: 0.5)
+            .padding(.leading, BikeyMetrics.Spacing.m + 4)
+    }
+
+    @MainActor
+    private func runLoop() async {
+        guard !reduceMotion else {
+            showNew = true
+            return
+        }
+        showNew = false
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { pressFAB = true }
+            try? await Task.sleep(nanoseconds: 170_000_000)
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { showNew = true }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { pressFAB = false }
+            try? await Task.sleep(nanoseconds: 2_400_000_000)
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) { showNew = false }
+        }
+    }
+}
+
+/// Mirrors `PromptsScreen.PromptRow` (title + prompt preview + chevron).
+private struct MockPromptRow: View {
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: BikeyMetrics.Spacing.s) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(verbatim: title)
+                    .bikeyFont(17, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(AppColor.ink)
+                    .lineLimit(1)
+
+                Text(verbatim: detail)
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(AppColor.softText)
+        }
+        .padding(.horizontal, BikeyMetrics.Spacing.m + 4)
+        .padding(.vertical, BikeyMetrics.Spacing.m - 2)
     }
 }
 
@@ -550,7 +713,7 @@ struct ConsentDataCard: View {
             }
 
             Divider()
-                .overlay(Color.black.opacity(0.06))
+                .overlay(OnboardingPalette.fieldStroke.opacity(0.55))
 
             ConsentDataRow(icon: "cpu", text: "送信先：第三者のAIサービス（Cerebras・Groq）")
         }
@@ -558,7 +721,7 @@ struct ConsentDataCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white)
+                .fill(OnboardingPalette.fieldFill)
         )
         .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
     }
@@ -575,7 +738,7 @@ private struct ConsentAgreementCheckbox: View {
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(isOn ? OnboardingPalette.ink : Color.white)
+                        .fill(isOn ? OnboardingPalette.selectedControlFill : OnboardingPalette.fieldFill)
                         .frame(width: 20, height: 20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -610,7 +773,7 @@ private struct ConsentAgreementCheckbox: View {
 
 private struct ConsentDataRow: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -747,12 +910,32 @@ private struct NativeKeyboardSurfaceMock: View {
 }
 
 private enum NativeKeyboardStyle {
-    static let surface = Color(red: 0.86, green: 0.87, blue: 0.89)
-    static let keyFill = Color.white.opacity(0.96)
-    static let specialKey = Color(red: 0.74, green: 0.76, blue: 0.78)
-    static let ink = Color(red: 0.129, green: 0.129, blue: 0.155)
-    static let accent = Color(red: 0.341, green: 0.258, blue: 0.656)
-    static let accentSoft = Color(red: 0.950, green: 0.937, blue: 0.986)
+    static let surface = OnboardingPalette.adaptive(
+        light: Color(red: 0.86, green: 0.87, blue: 0.89),
+        dark: Color(red: 0.11, green: 0.11, blue: 0.12)
+    )
+    static let keyFill = OnboardingPalette.adaptive(
+        light: Color.white.opacity(0.96),
+        dark: Color(red: 0.34, green: 0.34, blue: 0.36)
+    )
+    static let specialKey = OnboardingPalette.adaptive(
+        light: Color(red: 0.74, green: 0.76, blue: 0.78),
+        dark: Color(red: 0.20, green: 0.20, blue: 0.22)
+    )
+    static let ink = OnboardingPalette.adaptive(
+        light: Color(red: 0.129, green: 0.129, blue: 0.155),
+        dark: Color(red: 0.95, green: 0.95, blue: 0.96)
+    )
+    static let accent = AppColor.purple
+    static let accentSoft = AppColor.paleLavender
+    static let translucentFill = OnboardingPalette.adaptive(
+        light: Color.white.opacity(0.72),
+        dark: Color.white.opacity(0.10)
+    )
+    static let panelFill = OnboardingPalette.adaptive(
+        light: Color.white,
+        dark: Color(red: 0.16, green: 0.16, blue: 0.18)
+    )
 }
 
 private struct NativeToolbarDemo: View {
@@ -793,7 +976,7 @@ private struct NativeToolbarPill: View {
     var minWidth: CGFloat? = nil
 
     var body: some View {
-        Text(title)
+        Text(verbatim: title)
             .font(.system(size: 17, weight: .medium))
             .foregroundStyle(NativeKeyboardStyle.ink)
             .lineLimit(1)
@@ -801,7 +984,7 @@ private struct NativeToolbarPill: View {
             .padding(.horizontal, 12)
             .frame(minWidth: minWidth, minHeight: 38)
             .background(
-                isSelected ? NativeKeyboardStyle.accentSoft : Color.white.opacity(0.72),
+                isSelected ? NativeKeyboardStyle.accentSoft : NativeKeyboardStyle.translucentFill,
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
             .overlay(
@@ -823,7 +1006,7 @@ private struct NativeIncomingMessageBubble: View {
                         .foregroundStyle(NativeKeyboardStyle.accent.opacity(0.7))
                 )
 
-            Text("明日の10時で大丈夫ですか？")
+            Text(verbatim: "明日の10時で大丈夫ですか？")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(NativeKeyboardStyle.ink)
                 .lineLimit(1)
@@ -834,7 +1017,7 @@ private struct NativeIncomingMessageBubble: View {
             HStack(spacing: 3) {
                 Image(systemName: "doc.on.doc")
                     .font(.system(size: 10, weight: .semibold))
-                Text("コピー済み")
+                Text(verbatim: "コピー済み")
                     .font(.system(size: 11, weight: .medium))
             }
             .foregroundStyle(NativeKeyboardStyle.accent)
@@ -845,7 +1028,7 @@ private struct NativeIncomingMessageBubble: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(NativeKeyboardStyle.panelFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(.horizontal, 6)
     }
 }
@@ -877,7 +1060,7 @@ private struct NativeReplyPill: View {
         HStack(spacing: 4) {
             Image(systemName: "arrowshape.turn.up.left")
                 .font(.system(size: 15, weight: .semibold))
-            Text("返信")
+            Text(verbatim: "返信")
                 .font(.system(size: 17, weight: .medium))
                 .lineLimit(1)
         }
@@ -885,7 +1068,7 @@ private struct NativeReplyPill: View {
         .padding(.horizontal, 12)
         .frame(minHeight: 38)
         .background(
-            Color.white.opacity(0.72),
+            NativeKeyboardStyle.translucentFill,
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
     }
@@ -928,7 +1111,7 @@ private struct NativeFlickRows: View {
 
     private func kanaKey(_ label: String) -> some View {
         flickKey(fill: NativeKeyboardStyle.keyFill) {
-            Text(label)
+            Text(verbatim: label)
                 .font(.system(size: min(20, keyHeight * 0.42), weight: .regular))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -937,7 +1120,7 @@ private struct NativeFlickRows: View {
 
     private func textKey(_ label: String) -> some View {
         flickKey(fill: NativeKeyboardStyle.specialKey) {
-            Text(label)
+            Text(verbatim: label)
                 .font(.system(size: min(14, keyHeight * 0.34), weight: .regular))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -953,7 +1136,7 @@ private struct NativeFlickRows: View {
 
     private func flickKey<Content: View>(fill: Color, @ViewBuilder content: () -> Content) -> some View {
         content()
-            .foregroundStyle(.black.opacity(0.92))
+            .foregroundStyle(NativeKeyboardStyle.ink)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -1003,9 +1186,9 @@ private struct NativeLetterKey: View {
     let label: String
 
     var body: some View {
-        Text(label)
+        Text(verbatim: label)
             .font(.system(size: 25, weight: .regular))
-            .foregroundStyle(.black.opacity(0.92))
+            .foregroundStyle(NativeKeyboardStyle.ink)
             .frame(maxWidth: .infinity)
             .frame(height: 43)
             .background(
@@ -1023,7 +1206,7 @@ private struct NativeSpecialKey: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: 20, weight: .regular))
-            .foregroundStyle(.black.opacity(0.92))
+            .foregroundStyle(NativeKeyboardStyle.ink)
             .frame(width: width, height: 43)
             .background(
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -1054,14 +1237,14 @@ private struct NativeBottomKey: View {
     var body: some View {
         Group {
             if let text {
-                Text(text)
+                Text(verbatim: text)
                     .font(.system(size: 18, weight: .regular))
             } else if let symbol {
                 Image(systemName: symbol)
                     .font(.system(size: 22, weight: .regular))
             }
         }
-        .foregroundStyle(.black.opacity(0.92))
+        .foregroundStyle(NativeKeyboardStyle.ink)
         .frame(maxWidth: width == nil ? .infinity : nil)
         .frame(width: width, height: 43)
         .background(
@@ -1130,7 +1313,7 @@ private struct NativeCandidateCard: View {
     let isSelected: Bool
 
     var body: some View {
-        Text(text)
+        Text(verbatim: text)
             .font(.system(size: 19, weight: .regular))
             .foregroundStyle(NativeKeyboardStyle.ink)
             .lineLimit(5)
@@ -1138,7 +1321,7 @@ private struct NativeCandidateCard: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                Color.white,
+                NativeKeyboardStyle.panelFill,
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)
             )
             .overlay(
@@ -1164,13 +1347,13 @@ private struct NativeRefinementRow: View {
                     HStack(spacing: 5) {
                         Image(systemName: chip.0)
                             .font(.system(size: 14, weight: .regular))
-                        Text(chip.1)
+                        Text(verbatim: chip.1)
                             .font(.system(size: 17, weight: .regular))
                     }
                     .foregroundStyle(NativeKeyboardStyle.ink)
                     .padding(.horizontal, 14)
                     .frame(height: 38)
-                    .background(Color.white.opacity(0.92), in: Capsule())
+                    .background(NativeKeyboardStyle.panelFill.opacity(0.92), in: Capsule())
                     .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
                 }
             }
@@ -1194,7 +1377,7 @@ private struct ChatInputMock: View {
             .overlay(Circle().stroke(Color.black.opacity(0.05), lineWidth: 0.5))
 
             HStack {
-                Text("明日までに確認お願いします")
+                Text(verbatim: "明日までに確認お願いします")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(OnboardingPalette.ink)
                 Rectangle()
@@ -1255,7 +1438,7 @@ private struct SuggestionBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Text("AI")
+            Text(verbatim: "AI")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white)
                 .frame(width: 34, height: 26)
@@ -1267,7 +1450,7 @@ private struct SuggestionBar: View {
                 .padding(.trailing, 6)
 
             ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
-                Text(item)
+                Text(verbatim: item)
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(OnboardingPalette.ink)
                     .frame(maxWidth: .infinity)
@@ -1303,7 +1486,7 @@ private struct LetterKey: View {
     let label: String
 
     var body: some View {
-        Text(label.uppercased())
+        Text(verbatim: label.uppercased())
             .font(.system(size: 14, weight: .regular))
             .foregroundStyle(OnboardingPalette.ink)
             .frame(maxWidth: .infinity)
@@ -1341,7 +1524,7 @@ private struct BottomKey: View {
     var body: some View {
         Group {
             if let text {
-                Text(text)
+                Text(verbatim: text)
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(OnboardingPalette.ink)
             } else if let symbol {
@@ -1362,7 +1545,7 @@ private struct BottomKey: View {
 
 private struct KeepKey: View {
     var body: some View {
-        Text("確定")
+        Text(verbatim: "確定")
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: 64, height: 36)
@@ -1397,7 +1580,7 @@ struct ReplyFeatureSheet: View {
                         .foregroundStyle(AppColor.ink)
                         .padding(.horizontal, 22)
                         .padding(.vertical, 10)
-                        .background(.white, in: Capsule())
+                        .background(AppColor.surface, in: Capsule())
                         .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
                 }
                 .buttonStyle(.plain)
@@ -1434,7 +1617,7 @@ struct ReplyFeatureSheet: View {
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                                .fill(AppColor.surfaceElevated)
                         )
 
                     VStack(alignment: .leading, spacing: 12) {
@@ -1470,7 +1653,7 @@ struct ReplyFeatureSheet: View {
 
 private struct ReplyFeaturePoint: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1514,7 +1697,7 @@ struct FlickFeatureSheet: View {
                         .foregroundStyle(AppColor.ink)
                         .padding(.horizontal, 22)
                         .padding(.vertical, 10)
-                        .background(.white, in: Capsule())
+                        .background(AppColor.surface, in: Capsule())
                         .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
                 }
                 .buttonStyle(.plain)
@@ -1551,7 +1734,7 @@ struct FlickFeatureSheet: View {
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                                .fill(AppColor.surfaceElevated)
                         )
 
                     VStack(alignment: .leading, spacing: 12) {
@@ -1599,6 +1782,97 @@ struct FlickFeatureSheet: View {
     }
 }
 
+// MARK: - Prompt customization announcement (existing users)
+//
+// Shown once to users who completed onboarding before this page existed, so
+// they discover that the toolbar buttons are editable and that custom buttons
+// can be added. New users see `KeyboardPromptsPage` during onboarding, so the
+// sheet is suppressed for them. The CTA jumps straight to the Prompts tab.
+
+struct PromptsFeatureSheet: View {
+    let onOpen: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(AppColor.surface, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("使い方")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("ボタンは、\n自分仕様にできる。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("「敬語」ボタンの変換のしかたを変えたり、よく使う言い換えを自分のボタンとして追加できます。設定の「プロンプト」からいつでも編集できます。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    PromptsCustomizeMock()
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "pencil", text: "「敬語」ボタンの変換内容を自分好みに編集")
+                        ReplyFeaturePoint(icon: "plus", text: "よく使う言い換えを新しいボタンとして追加")
+                        ReplyFeaturePoint(icon: "ellipsis", text: "追加したボタンはキーボードの「…」から呼び出し")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            Button {
+                onOpen()
+                dismiss()
+            } label: {
+                Text("プロンプトを編集する")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(AppColor.charcoalAction, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Setup page") {
@@ -1627,4 +1901,12 @@ struct FlickFeatureSheet: View {
 
 #Preview("Reply feature sheet") {
     ReplyFeatureSheet()
+}
+
+#Preview("Prompts page") {
+    KeyboardPromptsPage(progress: 0.625, onBack: {}, onContinue: {})
+}
+
+#Preview("Prompts feature sheet") {
+    PromptsFeatureSheet(onOpen: {})
 }

@@ -5,12 +5,12 @@ import UIKit
 
 struct AboutScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var overlay: AppOverlay
     @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
     private var consentGranted = false
     @State private var activeURL: IdentifiedURL?
+    @State private var showFeedback = false
     @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
 
     var body: some View {
@@ -31,7 +31,7 @@ struct AboutScreen: View {
                         AboutRowModel(
                             icon: "lock.shield",
                             title: "フルアクセス",
-                            trailing: keyboardStatus.isFullAccessEnabled ? "オン" : "オフ",
+                            trailing: keyboardStatus.isFullAccessEnabled ? Text("オン") : Text("オフ"),
                             highlight: !keyboardStatus.isFullAccessEnabled
                         ) {
                             openSystemSettings()
@@ -47,11 +47,9 @@ struct AboutScreen: View {
                         },
                         AboutRowModel(
                             icon: "envelope",
-                            title: "お問い合わせ",
-                            trailing: LegalLinks.contactEmail,
-                            showsChevron: false
+                            title: "お問い合わせ"
                         ) {
-                            openURL(LegalLinks.contactMailto)
+                            showFeedback = true
                         }
                     ]
                 )
@@ -77,6 +75,9 @@ struct AboutScreen: View {
             }
         }
         .sheet(item: $activeURL) { SafariView(url: $0.url) }
+        .navigationDestination(isPresented: $showFeedback) {
+            FeedbackScreen()
+        }
         .onAppear {
             keyboardStatus.refresh()
         }
@@ -152,16 +153,16 @@ private enum AboutBundledImage {
 
 private struct AboutRowModel {
     let icon: String
-    let title: String
-    let trailing: String?
+    let title: LocalizedStringKey
+    let trailing: Text?
     let showsChevron: Bool
     let highlight: Bool
     let action: () -> Void
 
     init(
         icon: String,
-        title: String,
-        trailing: String? = nil,
+        title: LocalizedStringKey,
+        trailing: Text? = nil,
         showsChevron: Bool = true,
         highlight: Bool = false,
         action: @escaping () -> Void
@@ -191,7 +192,7 @@ private struct AboutListCard: View {
                 }
             }
         }
-        .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.045), radius: 18, x: 0, y: 10)
     }
 }
@@ -216,7 +217,7 @@ private struct AboutListRow: View {
                 Spacer()
 
                 if let trailing = model.trailing {
-                    Text(trailing)
+                    trailing
                         .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                         .foregroundStyle(AppColor.muted.opacity(0.82))
                         .lineLimit(1)

@@ -216,6 +216,22 @@ final class InputManagerTests: XCTestCase {
         XCTAssertEqual(im.commitText, "きょう？")
     }
 
+    // Learned next-word history surfaces in the prediction bar after a commit.
+    // With no adapter set, requestPrediction takes the synchronous learned-only
+    // path, so we can assert without awaiting azooKey.
+    func testRequestPredictionShowsLearnedSuggestions() {
+        let im = InputManager(nextWordSuggestions: { committed in
+            committed == "食べたい"
+                ? [Candidate(text: "ラーメン", reading: ""), Candidate(text: "そば", reading: "")]
+                : []
+        })
+        im.requestPrediction(after: "食べたい")
+        XCTAssertEqual(im.predictionSuggestions.map(\.text), ["ラーメン", "そば"])
+
+        im.requestPrediction(after: "知らない")
+        XCTAssertTrue(im.predictionSuggestions.isEmpty)
+    }
+
     func testPreferenceEntriesRerankCandidates() async {
         let now = Date()
         let im = InputManager(conversionPreferenceEntries: {

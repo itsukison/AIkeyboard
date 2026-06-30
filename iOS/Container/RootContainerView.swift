@@ -32,7 +32,7 @@ enum AppTab: String, CaseIterable, Hashable {
     case prompts
     case profile
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
         case .home: return "ホーム"
         case .prompts: return "プロンプト"
@@ -60,15 +60,31 @@ struct RootContainerView: View {
     @AppStorage("aikJP.hasCompletedFirstRun") private var hasCompletedFirstRun = false
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
+    @AppStorage("aikJP.seenPromptsFeature") private var seenPromptsFeature = false
     @AppStorage("aikJP.lastReviewPromptVersion") private var lastReviewPromptVersion = ""
     @AppStorage("aikJP.dismissedUpdateVersion") private var dismissedUpdateVersion = ""
     @AppStorage("aikJP.lastUpdateCheckAt") private var lastUpdateCheckAt: Double = 0
+    @AppStorage(AppThemePreference.storageKey) private var themePreference: String = AppThemePreference.auto.rawValue
+    @AppStorage(AppLanguage.storageKey) private var languagePreference: String = AppLanguage.system.rawValue
+
+    private var preferredScheme: ColorScheme? {
+        switch AppThemePreference(rawValue: themePreference) ?? .auto {
+        case .auto: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    private var resolvedLocale: Locale {
+        (AppLanguage(rawValue: languagePreference) ?? .system).locale
+    }
     @State private var whatsNewSheet: WhatsNewSheet?
     @State private var updateInfo: AppUpdateChecker.UpdateInfo?
 
     private enum WhatsNewSheet: String, Identifiable {
         case reply
         case flick
+        case prompts
         var id: String { rawValue }
     }
 
@@ -93,7 +109,8 @@ struct RootContainerView: View {
             }
         }
         .environmentObject(overlay)
-        .preferredColorScheme(.light)
+        .preferredColorScheme(preferredScheme)
+        .environment(\.locale, resolvedLocale)
         .onAppear { stats.refresh() }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
@@ -158,6 +175,10 @@ struct RootContainerView: View {
                 LiquidTabBar(selectedTab: $selectedTab)
                     .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset + 4)
                     .padding(.bottom, 4)
+                    // The bottom tab bar must not ride up with the keyboard during
+                    // text entry (e.g. the feedback form); keep it pinned, hidden
+                    // behind the keyboard instead.
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
 
                 if let modal = overlay.modal {
                     overlayModal(for: modal)
@@ -189,6 +210,7 @@ struct RootContainerView: View {
                 switch sheet {
                 case .reply: ReplyFeatureSheet()
                 case .flick: FlickFeatureSheet()
+                case .prompts: PromptsFeatureSheet(onOpen: { selectedTab = .prompts })
                 }
             }
             .presentationDetents([.large])
@@ -207,6 +229,9 @@ struct RootContainerView: View {
             } else if !seenFlickFeature {
                 seenFlickFeature = true
                 whatsNewSheet = .flick
+            } else if !seenPromptsFeature {
+                seenPromptsFeature = true
+                whatsNewSheet = .prompts
             }
             await maybeCheckForUpdate()
         }
@@ -271,6 +296,7 @@ struct RootContainerView: View {
 }
 
 private struct LiquidTabBar: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedTab: AppTab
 
     var body: some View {
@@ -299,7 +325,11 @@ private struct LiquidTabBar: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.76)
                         }
-                        .foregroundStyle(isSelected ? AppColor.ink : Color.black.opacity(0.72))
+                        .foregroundStyle(
+                            isSelected
+                                ? AppColor.ink
+                                : colorScheme == .dark ? AppColor.muted : Color.black.opacity(0.72)
+                        )
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
@@ -311,9 +341,20 @@ private struct LiquidTabBar: View {
         .padding(.vertical, 5)
         .frame(height: 70)
         .animation(.spring(response: 0.32, dampingFraction: 0.9), value: selectedTab)
-        .bikeyInteractiveGlass(in: Capsule(), fallback: .white.opacity(0.92))
-        .shadow(color: Color(red: 0.42, green: 0.42, blue: 0.44).opacity(0.20), radius: 18, x: 0, y: 8)
-        .shadowIfLegacyChrome(color: .white.opacity(0.75), radius: 2, y: -1)
+        .bikeyInteractiveGlass(in: Capsule(), fallback: AppColor.surface.opacity(0.92))
+        .shadow(
+            color: colorScheme == .dark
+                ? .black.opacity(0.48)
+                : Color(red: 0.42, green: 0.42, blue: 0.44).opacity(0.20),
+            radius: 18,
+            x: 0,
+            y: 8
+        )
+        .shadowIfLegacyChrome(
+            color: .white.opacity(colorScheme == .dark ? 0.06 : 0.75),
+            radius: 2,
+            y: -1
+        )
     }
 }
 
@@ -329,15 +370,29 @@ private extension View {
 }
 
 private struct TabSelectionHighlight: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Capsule()
-            .fill(.white.opacity(0.72))
+            .fill(AppColor.surface.opacity(colorScheme == .dark ? 0.56 : 0.72))
             .overlay {
                 Capsule()
-                    .stroke(.white.opacity(0.86), lineWidth: 1)
+                    .stroke(.white.opacity(colorScheme == .dark ? 0.12 : 0.86), lineWidth: 1)
             }
-            .shadow(color: Color(red: 0.36, green: 0.36, blue: 0.38).opacity(0.28), radius: 15, x: 0, y: 8)
-            .shadow(color: .white.opacity(0.92), radius: 4, x: 0, y: -1)
+            .shadow(
+                color: colorScheme == .dark
+                    ? .black.opacity(0.38)
+                    : Color(red: 0.36, green: 0.36, blue: 0.38).opacity(0.28),
+                radius: 15,
+                x: 0,
+                y: 8
+            )
+            .shadow(
+                color: .white.opacity(colorScheme == .dark ? 0 : 0.92),
+                radius: 4,
+                x: 0,
+                y: -1
+            )
             .padding(.vertical, 2)
             .padding(.horizontal, 1)
     }

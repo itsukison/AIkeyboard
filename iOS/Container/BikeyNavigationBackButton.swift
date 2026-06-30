@@ -7,7 +7,7 @@ struct BikeyNavigationBackButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(.white)
+                    .fill(AppColor.surface)
                     .frame(width: 36, height: 36)
                     .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 3)
                 Image(systemName: "chevron.left")
