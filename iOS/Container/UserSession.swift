@@ -104,6 +104,7 @@ final class UserSession: ObservableObject {
         PostHogSDK.shared.identify(profile.id.uuidString, userProperties: identifyProperties(for: profile))
         PostHogSDK.shared.capture("signed_up")
         state = .signedIn(profile)
+        await syncCommercialConsent(for: profile.id)
         try? await refreshUserPromptsCache(for: profile.id)
     }
 
@@ -113,7 +114,16 @@ final class UserSession: ObservableObject {
         PostHogSDK.shared.identify(profile.id.uuidString, userProperties: identifyProperties(for: profile))
         PostHogSDK.shared.capture("signed_in")
         state = .signedIn(profile)
+        await syncCommercialConsent(for: profile.id)
         try? await refreshUserPromptsCache(for: profile.id)
+    }
+
+    /// Propagates a commercial data-use opt-in chosen during onboarding (before
+    /// sign-in) up to the server-side consent record. Only pushes an opt-in, so
+    /// it never clobbers a server value with a fresh device's local default.
+    private func syncCommercialConsent(for userId: UUID) async {
+        guard KeyboardSettingsStore.readAICommercialOptIn() else { return }
+        try? await AIConsentRemoteStore.setCommercialOptIn(true, for: userId)
     }
 
     func signOut() async {

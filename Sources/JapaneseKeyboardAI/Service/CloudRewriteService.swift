@@ -80,6 +80,34 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         _ = try? await session.data(for: urlRequest)
     }
 
+    /// Reports a user action on a result (e.g. `regenerated`, `dismissed`) to
+    /// the originating rewrite event. Fire-and-forget, like `submitSelection`.
+    public func submitAction(
+        eventId: String,
+        action: String,
+        selectedIndex: Int? = nil,
+        latencyMs: Int? = nil
+    ) async {
+        guard let accessToken = try? await ensureFreshAccessToken() else { return }
+
+        var urlRequest = URLRequest(url: configuration.endpoint)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        urlRequest.timeoutInterval = 10
+        urlRequest.httpBody = try? JSONEncoder().encode(
+            ActionFeedback(
+                eventId: eventId,
+                action: action,
+                selectedIndex: selectedIndex,
+                latencyMs: latencyMs
+            )
+        )
+
+        _ = try? await session.data(for: urlRequest)
+    }
+
     private func ensureFreshAccessToken() async throws -> String {
         guard let accessToken = AIAuthStore.readAccessToken() else {
             throw CloudRewriteError.notSignedIn
@@ -123,6 +151,13 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
 private struct SelectionFeedback: Encodable {
     let eventId: String
     let selectedIndex: Int
+}
+
+private struct ActionFeedback: Encodable {
+    let eventId: String
+    let action: String
+    let selectedIndex: Int?
+    let latencyMs: Int?
 }
 
 private struct CloudRewriteErrorPayload: Decodable {

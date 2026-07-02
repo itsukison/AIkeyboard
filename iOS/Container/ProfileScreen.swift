@@ -685,11 +685,15 @@ struct ShimmerRowBackground: View {
 struct AIConsentInfoModal: View {
     let onClose: () -> Void
 
+    @EnvironmentObject private var session: UserSession
     @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
     private var consentGranted = false
 
     @State private var showPrivacy = false
     @State private var agreedToPolicy = false
+    // Commercial data-use is opt-in (default off); this lets the user turn it on
+    // or withdraw it. Reflects the server record on appear.
+    @State private var commercialOptIn = false
 
     var body: some View {
         ZStack {
@@ -721,6 +725,15 @@ struct AIConsentInfoModal: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .sheet(isPresented: $showPrivacy) {
             SafariView(url: LegalLinks.privacy)
+        }
+        .task {
+            guard let userId = session.profile?.id else { return }
+            let consent = try? await AIConsentRemoteStore.fetch(for: userId)
+            commercialOptIn = AIConsentRemoteStore.isCommercialOptIn(consent)
+        }
+        .onChange(of: commercialOptIn) { newValue in
+            guard let userId = session.profile?.id else { return }
+            Task { try? await AIConsentRemoteStore.setCommercialOptIn(newValue, for: userId) }
         }
     }
 
@@ -758,6 +771,26 @@ struct AIConsentInfoModal: View {
     private var consentAction: some View {
         if consentGranted {
             VStack(spacing: 10) {
+                Toggle(isOn: $commercialOptIn) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("日本語AIの改善に協力する")
+                            .bikeyFont(15, weight: .regular, relativeTo: .body)
+                            .foregroundStyle(AppColor.ink)
+                        Text("入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。任意です。")
+                            .bikeyFont(12, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .tint(AppColor.purple)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(AppColor.rule.opacity(0.5), lineWidth: 0.8)
+                )
+
                 Button {
                     consentGranted = false
                     agreedToPolicy = false

@@ -1,59 +1,65 @@
 # scripts
 
-## build_nextword_prior.py — next-word prior table
+## Next-word prior tables (bigram + trigram)
 
-Builds `Sources/JapaneseKeyboardCore/Resources/nextword_prior.bin`, the
-memory-mapped morpheme → next-morpheme table read by `NextWordPrior` to seed the
-prediction bar (see `docs/` and `KanaKanjiAdapter.predictNextWords`).
+`build_nextword_prior.py` builds
+`Sources/JapaneseKeyboardCore/Resources/nextword_prior.bin`, the memory-mapped
+morpheme → next-morpheme table read by `NextWordPrior` to seed the prediction
+bar (see `KanaKanjiAdapter.predictNextWords`).
 
-### Data source
+`build_nextword_trigram.py` builds the sibling
+`Sources/JapaneseKeyboardCore/Resources/nextword_trigram.bin`: a morpheme
+*pair* `(t1, t2)` → likely third morpheme `t3`, same `NWP1` binary format,
+keyed on `t1<U+001F>t2`. `NextWordPrior.sharedTrigram` reads it and
+`KanaKanjiAdapter.predictNextWords` tries it first (sharper context), backing
+off to the bigram table on a miss — so the keyboard works unchanged if this
+`.bin` is absent.
 
-[日本語ウェブコーパス2010 (NWC2010)](https://www.s-yata.jp/corpus/nwc2010/ngrams/)
-morpheme (word) 2-grams. Web-domain, word-segmented. The author states terms are
-"特にありません。二次配布も自由です" — no restrictions, redistribution (incl.
-commercial / derivatives) allowed. The shipped `.bin` is a derived frequency
-table, not the corpus text.
+Both builders consume the same input format on stdin: `tokens<TAB>freq` per
+line, sorted lexicographically by the token string so each key forms a
+contiguous block.
 
-### Rebuild
+### Data source (current artifacts, July 2026)
 
-```bash
-# freq>=100 tier, 2-gram, both shards (sorted as one stream):
-BASE=https://s3-ap-northeast-1.amazonaws.com/nwc2010-ngrams/word/over99/2gms
-curl -s "$BASE/2gm-0000.xz" -o 2gm-0000.xz
-curl -s "$BASE/2gm-0001.xz" -o 2gm-0001.xz
-xz -dc 2gm-0000.xz 2gm-0001.xz | python3 build_nextword_prior.py \
-    ../Sources/JapaneseKeyboardCore/Resources/nextword_prior.bin
-```
+[FineWeb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2)
+`jpn_Jpan/train` shard `000_00000.parquet` (~2.76M documents, ~2.19B morphemes
+after tokenization; 2013–2024 CommonCrawl, dedup + quality filtered).
+License: ODC-By 1.0 (attribution — cite the FineWeb-2 dataset) subject to the
+CommonCrawl terms of use. The shipped `.bin` is a derived frequency table, not
+the corpus text.
 
-Current artifact: ~9.8 MB, 150k morphemes × up to 8 next-words. Tune `TOP_K` /
-`MAX_KEYS` in the script to trade coverage against size. Other tiers: `over999`
-(freq>=1000, smaller) or `over9` (freq>=10, much larger).
+Tokenization: MeCab/IPADIC via `fugashi` + `ipadic` (pip), wakati output —
+IPAdic segmentation matches the IME-style morpheme units the tables are keyed
+on (食べ/たい, not UniDic short units).
 
-## build_nextword_trigram.py — next-word trigram prior
-
-Builds `Sources/JapaneseKeyboardCore/Resources/nextword_trigram.bin`, the
-sibling trigram table: a morpheme *pair* `(t1, t2)` → likely third morpheme
-`t3`. Same `NWP1` binary format as the bigram table, keyed on `t1<U+001F>t2`.
-`NextWordPrior.sharedTrigram` reads it and `KanaKanjiAdapter.predictNextWords`
-tries it first (sharper context), backing off to the bigram table on a miss —
-so the keyboard works unchanged if this `.bin` is absent.
-
-### Data source
-
-Same [NWC2010](https://www.s-yata.jp/corpus/nwc2010/ngrams/) word n-grams, but
-the **3-gram** files. Same unrestricted license as the 2-grams.
+Earlier artifacts (pre-July 2026) were built from
+[NWC2010](https://www.s-yata.jp/corpus/nwc2010/ngrams/) word n-grams
+(unrestricted license); the corpus is from 2010, which is why it was replaced.
 
 ### Rebuild
 
 ```bash
-# freq>=100 tier, 3-gram, all shards (sorted as one stream):
-BASE=https://s3-ap-northeast-1.amazonaws.com/nwc2010-ngrams/word/over99/3gms
-for i in $(seq -w 0 N); do curl -s "$BASE/3gm-000$i.xz" -o "3gm-000$i.xz"; done
-xz -dc 3gm-*.xz | python3 build_nextword_trigram.py \
-    ../Sources/JapaneseKeyboardCore/Resources/nextword_trigram.bin
+python3 -m venv venv && venv/bin/pip install fugashi ipadic pyarrow
+
+# 1. one FineWeb-2 Japanese shard (~4.8 GB)
+curl -sL -o fineweb2-ja.parquet "https://huggingface.co/datasets/HuggingFaceFW/fineweb-2/resolve/main/data/jpn_Jpan/train/000_00000.parquet"
+
+# 2. tokenize + emit sorted partial-count part files (~35 GB, ~15 min on 8 cores)
+venv/bin/python emit_ngram_counts.py fineweb2-ja.parquet parts/
+
+# 3. merge-sort parts, sum duplicate keys, build each table
+LC_ALL=C sort -m -S 2G --batch-size=200 parts/bi_*.txt \
+  | venv/bin/python sum_adjacent.py \
+  | venv/bin/python build_nextword_prior.py \
+      ../Sources/JapaneseKeyboardCore/Resources/nextword_prior.bin
+LC_ALL=C sort -m -S 2G --batch-size=200 parts/tri_*.txt \
+  | venv/bin/python sum_adjacent.py \
+  | venv/bin/python build_nextword_trigram.py \
+      ../Sources/JapaneseKeyboardCore/Resources/nextword_trigram.bin
 ```
 
-Trigram keys are far more numerous than bigram, so this `.bin` is larger for the
-same `TOP_K`. It is mmap'd (resident memory stays flat — no jetsam risk), but it
-adds to the app download size. Lower `MAX_KEYS` / `TOP_K`, or use the `over999`
-tier, if the bundle grows too much.
+Current artifacts: bigram ~10.8 MB (150k morphemes × up to 8 next-words, from
+68M unique bigrams), trigram ~12.6 MB (200k pairs × up to 6, from 332M unique
+trigrams). Tune `TOP_K` / `MAX_KEYS` in the builders to trade coverage against
+size. Both are mmap'd (resident memory stays flat — no jetsam risk) but add to
+the app download size.

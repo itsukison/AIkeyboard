@@ -1,4 +1,19 @@
+import { redactPII } from "./redact.ts";
+
 type RefinementIntent = "morePolite" | "moreDetailed" | "moreConcise";
+
+type ConsentScope =
+  | "none"
+  | "internal_improvement"
+  | "research_benchmark"
+  | "commercial_dataset";
+
+type ConsentState = {
+  optIn: boolean;
+  scope: ConsentScope;
+  rawAllowed: boolean;
+  version: string | null;
+};
 
 type RewriteRequest = {
   prompt: string;
@@ -78,6 +93,10 @@ const MAX_CANDIDATES = 5;
 const DEFAULT_CANDIDATES = 3;
 const MAX_PROMPT_CHARS = 1000;
 
+// Stamps the consent version on stored rows so exports tie to the policy
+// revision in force. Retention is opt-in (see logRewriteEvent).
+const DEFAULT_CONSENT_VERSION = "2026-07-02";
+
 // PostHog ingestion. The project token is the same public client key shipped in
 // the container app binary (safe to expose); override with the
 // POSTHOG_PROJECT_TOKEN secret. Analytics are emitted here, on the server —
@@ -112,6 +131,10 @@ Deno.serve(async (req) => {
     body = await req.json();
   } catch {
     return jsonError("invalid_json", "Request body must be JSON.", 400);
+  }
+
+  if (isActionEvent(body)) {
+    return await handleActionEvent(userId, body);
   }
 
   if (isFeedbackRequest(body)) {
@@ -331,6 +354,102 @@ async function handleFeedback(
   return json({ ok: true });
 }
 
+const ACTION_TYPES = new Set([
+  "selected",
+  "inserted",
+  "copied",
+  "dismissed",
+  "regenerated",
+]);
+
+type ActionEvent = {
+  eventId: string;
+  action: string;
+  selectedIndex?: number;
+  latencyMs?: number;
+};
+
+function isActionEvent(body: unknown): body is ActionEvent {
+  if (!body || typeof body !== "object") return false;
+  const data = body as Record<string, unknown>;
+  return typeof data.eventId === "string" && typeof data.action === "string";
+}
+
+// Records a user action on a rewrite result (regenerated / dismissed / …) in
+// the append-only ai_rewrite_action_events log, keyed by the originating
+// event_id. Best-effort: the keyboard fires it detached and never blocks on it.
+async function handleActionEvent(
+  userId: string,
+  body: ActionEvent,
+): Promise<Response> {
+  if ((Deno.env.get("EVENT_LOGGING_ENABLED") ?? "true") === "false") {
+    return json({ ok: true });
+  }
+  const eventId = body.eventId.trim();
+  if (!/^[0-9a-fA-F-]{36}$/.test(eventId) || !ACTION_TYPES.has(body.action)) {
+    return jsonError("invalid_request", "Invalid action event.", 400);
+  }
+  const selectedIndex = typeof body.selectedIndex === "number" &&
+      Number.isFinite(body.selectedIndex) && body.selectedIndex >= 0
+    ? Math.floor(body.selectedIndex)
+    : null;
+  const latencyMs = typeof body.latencyMs === "number" &&
+      Number.isFinite(body.latencyMs) && body.latencyMs >= 0
+    ? Math.floor(body.latencyMs)
+    : null;
+
+  const supabaseURL = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseURL || !serviceRoleKey) {
+    return jsonError("configuration_missing", "Action logging is not configured.", 503);
+  }
+
+  try {
+    const response = await fetch(`${supabaseURL}/rest/v1/ai_rewrite_action_events`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceRoleKey}`,
+        "apikey": serviceRoleKey,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({
+        event_id: eventId,
+        user_id: userId,
+        user_id_hash: await hashUserId(userId),
+        action: body.action,
+        selected_index: selectedIndex,
+        latency_ms: latencyMs,
+      }),
+    });
+    if (!response.ok) {
+      console.error(JSON.stringify({
+        event: "ai_rewrite_action_log_failed",
+        httpStatus: response.status,
+        message: (await response.text()).slice(0, 400),
+      }));
+      return jsonError("provider_error", "Failed to record action.", 502);
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "ai_rewrite_action_log_failed",
+      message: error instanceof Error ? error.message : "unknown error",
+    }));
+    return jsonError("provider_error", "Failed to record action.", 502);
+  }
+
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil(
+    capturePostHogEvent("ai_rewrite_action", userId, {
+      event_id: eventId,
+      action: body.action,
+      selected_index: selectedIndex,
+      latency_ms: latencyMs,
+    }),
+  );
+  return json({ ok: true });
+}
+
 async function reserveUsage(userId: string, units: number): Promise<{ allowed: boolean; message: string }> {
   const now = new Date();
   const dayBucket = now.toISOString().slice(0, 10);
@@ -453,11 +572,16 @@ async function logRewriteEvent(
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseURL || !serviceRoleKey) return;
 
-  const payload = {
-    prompt: input.request.prompt,
-    input: input.request.text,
-    reply_to: input.request.replyTo ?? null,
-    candidates: input.result.candidates,
+  // Fail closed: retention is opt-in. Text is stored only when the user has an
+  // explicit opt-in record (scope commercial_dataset / research_benchmark).
+  // Absent record or opt_in false == metadata only. Raw text further requires
+  // raw_text_allowed.
+  const consent = await fetchConsent(supabaseURL, serviceRoleKey, input.userId);
+  const scope: ConsentScope = consent?.optIn ? consent.scope : "none";
+  const eligible = scope !== "none";
+
+  // Metadata is always stored (product analytics + the eventId feedback join).
+  const payload: Record<string, unknown> = {
     language: input.result.language,
     command_key: input.request.commandKey ?? null,
     title: input.request.title ?? null,
@@ -466,6 +590,8 @@ async function logRewriteEvent(
     app_version: input.request.appVersion ?? null,
     candidate_count: input.request.candidateCount ?? DEFAULT_CANDIDATES,
     provider: input.provider,
+    is_reply: typeof input.request.replyTo === "string" &&
+      input.request.replyTo.trim().length > 0,
     input_length: [...input.request.text].length,
     prompt_length: [...input.request.prompt].length,
     output_length: input.result.candidates.reduce(
@@ -474,6 +600,28 @@ async function logRewriteEvent(
     ),
     latency_ms: input.latencyMs,
   };
+
+  // Text is only added for consented scopes, always PII-redacted first. Raw
+  // text is stored only if the user separately allowed it (raw_text_allowed).
+  // candidates[] keeps the model order (no display randomization in v1), so the
+  // selected candidate is derivable from selected_index at export time.
+  if (eligible) {
+    payload.prompt_redacted = redactPII(input.request.prompt);
+    payload.input_redacted = redactPII(input.request.text);
+    payload.reply_to_redacted = input.request.replyTo
+      ? redactPII(input.request.replyTo)
+      : null;
+    payload.candidates = input.result.candidates.map((c) => ({
+      text_redacted: redactPII(c.replacement),
+      changed: c.changed,
+    }));
+    if (consent?.rawAllowed) {
+      payload.prompt_raw = input.request.prompt;
+      payload.input_raw = input.request.text;
+      payload.reply_to_raw = input.request.replyTo ?? null;
+      payload.candidates_raw = input.result.candidates;
+    }
+  }
 
   try {
     const response = await fetch(`${supabaseURL}/rest/v1/ai_rewrite_events`, {
@@ -487,6 +635,10 @@ async function logRewriteEvent(
       body: JSON.stringify({
         id: eventId,
         user_id: input.userId,
+        user_id_hash: await hashUserId(input.userId),
+        data_use_scope: scope,
+        consent_version: eligible ? consent?.version ?? DEFAULT_CONSENT_VERSION : null,
+        dataset_eligible: eligible,
         payload,
       }),
     });
@@ -503,6 +655,73 @@ async function logRewriteEvent(
       message: error instanceof Error ? error.message : "unknown error",
     }));
   }
+}
+
+// Reads the user's retention consent (authoritative, server-side). Any failure
+// or missing row returns null, which the caller treats as no consent — fail
+// closed, never store raw text on uncertainty.
+async function fetchConsent(
+  supabaseURL: string,
+  serviceRoleKey: string,
+  userId: string,
+): Promise<ConsentState | null> {
+  const validScopes: ConsentScope[] = [
+    "none",
+    "internal_improvement",
+    "research_benchmark",
+    "commercial_dataset",
+  ];
+  try {
+    const response = await fetch(
+      `${supabaseURL}/rest/v1/user_ai_consent?user_id=eq.${userId}` +
+        `&select=ai_improvement_opt_in,data_use_scope,raw_text_allowed,consent_version`,
+      {
+        headers: {
+          "Authorization": `Bearer ${serviceRoleKey}`,
+          "apikey": serviceRoleKey,
+        },
+      },
+    );
+    if (!response.ok) return null;
+    const rows = await response.json();
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row) return null;
+    const scope = validScopes.includes(row.data_use_scope)
+      ? row.data_use_scope as ConsentScope
+      : "none";
+    return {
+      optIn: row.ai_improvement_opt_in === true,
+      scope,
+      rawAllowed: row.raw_text_allowed === true,
+      version: typeof row.consent_version === "string" ? row.consent_version : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Pseudonymous, unlinkable user id for exported datasets. HMAC-SHA256 of the
+// Supabase user id under a server-only pepper; exports use this, never user_id.
+// Returns null if the pepper is unset (the column stays empty rather than
+// leaking a reversible hash).
+async function hashUserId(userId: string): Promise<string | null> {
+  const pepper = Deno.env.get("USER_ID_HASH_PEPPER");
+  if (!pepper) return null;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(pepper),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(userId),
+  );
+  return [...new Uint8Array(signature)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // Mirrors each AI rewrite into PostHog as an `ai_rewrite` event so the product

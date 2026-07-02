@@ -29,6 +29,9 @@ final class AIKeyboardController: ObservableObject {
     /// each segment (start index → event id), so an accepted candidate is
     /// reported to the right event. Reset when a fresh generation begins.
     private var generationSegments: [(eventId: String, start: Int)] = []
+    /// When the current result was first shown, for action latency (how long the
+    /// user considered the candidates before regenerating or dismissing).
+    private var resultShownAt: Date?
     /// The copied message for the active reply session. Set on `runReply`, reused
     /// by `regenerate`, cleared by `runFresh` and `close`.
     private var replyContext: String?
@@ -63,9 +66,13 @@ final class AIKeyboardController: ObservableObject {
     }
 
     func close() {
+        if case .result = state {
+            reportAction("dismissed")
+        }
         rewriteTask?.cancel()
         rewriteTask = nil
         replyContext = nil
+        resultShownAt = nil
         state = .hidden
     }
 
@@ -191,6 +198,7 @@ final class AIKeyboardController: ObservableObject {
 
     func regenerate() {
         guard case .result(let prompt, let capture, let candidates, _) = state else { return }
+        reportAction("regenerated")
         fire(prompt: prompt, capture: capture, inputText: capture.targetText, refinement: nil, existing: candidates, replyTo: replyContext)
     }
 
@@ -232,6 +240,17 @@ final class AIKeyboardController: ObservableObject {
         let service = CloudRewriteService(configuration: CloudRewriteConfiguration(appVersion: Self.appVersion))
         Task.detached {
             await service.submitSelection(eventId: eventId, selectedIndex: localIndex)
+        }
+    }
+
+    /// Reports a lifecycle action (regenerated / dismissed) on the current
+    /// result to its latest rewrite event. Fire-and-forget.
+    private func reportAction(_ action: String) {
+        guard let eventId = generationSegments.last?.eventId else { return }
+        let latencyMs = resultShownAt.map { Int(Date().timeIntervalSince($0) * 1000) }
+        let service = CloudRewriteService(configuration: CloudRewriteConfiguration(appVersion: Self.appVersion))
+        Task.detached {
+            await service.submitAction(eventId: eventId, action: action, latencyMs: latencyMs)
         }
     }
 
@@ -334,6 +353,7 @@ final class AIKeyboardController: ObservableObject {
                         candidates: combined,
                         selectedIndex: existing.count
                     )
+                    self?.resultShownAt = Date()
                     self?.rewriteTask = nil
                 }
             } catch {

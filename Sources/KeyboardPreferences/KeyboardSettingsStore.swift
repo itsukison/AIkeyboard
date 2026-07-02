@@ -30,6 +30,7 @@ public enum KeyboardSettingsStore {
     public static let hapticsEnabledKey = "hapticsEnabled"
     public static let cloudAIEnabledKey = "cloudAIEnabled"
     public static let aiConsentGrantedKey = "aiConsentGranted"
+    public static let aiCommercialOptInKey = "aiCommercialOptIn"
     public static let anonymousDeviceIdKey = "anonymousDeviceId"
     public static let lastKnownFullAccessEnabledKey = "lastKnownFullAccessEnabled"
     public static let lastSeenPasteboardChangeCountKey = "lastSeenPasteboardChangeCount"
@@ -114,6 +115,20 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(granted, forKey: aiConsentGrantedKey)
+    }
+
+    /// Pending commercial data-use opt-in captured during onboarding (before
+    /// sign-in). The authoritative record lives server-side in `user_ai_consent`;
+    /// this local flag is synced up on sign-in. Defaults false (opt-in).
+    public static func readAICommercialOptIn(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        defaults?.bool(forKey: aiCommercialOptInKey) ?? false
+    }
+
+    public static func writeAICommercialOptIn(
+        _ optIn: Bool,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(optIn, forKey: aiCommercialOptInKey)
     }
 
     public static func anonymousDeviceId(defaults: UserDefaults? = sharedDefaults) -> String {

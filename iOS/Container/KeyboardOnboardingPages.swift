@@ -639,11 +639,12 @@ private struct MockPromptRow: View {
 struct KeyboardConsentPage: View {
     let progress: Double
     let onBack: () -> Void
-    let onAgree: () -> Void
+    let onAgree: (Bool) -> Void
     let onDecline: () -> Void
 
     @State private var showPrivacy = false
     @State private var agreedToPolicy = false
+    @State private var commercialOptIn = false
 
     var body: some View {
         OnboardingScaffold(
@@ -653,7 +654,7 @@ struct KeyboardConsentPage: View {
             onSkip: nil,
             ctaTitle: "同意してはじめる",
             isCtaEnabled: agreedToPolicy,
-            onCta: onAgree,
+            onCta: { onAgree(commercialOptIn) },
             secondaryTitle: "今は使わない（通常のキーボードとして利用）",
             onSecondary: onDecline
         ) {
@@ -684,10 +685,14 @@ struct KeyboardConsentPage: View {
                     .padding(.bottom, 12)
                 }
 
-                ConsentAgreementCheckbox(
-                    isOn: $agreedToPolicy,
-                    onOpenPrivacy: { showPrivacy = true }
-                )
+                VStack(spacing: 12) {
+                    CommercialConsentCheckbox(isOn: $commercialOptIn)
+
+                    ConsentAgreementCheckbox(
+                        isOn: $agreedToPolicy,
+                        onOpenPrivacy: { showPrivacy = true }
+                    )
+                }
                 .padding(.horizontal, 20)
                 .padding(.top, 6)
                 .padding(.bottom, 12)
@@ -696,6 +701,54 @@ struct KeyboardConsentPage: View {
         .sheet(isPresented: $showPrivacy) {
             SafariView(url: LegalLinks.privacy)
         }
+    }
+}
+
+// Optional (opt-in) commercial data-use consent, shown above the required
+// policy-agreement checkbox. Not required to proceed — the CTA is gated only by
+// the policy checkbox. Copy names the real purpose (dataset creation incl.
+// third-party provision) with a hedged, secondary benefit line.
+private struct CommercialConsentCheckbox: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Button {
+                isOn.toggle()
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isOn ? OnboardingPalette.selectedControlFill : OnboardingPalette.fieldFill)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .strokeBorder(isOn ? Color.clear : OnboardingPalette.fieldStroke, lineWidth: 1.5)
+                        )
+
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("日本語AIの改善のためのデータ利用に同意する（任意）")
+            .accessibilityAddTraits(isOn ? [.isSelected] : [])
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("【任意】日本語AIの改善に協力する")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(OnboardingPalette.ink)
+                Text("入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけ、品質向上により将来的に変換精度の改善につながる可能性があります。")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(OnboardingPalette.subInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -1896,7 +1949,7 @@ struct PromptsFeatureSheet: View {
 }
 
 #Preview("Consent page") {
-    KeyboardConsentPage(progress: 1.0, onBack: {}, onAgree: {}, onDecline: {})
+    KeyboardConsentPage(progress: 1.0, onBack: {}, onAgree: { _ in }, onDecline: {})
 }
 
 #Preview("Reply feature sheet") {

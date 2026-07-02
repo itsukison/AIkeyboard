@@ -87,8 +87,8 @@ struct OnboardingFlow: View {
                 KeyboardConsentPage(
                     progress: progress(for: 7),
                     onBack: { goBack() },
-                    onAgree: { completeOnboarding(consentGranted: true) },
-                    onDecline: { completeOnboarding(consentGranted: false) }
+                    onAgree: { commercialOptIn in completeOnboarding(consentGranted: true, commercialOptIn: commercialOptIn) },
+                    onDecline: { completeOnboarding(consentGranted: false, commercialOptIn: false) }
                 )
             default:
                 legacyPostAuthBody
@@ -155,13 +155,16 @@ struct OnboardingFlow: View {
         }
     }
 
-    private func completeOnboarding(consentGranted: Bool) {
+    private func completeOnboarding(consentGranted: Bool, commercialOptIn: Bool) {
         seenReplyFeature = true
         seenFlickFeature = true
         seenPromptsFeature = true
         KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
+        // Stash the optional commercial opt-in; synced to Supabase on sign-in.
+        KeyboardSettingsStore.writeAICommercialOptIn(commercialOptIn)
         PostHogSDK.shared.capture("ai_consent_decision", properties: [
             "granted": consentGranted,
+            "commercial_opt_in": commercialOptIn,
         ])
         PostHogSDK.shared.capture("onboarding_completed")
         onFinish()
