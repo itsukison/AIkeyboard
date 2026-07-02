@@ -138,40 +138,52 @@ public actor KanaKanjiAdapter {
     }
 
     /// Next-word (予測変換) suggestions to show after the user commits a word,
-    /// while nothing is being composed. `committedText` must match a candidate
-    /// from the most recent `convert(...)` or the chained base built by
-    /// `recordPredictionCommit`; otherwise (e.g. a raw-kana commit) we have no
-    /// rich left-side context and return nothing rather than guess.
+    /// while nothing is being composed. Prefers the rich azooKey candidate for
+    /// `committedText` (from the most recent `convert(...)` or the chained base
+    /// built by `recordPredictionCommit`); without one (raw-kana commit, tapped
+    /// corpus-prior suggestion) it falls back to the bigram prior keyed on the
+    /// committed surface itself — usually a single morpheme (です, と, はい) —
+    /// so the bar stays populated and prediction chains don't die.
     public func predictNextWords(after committedText: String, maxCandidates: Int = 10) -> [Candidate] {
-        let leftSideCandidate: KanaKanjiConverterModule.Candidate
+        let leftSideCandidate: KanaKanjiConverterModule.Candidate?
         if let match = lastConversion?.mainResults.first(where: { $0.text == committedText }) {
             leftSideCandidate = match
         } else if let chained = chainedBase, chained.text == committedText {
             leftSideCandidate = chained.candidate
         } else {
-            return []
+            leftSideCandidate = nil
         }
-        // Corpus prior keyed on the committed chunk's trailing morpheme(s)
-        // (Japanese is head-final). Trigram (last two morphemes) goes first for
-        // sharper context, backing off to the bigram table; both rank ahead of
-        // azooKey's zero-hint guesses, which surface rare junk (ラー油).
-        let morphemes = leftSideCandidate.data
-        let bigramTexts = morphemes.last
-            .map { NextWordPrior.shared?.suggestions(after: $0.word) ?? [] } ?? []
-        let lastTwo = Array(morphemes.suffix(2))
-        let trigramTexts = lastTwo.count == 2
-            ? (NextWordPrior.sharedTrigram?.suggestions(after: lastTwo[0].word, lastTwo[1].word) ?? [])
-            : []
-        let priorTexts = trigramTexts + bigramTexts
-        let predictions = converter.requestPostCompositionPredictionCandidates(
-            leftSideCandidate: leftSideCandidate,
-            options: options
-        )
+        let orderedTexts: [String]
+        let predictions: [PostCompositionPredictionCandidate]
+        if let leftSideCandidate {
+            // Corpus prior keyed on the committed chunk's trailing morpheme(s)
+            // (Japanese is head-final). Trigram (last two morphemes) first —
+            // sharpest context. azooKey's predictions next: with learning on
+            // they carry the user's own patterns and keep the join-chain alive,
+            // so they outrank the generic bigram tail.
+            let morphemes = leftSideCandidate.data
+            let bigramTexts = morphemes.last
+                .map { NextWordPrior.shared?.suggestions(after: $0.word) ?? [] } ?? []
+            let lastTwo = Array(morphemes.suffix(2))
+            let trigramTexts = lastTwo.count == 2
+                ? (NextWordPrior.sharedTrigram?.suggestions(after: lastTwo[0].word, lastTwo[1].word) ?? [])
+                : []
+            predictions = converter.requestPostCompositionPredictionCandidates(
+                leftSideCandidate: leftSideCandidate,
+                options: options
+            )
+            orderedTexts = trigramTexts + predictions.map(\.text) + bigramTexts
+        } else {
+            predictions = []
+            orderedTexts = NextWordPrior.shared?.suggestions(after: committedText) ?? []
+        }
+        // Also cleared (not just set) so a tap after a fallback round can't
+        // learn/join against a stale base from an earlier conversion.
         lastPredictionBase = leftSideCandidate
         lastPredictions = predictions
         var seen = Set<String>()
         var result: [Candidate] = []
-        for text in priorTexts + predictions.map(\.text) {
+        for text in orderedTexts {
             guard !text.isEmpty, seen.insert(text).inserted else { continue }
             result.append(Candidate(text: text, reading: ""))
             if result.count == maxCandidates { break }
