@@ -26,6 +26,14 @@ final class KeyboardViewController: KeyboardInputViewController {
         inputManager: inputManager
     )
 
+    #if DEBUG
+    deinit {
+        // Verifies the setupKeyboardView leak fix: this must fire after the
+        // keyboard is dismissed and iOS releases the presentation.
+        NSLog("🧹 KeyboardViewController deinit")
+    }
+    #endif
+
     override func viewDidLoad() {
         super.viewDidLoad()
         autoEnableHapticsDefaultIfNeeded()
@@ -50,17 +58,9 @@ final class KeyboardViewController: KeyboardInputViewController {
         inputManager.onMarkedTextDidChange = { [weak self] text in
             self?.applyMarkedText(text)
         }
-        Task.detached(priority: .userInitiated) { [weak self] in
-            // Persist learning in the App Group so it survives keyboard
-            // restarts; the default temp dir would be purged by iOS.
-            let adapter = KanaKanjiAdapter(
-                supportDirectoryURL: AppGroup.sharedContainerURL?
-                    .appendingPathComponent("conversion-learning", isDirectory: true)
-            )
-            await adapter.prewarm()
-            await MainActor.run {
-                self?.inputManager.setAdapter(adapter)
-            }
+        Task { [weak self] in
+            let adapter = await SharedConversionEngine.prewarmed.value
+            self?.inputManager.setAdapter(adapter)
         }
     }
 
@@ -74,7 +74,12 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 
     override func viewWillSetupKeyboardView() {
-        setupKeyboardView { controller in
+        // KeyboardKit retains this view-builder closure; capturing self
+        // strongly here is the documented KeyboardKit leak (controller →
+        // closure → controller), which pinned every re-presented controller
+        // instance in memory.
+        setupKeyboardView { [weak self] controller in
+            guard let self else { return AnyView(EmptyView()) }
             let manager = self.inputManager
             switch self.keyboardStyle {
             case .japaneseFlick:
@@ -228,12 +233,18 @@ final class KeyboardViewController: KeyboardInputViewController {
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
         KeyboardUsageDailyStore.recordKeyboardOpen()
         keyboardAppearedAt = Date()
+        #if DEBUG
+        MemoryProbe.startSampling()
+        #endif
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         // Flush learned conversions to disk off the typing path.
         inputManager.persistLearning()
+        #if DEBUG
+        MemoryProbe.stopSampling()
+        #endif
         aiKeyboardController.stopClipboardMonitoring()
         if let appearedAt = keyboardAppearedAt {
             let elapsed = Int(Date().timeIntervalSince(appearedAt))
@@ -502,6 +513,26 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 }
 
+/// Process-lifetime conversion engine. iOS creates a fresh input view
+/// controller on every keyboard presentation while the extension process
+/// persists (and leaked controller instances are a known iOS issue), so the
+/// converter + Zenzai llama context must exist exactly once per process —
+/// a per-controller engine stacks 10+ MB of dirty memory per reopen until
+/// jetsam kills the extension mid-launch.
+private enum SharedConversionEngine {
+    /// Created and prewarmed once, off the main thread, on first access.
+    /// Learning persists in the App Group so it survives keyboard restarts;
+    /// the default temp dir would be purged by iOS.
+    static let prewarmed = Task.detached(priority: .userInitiated) {
+        let adapter = KanaKanjiAdapter(
+            supportDirectoryURL: AppGroup.sharedContainerURL?
+                .appendingPathComponent("conversion-learning", isDirectory: true)
+        )
+        await adapter.prewarm()
+        return adapter
+    }
+}
+
 private extension KeyboardApp {
     static var bikeyJP: KeyboardApp {
         .init(
@@ -542,3 +573,55 @@ private final class KeyboardHapticFeedback {
         selectionGenerator.prepare()
     }
 }
+
+#if DEBUG
+/// Diagnostic-only (DEBUG builds): samples the keyboard extension's real
+/// resident memory so we can read the on-device peak before deciding whether
+/// Zenzai (~+16 MB) fits under the ~40 MB jetsam ceiling. Never compiled into
+/// Release. Prints via NSLog so the numbers show in the Xcode console.
+enum MemoryProbe {
+    // Accessed only from the main run loop (view lifecycle + main-thread timer).
+    private nonisolated(unsafe) static var peakBytes: UInt64 = 0
+    private nonisolated(unsafe) static var timer: Timer?
+
+    /// Reset the peak and start sampling twice a second while the keyboard is up.
+    static func startSampling() {
+        peakBytes = 0
+        timer?.invalidate()
+        sample("cold-open")
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            sample("tick")
+        }
+    }
+
+    /// Stop sampling and print the final peak (the number to report back).
+    static func stopSampling() {
+        timer?.invalidate()
+        timer = nil
+        sample("FINAL")
+    }
+
+    private static func sample(_ label: String) {
+        let current = footprintBytes()
+        if current > peakBytes { peakBytes = current }
+        let available = os_proc_available_memory()
+        NSLog("📊 MEM [\(label)] current=\(mb(current)) peak=\(mb(peakBytes)) headroom-to-jetsam=\(mb(UInt64(max(0, available))))")
+    }
+
+    /// `phys_footprint` — the exact figure iOS jetsam uses to kill the extension.
+    private static func footprintBytes() -> UInt64 {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.stride / MemoryLayout<natural_t>.stride)
+        let kr = withUnsafeMutablePointer(to: &info) { ptr in
+            ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        return kr == KERN_SUCCESS ? info.phys_footprint : 0
+    }
+
+    private static func mb(_ bytes: UInt64) -> String {
+        String(format: "%.1f MB", Double(bytes) / 1_048_576)
+    }
+}
+#endif

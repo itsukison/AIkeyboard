@@ -10,12 +10,36 @@ public actor KanaKanjiAdapter {
     /// `Candidate` only carries text + reading, which isn't enough context for
     /// `requestPostCompositionPredictionCandidates`.
     private var lastConversion: ConversionResult?
+    /// Whether Zenzai was enabled at init (weight bundled and enough jetsam
+    /// headroom). Kept for a DEBUG confirmation log in `prewarm()`.
+    private let zenzaiEnabled: Bool
 
     public init(supportDirectoryURL: URL? = nil) {
         let supportURL = supportDirectoryURL
             ?? FileManager.default.temporaryDirectory.appendingPathComponent("KeigoButton", isDirectory: true)
         try? FileManager.default.createDirectory(at: supportURL, withIntermediateDirectories: true)
         self.converter = KanaKanjiConverter.withDefaultDictionary()
+        // Zenzai (neural conversion) — xsmall CPU model bundled as a resource.
+        // Falls back to .off if the weight isn't bundled so a missing model can
+        // never crash the build/runtime, and when jetsam headroom is short:
+        // Zenzai costs ~25 MB of transient dirty memory (KV + compute + first
+        // decode) on top of the classical converter, and the extension's cap
+        // shrinks under host-app memory pressure — classical-only conversion
+        // beats a jetsam kill at launch. inferenceLimit 1 for lowest latency.
+        let weightURL = Bundle.module.url(forResource: "zenz-xsmall", withExtension: "gguf")
+        let zenzai: ConvertRequestOptions.ZenzaiMode
+        if let weightURL, Self.hasZenzaiHeadroom {
+            zenzai = .on(
+                weight: weightURL,
+                inferenceLimit: 1,
+                personalizationMode: nil,
+                versionDependentMode: .v3(.init())
+            )
+            self.zenzaiEnabled = true
+        } else {
+            zenzai = .off
+            self.zenzaiEnabled = false
+        }
         // Built once: constructing options per convert call would re-read the
         // emoji TSV from disk on every keystroke (TextReplacer's init parses
         // the whole file). `.empty` because the replacer only feeds
@@ -49,7 +73,7 @@ public actor KanaKanjiAdapter {
             sharedContainerURL: supportURL,
             textReplacer: .empty,
             specialCandidateProviders: KanaKanjiConverter.defaultSpecialCandidateProviders,
-            zenzaiMode: .off,
+            zenzaiMode: zenzai,
             metadata: .init(versionString: "KeigoButton/1.0")
         )
     }
@@ -137,6 +161,22 @@ public actor KanaKanjiAdapter {
     /// the lazy dictionary-load cost (charID, mm.binary, LOUDS shard I/O).
     public func prewarm() {
         _ = convert(kana: "あ")
+        #if DEBUG
+        NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) status=[\(converter.zenzStatus)]")
+        #endif
         converter.stopComposition()
+    }
+
+    /// Zenzai needs ~25 MB of dirty-memory headroom on top of the classical
+    /// converter's peak; require a comfortable margin so a pressured host
+    /// (smaller jetsam cap) silently falls back to classical conversion
+    /// instead of being killed. iOS-only API; non-iOS builds (tests) have no
+    /// comparable budget.
+    private static var hasZenzaiHeadroom: Bool {
+        #if os(iOS)
+        return os_proc_available_memory() > 50 * 1024 * 1024
+        #else
+        return true
+        #endif
     }
 }

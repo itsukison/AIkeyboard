@@ -361,6 +361,13 @@ public final class InputManager: ObservableObject {
             // Compare prefixes, not the full buffer: trailing unresolved
             // romaji typed while we converted doesn't invalidate the result.
             guard self.convertiblePrefix(of: self.buffer.displayKana) == kanaPrefix else { return }
+            // Once the user has begun cycling candidates (space → 次候補),
+            // freeze the published list: a late-landing conversion result that
+            // rebuilds the ForEach rows can cancel an in-flight tap gesture on
+            // iOS 26, so the user has to tap multiple times. Typing more kana
+            // clears `selectedCandidateIndex` (see appendRomaji/appendKana),
+            // which re-enables replacement for the new prefix.
+            guard self.selectedCandidateIndex == nil else { return }
             // azooKey's own adaptive learning already personalizes the lattice
             // order, so show the converter's ranking directly.
             if self.candidates != results {

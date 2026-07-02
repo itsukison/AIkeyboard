@@ -15,9 +15,14 @@ let package = Package(
         .library(name: "KeyboardPreferences", targets: ["KeyboardPreferences"]),
     ],
     dependencies: [
+        // Local fork of AzooKeyKanaKanjiConverter 0.11.2 whose llama.cpp
+        // binaryTarget is a CPU-only (GGML_METAL=OFF) xcframework — the stock
+        // build's Metal backend aborts in the keyboard extension
+        // (ggml_metal_init → kernel_get_rows_bf16 nil). Dev override for the
+        // Zenzai spike; ship path is a hosted fork.
         .package(
-            url: "https://github.com/azooKey/AzooKeyKanaKanjiConverter",
-            .upToNextMinor(from: "0.11.1")
+            path: "../vendor-cpu-llama/AzooKeyKanaKanjiConverter",
+            traits: ["ZenzaiCPU"]
         ),
         .package(
             url: "https://github.com/KeyboardKit/KeyboardKit.git",
