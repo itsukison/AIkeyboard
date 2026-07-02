@@ -43,6 +43,12 @@ public final class InputManager: ObservableObject {
     /// The controller wires this up to `textDocumentProxy.setMarkedText`.
     public var onMarkedTextDidChange: ((String) -> Void)?
 
+    /// Reads the host document's text before the insertion point, wired to
+    /// `textDocumentProxy.documentContextBeforeInput`. Captured once at
+    /// composition start (before any marked text exists) and fed to Zenzai as
+    /// left-side context for 文脈考慮変換.
+    public var leftContextProvider: (() -> String?)?
+
     private let buffer: any InputBuffer
     /// Learned next-word (予測変換) suggestions for a just-committed word. Read
     /// fresh from `NextWordPreferenceStore` on each commit; injected so tests
@@ -58,6 +64,9 @@ public final class InputManager: ObservableObject {
     /// syllable) reuse the in-flight or already-published candidates.
     private var lastScheduledKanaPrefix: String?
     private var kanaTapCycleState: KanaTapCycleState?
+    /// Left context captured when the current composition started; constant
+    /// for the whole composition so conversions stay cache-friendly.
+    private var compositionLeftContext: String?
 
     public init(
         buffer: any InputBuffer = RomajiInputBuffer(),
@@ -225,7 +234,11 @@ public final class InputManager: ObservableObject {
 
     /// Fetch next-word suggestions for the just-committed word. Call after the
     /// commit's `reset()` so the suggestions survive into the idle state.
-    public func requestPrediction(after committedText: String) {
+    /// `followingPredictionTap` marks that `committedText` was itself a tapped
+    /// prediction: the tap is first fed back into azooKey's learning and the
+    /// chain base extended, sequenced inside the same task so the follow-up
+    /// prediction request sees the updated state.
+    public func requestPrediction(after committedText: String, followingPredictionTap: Bool = false) {
         predictionTask?.cancel()
         // The user's own next-word history takes priority over azooKey's static
         // guess; show it immediately, then fill remaining slots with azooKey's
@@ -242,6 +255,9 @@ public final class InputManager: ObservableObject {
             predictionSuggestions = learned
         }
         predictionTask = Task { [weak self] in
+            if followingPredictionTap {
+                await adapter.recordPredictionCommit(committedText)
+            }
             let azoo = await adapter.predictNextWords(after: committedText)
             guard !Task.isCancelled, let self else { return }
             let merged = Self.mergePredictions(learned: learned, azoo: azoo)
@@ -252,10 +268,12 @@ public final class InputManager: ObservableObject {
     }
 
     /// Learned suggestions first (deduped), then azooKey's to fill the bar.
+    /// The bar is a horizontal scroller, so the limit matches azooKey's own
+    /// 10-candidate prediction depth rather than the old 4-slot cap.
     private static func mergePredictions(
         learned: [Candidate],
         azoo: [Candidate],
-        limit: Int = 4
+        limit: Int = 10
     ) -> [Candidate] {
         var seen = Set<String>()
         var result: [Candidate] = []
@@ -325,6 +343,9 @@ public final class InputManager: ObservableObject {
         let composing = !buffer.isEmpty
         if isComposing != composing {
             isComposing = composing
+            if composing {
+                compositionLeftContext = leftContextProvider?()
+            }
         }
 
         let kanaPrefix = convertiblePrefix(of: kana)
@@ -352,10 +373,11 @@ public final class InputManager: ObservableObject {
         conversionTask?.cancel()
         guard let adapter else { return }
         lastScheduledKanaPrefix = kanaPrefix
+        let leftContext = compositionLeftContext
         conversionTask = Task { [weak self] in
             // Request a deeper candidate list (was 10) so the intended word is
             // far more likely to be present and reachable in the candidate bar.
-            let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 20)
+            let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 20, leftContext: leftContext)
             guard !Task.isCancelled else { return }
             guard let self else { return }
             // Compare prefixes, not the full buffer: trailing unresolved

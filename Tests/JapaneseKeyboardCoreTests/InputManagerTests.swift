@@ -232,6 +232,14 @@ final class InputManagerTests: XCTestCase {
         XCTAssertTrue(im.predictionSuggestions.isEmpty)
     }
 
+    // The prediction bar scrolls horizontally, so the merge cap is 10 (was 4).
+    func testPredictionBarCapsAtTen() {
+        let many = (0..<12).map { Candidate(text: "語\($0)", reading: "") }
+        let im = InputManager(nextWordSuggestions: { _ in many })
+        im.requestPrediction(after: "何か")
+        XCTAssertEqual(im.predictionSuggestions.count, 10)
+    }
+
     func testExpandCandidateListNoOpWithoutCandidates() async {
         let im = InputManager()
         im.setAdapter(KanaKanjiAdapter())

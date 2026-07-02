@@ -58,6 +58,9 @@ final class KeyboardViewController: KeyboardInputViewController {
         inputManager.onMarkedTextDidChange = { [weak self] text in
             self?.applyMarkedText(text)
         }
+        inputManager.leftContextProvider = { [weak self] in
+            self?.textDocumentProxy.documentContextBeforeInput
+        }
         Task { [weak self] in
             let adapter = await SharedConversionEngine.prewarmed.value
             self?.inputManager.setAdapter(adapter)
@@ -402,14 +405,14 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 
     /// Tapping a next-word (予測変換) suggestion: nothing is being composed, so
-    /// insert the word directly. Records the transition and chains to the next
-    /// prediction, which surfaces the user's learned next-words for this word
-    /// (azooKey has no rich context to add here).
+    /// insert the word directly. Records the transition, feeds the tap back
+    /// into azooKey's learning, and chains to the next prediction round with
+    /// the accumulated morpheme context.
     @MainActor
     func commitPrediction(_ candidate: Candidate) {
         textDocumentProxy.insertText(candidate.text)
         recordNextWord(candidate.text)
-        inputManager.requestPrediction(after: candidate.text)
+        inputManager.requestPrediction(after: candidate.text, followingPredictionTap: true)
     }
 
     /// 確定: commit the currently-displayed preview (selected candidate if the

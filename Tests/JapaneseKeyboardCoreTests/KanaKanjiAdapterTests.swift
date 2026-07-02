@@ -53,4 +53,36 @@ final class KanaKanjiAdapterTests: XCTestCase {
             "Raw kana should always be in candidate list"
         )
     }
+
+    func testConvertWithLeftContextProducesCandidates() async {
+        let results = await Self.adapter.convert(kana: "きょう", maxCandidates: 10, leftContext: "明日は雨だが、")
+        XCTAssertTrue(results.map(\.text).contains("今日"), "Left context must not break conversion")
+    }
+
+    // Tapping an azooKey-born prediction must extend the chain so the next
+    // prediction round still has rich morpheme context (instead of returning
+    // [] as it did before recordPredictionCommit existed).
+    func testPredictionChainSurvivesPredictionTap() async {
+        _ = await Self.adapter.convert(kana: "きょう", maxCandidates: 10)
+        let first = await Self.adapter.predictNextWords(after: "今日")
+        XCTAssertFalse(first.isEmpty, "Expected next-word predictions after 今日")
+        XCTAssertLessThanOrEqual(first.count, 10)
+
+        var chained = false
+        for candidate in first {
+            await Self.adapter.recordPredictionCommit(candidate.text)
+            let next = await Self.adapter.predictNextWords(after: candidate.text)
+            if !next.isEmpty {
+                chained = true
+                break
+            }
+        }
+        XCTAssertTrue(chained, "No tapped prediction produced a chained follow-up")
+    }
+
+    func testRecordPredictionCommitWithUnknownTextIsNoOp() async {
+        await Self.adapter.recordPredictionCommit("存在しない候補")
+        let results = await Self.adapter.predictNextWords(after: "存在しない候補")
+        XCTAssertTrue(results.isEmpty)
+    }
 }
