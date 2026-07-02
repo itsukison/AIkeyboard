@@ -3,7 +3,8 @@ options:
   bundleIdPrefix: com.core7.keigobutton
   deploymentTarget:
     iOS: "16.4"
-  developmentLanguage: en
+  developmentLanguage: ja
+  knownRegions: [ja, en, zh-Hans, Base]
   createIntermediateGroups: true
 
 settings:
@@ -47,6 +48,7 @@ targets:
       - path: public/homebg.png
       - path: public/gradient4.png
       - path: public/globebg.png
+      - path: public/globebg-dark.png
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.core7.keigobutton
@@ -54,6 +56,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: iOS/Container/Container.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_EMIT_LOC_STRINGS: YES
     dependencies:
       - target: KeyboardExtension
       - package: JapaneseKeyboard

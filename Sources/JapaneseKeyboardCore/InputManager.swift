@@ -9,7 +9,21 @@ public final class InputManager: ObservableObject {
     /// from invalidating any view that observes the manager.
     public private(set) var displayKana: String = ""
 
-    @Published public private(set) var candidates: [Candidate] = []
+    @Published public private(set) var candidates: [Candidate] = [] {
+        didSet {
+            // The full-candidate grid only makes sense while there are
+            // candidates; auto-collapse when they clear (commit, backspace to
+            // empty, etc.) so it can't linger over an empty keyboard.
+            if candidates.isEmpty && isCandidateListExpanded {
+                isCandidateListExpanded = false
+            }
+        }
+    }
+
+    /// Whether the full "show all candidates" grid (native ∧ expander) is open.
+    /// Owned here so both the candidate bar (expand button) and the grid overlay
+    /// observe one source of truth.
+    @Published public private(set) var isCandidateListExpanded: Bool = false
 
     /// Next-word (予測変換) suggestions shown after a commit, while nothing is
     /// being composed. Cleared the moment the user starts the next word.
@@ -29,10 +43,18 @@ public final class InputManager: ObservableObject {
     /// The controller wires this up to `textDocumentProxy.setMarkedText`.
     public var onMarkedTextDidChange: ((String) -> Void)?
 
+    /// Reads the host document's text before the insertion point, wired to
+    /// `textDocumentProxy.documentContextBeforeInput`. Captured once at
+    /// composition start (before any marked text exists) and fed to Zenzai as
+    /// left-side context for 文脈考慮変換.
+    public var leftContextProvider: (() -> String?)?
+
     private let buffer: any InputBuffer
-    private let conversionPreferenceEntries: () -> [ConversionPreferenceEntry]
+    /// Learned next-word (予測変換) suggestions for a just-committed word. Read
+    /// fresh from `NextWordPreferenceStore` on each commit; injected so tests
+    /// can supply deterministic data without touching the App Group.
+    private let nextWordSuggestions: (String) -> [Candidate]
     private let kanaTapCycleTimeout: TimeInterval
-    private var cachedConversionPreferenceEntries: [ConversionPreferenceEntry]
     private var adapter: KanaKanjiAdapter?
     private var conversionTask: Task<Void, Never>?
     private var predictionTask: Task<Void, Never>?
@@ -42,18 +64,21 @@ public final class InputManager: ObservableObject {
     /// syllable) reuse the in-flight or already-published candidates.
     private var lastScheduledKanaPrefix: String?
     private var kanaTapCycleState: KanaTapCycleState?
+    /// Left context captured when the current composition started; constant
+    /// for the whole composition so conversions stay cache-friendly.
+    private var compositionLeftContext: String?
 
     public init(
         buffer: any InputBuffer = RomajiInputBuffer(),
-        conversionPreferenceEntries: @escaping () -> [ConversionPreferenceEntry] = {
-            ConversionPreferenceStore.readEntries()
+        nextWordSuggestions: @escaping (String) -> [Candidate] = { committedText in
+            NextWordPreferenceStore.suggestions(after: committedText)
+                .map { Candidate(text: $0, reading: "") }
         },
         kanaTapCycleTimeout: TimeInterval = 0.8
     ) {
         self.buffer = buffer
-        self.conversionPreferenceEntries = conversionPreferenceEntries
+        self.nextWordSuggestions = nextWordSuggestions
         self.kanaTapCycleTimeout = kanaTapCycleTimeout
-        self.cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
 
     public func setAdapter(_ adapter: KanaKanjiAdapter) {
@@ -61,10 +86,6 @@ public final class InputManager: ObservableObject {
         if !buffer.isEmpty {
             refresh()
         }
-    }
-
-    public func refreshConversionPreferenceEntries() {
-        cachedConversionPreferenceEntries = conversionPreferenceEntries()
     }
 
     /// Live preview shown as marked text in the host. Default: kana being
@@ -107,6 +128,18 @@ public final class InputManager: ObservableObject {
         }
         selectedCandidateIndex = next
         notifyMarkedTextChange()
+    }
+
+    /// Open the full-candidate grid (native ∧ expander). No-op with no candidates.
+    public func expandCandidateList() {
+        guard !candidates.isEmpty, !isCandidateListExpanded else { return }
+        isCandidateListExpanded = true
+    }
+
+    /// Close the full-candidate grid (native ∨ / selecting a candidate).
+    public func collapseCandidateList() {
+        guard isCandidateListExpanded else { return }
+        isCandidateListExpanded = false
     }
 
     public func appendRomaji(_ character: Character) {
@@ -201,16 +234,70 @@ public final class InputManager: ObservableObject {
 
     /// Fetch next-word suggestions for the just-committed word. Call after the
     /// commit's `reset()` so the suggestions survive into the idle state.
-    public func requestPrediction(after committedText: String) {
+    /// `followingPredictionTap` marks that `committedText` was itself a tapped
+    /// prediction: the tap is first fed back into azooKey's learning and the
+    /// chain base extended, sequenced inside the same task so the follow-up
+    /// prediction request sees the updated state.
+    public func requestPrediction(after committedText: String, followingPredictionTap: Bool = false) {
         predictionTask?.cancel()
-        guard let adapter else { return }
+        // The user's own next-word history takes priority over azooKey's static
+        // guess; show it immediately, then fill remaining slots with azooKey's
+        // predictions once they return.
+        let learned = nextWordSuggestions(committedText)
+        guard let adapter else {
+            let merged = Self.mergePredictions(learned: learned, azoo: [])
+            if predictionSuggestions != merged {
+                predictionSuggestions = merged
+            }
+            return
+        }
+        if !learned.isEmpty, predictionSuggestions != learned {
+            predictionSuggestions = learned
+        }
         predictionTask = Task { [weak self] in
-            let suggestions = await adapter.predictNextWords(after: committedText)
+            if followingPredictionTap {
+                await adapter.recordPredictionCommit(committedText)
+            }
+            let azoo = await adapter.predictNextWords(after: committedText)
             guard !Task.isCancelled, let self else { return }
-            if self.predictionSuggestions != suggestions {
-                self.predictionSuggestions = suggestions
+            let merged = Self.mergePredictions(learned: learned, azoo: azoo)
+            if self.predictionSuggestions != merged {
+                self.predictionSuggestions = merged
             }
         }
+    }
+
+    /// Learned suggestions first (deduped), then azooKey's to fill the bar.
+    /// The bar is a horizontal scroller, so the limit matches azooKey's own
+    /// 10-candidate prediction depth rather than the old 4-slot cap.
+    private static func mergePredictions(
+        learned: [Candidate],
+        azoo: [Candidate],
+        limit: Int = 10
+    ) -> [Candidate] {
+        var seen = Set<String>()
+        var result: [Candidate] = []
+        for candidate in learned + azoo {
+            guard seen.insert(candidate.text).inserted else { continue }
+            result.append(candidate)
+            if result.count == limit { break }
+        }
+        return result
+    }
+
+    /// Record the committed word into azooKey's adaptive learning so future
+    /// conversions of the same reading rank it higher. Fire-and-forget and off
+    /// the typing path; no-op for raw-kana commits with no rich candidate.
+    public func recordCommitForLearning(_ committedText: String) {
+        guard let adapter else { return }
+        Task { await adapter.recordCommit(committedText) }
+    }
+
+    /// Persist learned conversions to disk. Call on keyboard dismiss, never
+    /// while composing — the on-disk merge is heavy.
+    public func persistLearning() {
+        guard let adapter else { return }
+        Task { await adapter.persistLearning() }
     }
 
     public func clearPredictions() {
@@ -256,6 +343,9 @@ public final class InputManager: ObservableObject {
         let composing = !buffer.isEmpty
         if isComposing != composing {
             isComposing = composing
+            if composing {
+                compositionLeftContext = leftContextProvider?()
+            }
         }
 
         let kanaPrefix = convertiblePrefix(of: kana)
@@ -283,20 +373,27 @@ public final class InputManager: ObservableObject {
         conversionTask?.cancel()
         guard let adapter else { return }
         lastScheduledKanaPrefix = kanaPrefix
+        let leftContext = compositionLeftContext
         conversionTask = Task { [weak self] in
-            let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 10)
+            // Request a deeper candidate list (was 10) so the intended word is
+            // far more likely to be present and reachable in the candidate bar.
+            let results = await adapter.convert(kana: kanaPrefix, maxCandidates: 20, leftContext: leftContext)
             guard !Task.isCancelled else { return }
             guard let self else { return }
             // Compare prefixes, not the full buffer: trailing unresolved
             // romaji typed while we converted doesn't invalidate the result.
             guard self.convertiblePrefix(of: self.buffer.displayKana) == kanaPrefix else { return }
-            let reranked = Self.rerankCandidates(
-                results,
-                input: kanaPrefix,
-                entries: self.cachedConversionPreferenceEntries
-            )
-            if self.candidates != reranked {
-                self.candidates = reranked
+            // Once the user has begun cycling candidates (space → 次候補),
+            // freeze the published list: a late-landing conversion result that
+            // rebuilds the ForEach rows can cancel an in-flight tap gesture on
+            // iOS 26, so the user has to tap multiple times. Typing more kana
+            // clears `selectedCandidateIndex` (see appendRomaji/appendKana),
+            // which re-enables replacement for the new prefix.
+            guard self.selectedCandidateIndex == nil else { return }
+            // azooKey's own adaptive learning already personalizes the lattice
+            // order, so show the converter's ranking directly.
+            if self.candidates != results {
+                self.candidates = results
             }
             self.notifyMarkedTextChange()
         }
@@ -320,29 +417,6 @@ public final class InputManager: ObservableObject {
             prefix.removeLast()
         }
         return prefix
-    }
-
-    private static func rerankCandidates(
-        _ candidates: [Candidate],
-        input: String,
-        entries: [ConversionPreferenceEntry]
-    ) -> [Candidate] {
-        guard candidates.count > 1 else { return candidates }
-
-        var candidateByText: [String: Candidate] = [:]
-        var candidateTexts: [String] = []
-        for candidate in candidates {
-            guard candidateByText[candidate.text] == nil else { continue }
-            candidateByText[candidate.text] = candidate
-            candidateTexts.append(candidate.text)
-        }
-
-        return ConversionPreferenceStore.rerank(
-            scope: .japanese,
-            input: input,
-            candidates: candidateTexts,
-            entries: entries
-        ).compactMap { candidateByText[$0] }
     }
 
     private struct KanaTapCycleState {

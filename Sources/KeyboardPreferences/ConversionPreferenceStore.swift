@@ -2,6 +2,7 @@ import Foundation
 
 public enum ConversionPreferenceScope: String, Codable, Sendable {
     case japanese
+    case english
 }
 
 public struct ConversionPreferenceEntry: Codable, Equatable, Sendable {

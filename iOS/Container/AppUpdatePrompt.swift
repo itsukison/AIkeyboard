@@ -118,7 +118,7 @@ struct UpdateAvailableModal: View {
                             .foregroundStyle(AppColor.ink)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(.white, in: Capsule())
+                            .background(AppColor.surface, in: Capsule())
                             .overlay(
                                 Capsule()
                                     .stroke(AppColor.rule.opacity(0.45), lineWidth: 0.6)
@@ -131,7 +131,7 @@ struct UpdateAvailableModal: View {
                 .padding(.bottom, BikeyMetrics.Spacing.m)
             }
             .frame(maxWidth: 320)
-            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
             .padding(.horizontal, BikeyMetrics.Spacing.xl)
         }

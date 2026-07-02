@@ -45,8 +45,16 @@ them gets users killed by jetsam or rejected by App Review.
 - **Keyboard surface looks native, container looks Bikey**. Do not put purple
   / Liquid Glass / Bikey design tokens on the keyboard. Do not put the iOS
   system-keyboard look on the container.
-- **No bilingual logic**. This is a pure Japanese product. Reject any feature
-  that only makes sense in mixed JA/EN typing.
+- **Japanese is the default; other languages are opt-in parallel modes.** The
+  keyboard ships Japanese and every existing user stays on it. A user may
+  explicitly select a different keyboard language (English first; Simplified
+  Chinese planned) during onboarding or in settings. The rule that replaced the
+  old "pure Japanese, no bilingual logic" constraint: **a non-Japanese mode must
+  never alter the Japanese input path.** Each language is a separate branch
+  reached only when `KeyboardLanguage` is set to it; when it is `.japanese`
+  (the default), the code runs exactly as before. No mixed JA/EN logic inside a
+  single mode, no language auto-detection — the active mode is an explicit user
+  choice stored in the App Group.
 
 ---
 

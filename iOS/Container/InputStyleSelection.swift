@@ -8,14 +8,14 @@ import SwiftUI
 enum InputStyleOption {
     static let selectable: [KeyboardPreferences.KeyboardStyle] = [.japaneseRomaji, .japaneseFlick]
 
-    static func title(_ style: KeyboardPreferences.KeyboardStyle) -> String {
+    static func title(_ style: KeyboardPreferences.KeyboardStyle) -> LocalizedStringKey {
         switch style {
         case .japaneseFlick: return "フリック"
         default: return "ローマ字"
         }
     }
 
-    static func subtitle(_ style: KeyboardPreferences.KeyboardStyle) -> String {
+    static func subtitle(_ style: KeyboardPreferences.KeyboardStyle) -> LocalizedStringKey {
         switch style {
         case .japaneseFlick: return "10キー入力"
         default: return "QWERTY配列"
@@ -51,7 +51,7 @@ struct InputStyleSelectionCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity)
-            .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(isSelected ? AppColor.purple : Color.clear, lineWidth: 2)
@@ -92,7 +92,7 @@ private struct QwertyMiniPreview: View {
                 HStack(spacing: 3) {
                     ForEach(0..<count, id: \.self) { _ in
                         RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-                            .fill(.white)
+                            .fill(AppColor.surfaceElevated)
                             .frame(maxWidth: .infinity)
                             .frame(height: 16)
                             .shadow(color: .black.opacity(0.10), radius: 0.5, x: 0, y: 0.5)
@@ -117,7 +117,7 @@ private struct FlickMiniPreview: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(AppColor.ink.opacity(0.85))
                             .frame(width: 22, height: 18)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
                             .shadow(color: .black.opacity(0.10), radius: 0.5, x: 0, y: 0.5)
                     }
                 }

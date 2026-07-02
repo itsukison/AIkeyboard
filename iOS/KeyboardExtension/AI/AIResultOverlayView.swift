@@ -41,21 +41,27 @@ struct AIResultOverlayView: View {
     @ViewBuilder
     private func panel(model: PanelModel) -> some View {
         VStack(spacing: 0) {
-            cardsCarousel(
-                candidates: model.existing,
-                showSkeletons: model.showSkeletons,
-                focusedIndex: model.focusedIndex,
-                resetToFirstCard: model.resetToFirstCard
-            )
-            .padding(.top, 4)
+            Spacer()
+                .frame(height: KeyboardChromeMetrics.toolbarHeight)
+                .allowsHitTesting(false)
 
-            refinementRow(disabled: model.showSkeletons)
-                .padding(.top, 10)
-                .padding(.bottom, 12)
+            VStack(spacing: 0) {
+                cardsCarousel(
+                    candidates: model.existing,
+                    showSkeletons: model.showSkeletons,
+                    focusedIndex: model.focusedIndex,
+                    resetToFirstCard: model.resetToFirstCard
+                )
+                .padding(.top, 4)
+
+                refinementRow(disabled: model.showSkeletons)
+                    .padding(.top, 10)
+                    .padding(.bottom, 12)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(KeyboardPalette.surface)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(KeyboardPalette.surface)
-        .padding(.top, KeyboardChromeMetrics.toolbarHeight)
     }
 
     private func cardsCarousel(

@@ -2,6 +2,30 @@ import KeyboardPreferences
 import PostHog
 import SwiftUI
 
+enum AppThemePreference: String, CaseIterable, Identifiable {
+    case auto, light, dark
+
+    static let storageKey = "aikJP.themePreference"
+
+    var id: String { rawValue }
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .auto: return "自動"
+        case .light: return "ライト"
+        case .dark: return "ダーク"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .auto: return "circle.lefthalf.filled"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        }
+    }
+}
+
 enum PostHogEnv: String {
     case projectToken = "POSTHOG_PROJECT_TOKEN"
     case host = "POSTHOG_HOST"

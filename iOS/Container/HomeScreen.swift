@@ -145,14 +145,14 @@ private struct StatsPill: View {
         }
         .padding(.horizontal, 10)
         .frame(width: 132, height: 38)
-        .background(.white, in: Capsule())
+        .background(AppColor.surface, in: Capsule())
         .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 3)
     }
 }
 
 private struct MetricColumn: View {
     let value: String
-    let label: String
+    let label: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: 0) {
@@ -235,9 +235,11 @@ private struct HeroCard: View {
 }
 
 private struct HeroBackgroundImage: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Group {
-            if let image = BundledImage.load("globebg") {
+            if let image = BundledImage.load(colorScheme == .dark ? "globebg-dark" : "globebg") {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
@@ -280,7 +282,7 @@ private struct ConversionPreviewPill: View {
         .padding(.horizontal, BikeyMetrics.Spacing.s + 4)
         .padding(.vertical, BikeyMetrics.Spacing.s + 1)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(AppColor.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -304,7 +306,7 @@ private struct TryDemoButton: View {
 // MARK: - Tips
 
 private struct TipsHeader: View {
-    let title: String
+    let title: LocalizedStringKey
 
     var body: some View {
         HStack {
@@ -320,10 +322,10 @@ private struct TipsHeader: View {
 
 private struct Tip: Identifiable {
     let id = UUID()
-    let label: String
-    let title: String
-    let sourceText: String
-    let convertedText: String
+    let label: LocalizedStringKey
+    let title: LocalizedStringKey
+    let sourceText: LocalizedStringKey
+    let convertedText: LocalizedStringKey
     let icon: String
 }
 
@@ -375,7 +377,7 @@ private struct TipCard: View {
         .padding(.horizontal, BikeyMetrics.Spacing.m)
         .padding(.vertical, BikeyMetrics.Spacing.m - 2)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white, in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
+        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
     }
 }
@@ -400,7 +402,7 @@ private struct BikeyDemoSheet: View {
                         .foregroundStyle(AppColor.ink)
                         .padding(.horizontal, 22)
                         .padding(.vertical, 10)
-                        .background(.white, in: Capsule())
+                        .background(AppColor.surface, in: Capsule())
                         .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
                 }
                 .buttonStyle(.plain)
@@ -469,7 +471,7 @@ private struct DemoTextField: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
-            .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
@@ -587,7 +589,7 @@ private struct SkeletonTipCard: View {
         .padding(.horizontal, BikeyMetrics.Spacing.m)
         .padding(.vertical, BikeyMetrics.Spacing.m - 2)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white, in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
+        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
     }
 }

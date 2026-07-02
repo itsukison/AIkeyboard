@@ -22,7 +22,7 @@ struct ProfileScreen: View {
         _showAbout = showAbout
     }
 
-    private var keyboardStyleDisplayName: String {
+    private var keyboardStyleDisplayName: LocalizedStringKey {
         switch keyboardStyle {
         case .japaneseFlick: return "フリック"
         case .japaneseRomaji: return "ローマ字"
@@ -152,8 +152,18 @@ struct ProfileScreen: View {
 private struct PersonalInformationView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var overlay: AppOverlay
+    @AppStorage(AppThemePreference.storageKey) private var themePreference: String = AppThemePreference.auto.rawValue
+    @AppStorage(AppLanguage.storageKey) private var languagePreference: String = AppLanguage.system.rawValue
 
     let profile: UserSession.Profile?
+
+    private var theme: AppThemePreference {
+        AppThemePreference(rawValue: themePreference) ?? .auto
+    }
+
+    private var language: AppLanguage {
+        AppLanguage(rawValue: languagePreference) ?? .system
+    }
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -162,38 +172,35 @@ private struct PersonalInformationView: View {
         return f
     }()
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.s + 2) {
-                infoRow(label: "名前", value: profile?.displayName ?? "—")
-                infoRow(label: "メール", value: profile?.email ?? "—")
-                infoRow(
-                    label: "登録日",
-                    value: profile.map { Self.dateFormatter.string(from: $0.createdAt) } ?? "—"
-                )
+    private var joinedDate: String? {
+        profile.map { Self.dateFormatter.string(from: $0.createdAt) }
+    }
 
-                Button(role: .destructive) {
-                    overlay.present(.deleteAccount)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 14, weight: .regular))
-                        Text("アカウントを削除")
-                            .bikeyFont(15, weight: .medium, relativeTo: .body)
-                    }
-                    .foregroundStyle(Color(red: 0.847, green: 0.306, blue: 0.345))
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(.white, in: Capsule())
-                    .overlay(
-                        Capsule().stroke(Color(red: 0.847, green: 0.306, blue: 0.345).opacity(0.34), lineWidth: 0.8)
-                    )
-                }
-                .buttonStyle(.plain)
-                .padding(.top, BikeyMetrics.Spacing.l)
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                identityCard
+                    .padding(.top, BikeyMetrics.Spacing.s)
+
+                ProfileSectionTitle("表示")
+                    .padding(.top, BikeyMetrics.Spacing.l + 2)
+
+                themeCard
+                    .padding(.top, BikeyMetrics.Spacing.s)
+
+                ProfileSectionTitle("言語")
+                    .padding(.top, BikeyMetrics.Spacing.l + 2)
+
+                languageCard
+                    .padding(.top, BikeyMetrics.Spacing.s)
+
+                deleteButton
+                    .padding(.top, BikeyMetrics.Spacing.xl)
+
+                Spacer(minLength: BikeyMetrics.Spacing.xl)
             }
-            .padding(.horizontal, BikeyMetrics.Spacing.l - 4)
-            .padding(.top, BikeyMetrics.Spacing.l - 4)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
         }
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("ユーザー情報")
@@ -206,19 +213,127 @@ private struct PersonalInformationView: View {
         }
     }
 
-    private func infoRow(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .bikeyFont(11, weight: .regular, relativeTo: .footnote)
-                .foregroundStyle(AppColor.muted)
-            Text(value)
-                .bikeyFont(15, weight: .regular, relativeTo: .body)
-                .foregroundStyle(AppColor.ink)
+    private var identityCard: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: BikeyMetrics.Spacing.m - 4) {
+                ProfilePortrait()
+                    .frame(width: 52, height: 52)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(verbatim: profile?.displayName.isEmpty == false ? profile!.displayName : "—")
+                        .bikeyFont(18, weight: .medium, relativeTo: .title3)
+                        .foregroundStyle(AppColor.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+
+                    Text(verbatim: profile?.email ?? "—")
+                        .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                        .foregroundStyle(AppColor.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.l - 1)
+            .frame(minHeight: 74)
+
+            if let joinedDate {
+                Divider()
+                    .overlay(Color.black.opacity(0.035))
+                    .padding(.leading, 56 + BikeyMetrics.Spacing.l - 1)
+                    .padding(.trailing, BikeyMetrics.Spacing.m)
+
+                HStack {
+                    Text("登録日")
+                        .bikeyFont(15, weight: .regular, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink.opacity(0.86))
+                    Spacer()
+                    Text(verbatim: joinedDate)
+                        .bikeyFont(14, weight: .regular, relativeTo: .body)
+                        .foregroundStyle(AppColor.muted.opacity(0.82))
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l - 1)
+                .frame(minHeight: 54)
+            }
         }
-        .padding(.vertical, BikeyMetrics.Spacing.s - 1)
-        .padding(.horizontal, BikeyMetrics.Spacing.m - 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.86), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.card, style: .continuous))
+        .shadow(color: .black.opacity(0.045), radius: 18, x: 0, y: 10)
+    }
+
+    private var themeCard: some View {
+        HStack(spacing: 10) {
+            ForEach(AppThemePreference.allCases) { option in
+                ThemeOptionCard(
+                    option: option,
+                    isSelected: option == theme,
+                    onTap: {
+                        themePreference = option.rawValue
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                )
+            }
+        }
+    }
+
+    private var languageCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element) { index, option in
+                Button {
+                    guard option != language else { return }
+                    languagePreference = option.rawValue
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                } label: {
+                    HStack(spacing: BikeyMetrics.Spacing.m - 3) {
+                        option.pickerLabel
+                            .bikeyFont(15, weight: .regular, relativeTo: .body)
+                            .foregroundStyle(AppColor.ink)
+
+                        Spacer()
+
+                        if option == language {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(AppColor.purple)
+                        }
+                    }
+                    .padding(.horizontal, BikeyMetrics.Spacing.l - 1)
+                    .frame(minHeight: 54)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(option == language ? [.isSelected] : [])
+
+                if index < AppLanguage.allCases.count - 1 {
+                    Divider()
+                        .overlay(Color.black.opacity(0.035))
+                        .padding(.leading, BikeyMetrics.Spacing.l - 1)
+                        .padding(.trailing, BikeyMetrics.Spacing.m)
+                }
+            }
+        }
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.card, style: .continuous))
+        .shadow(color: .black.opacity(0.045), radius: 18, x: 0, y: 10)
+    }
+
+    private var deleteButton: some View {
+        Button(role: .destructive) {
+            overlay.present(.deleteAccount)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .regular))
+                Text("アカウントを削除")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+            }
+            .foregroundStyle(Color(red: 0.847, green: 0.306, blue: 0.345))
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(AppColor.surface, in: Capsule())
+            .overlay(
+                Capsule().stroke(Color(red: 0.847, green: 0.306, blue: 0.345).opacity(0.34), lineWidth: 0.8)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -228,6 +343,36 @@ private struct ProfileTopControls: View {
             .bikeyFont(20, weight: .medium, relativeTo: .title3)
             .foregroundStyle(AppColor.ink)
             .frame(maxWidth: .infinity)
+    }
+}
+
+private struct ThemeOptionCard: View {
+    let option: AppThemePreference
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 8) {
+                Image(systemName: option.iconName)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(isSelected ? AppColor.purple : AppColor.ink.opacity(0.72))
+                Text(option.label)
+                    .bikeyFont(13, weight: .medium, relativeTo: .footnote)
+                    .foregroundStyle(isSelected ? AppColor.purple : AppColor.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity, minHeight: 66)
+            .padding(.vertical, 10)
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? AppColor.purple : AppColor.rule.opacity(0.4), lineWidth: isSelected ? 2 : 0.6)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
@@ -246,7 +391,7 @@ private struct ProfileCard: View {
                         .frame(width: 52, height: 52)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(displayName.isEmpty ? "敬語ボタンユーザー" : displayName)
+                        (displayName.isEmpty ? Text("敬語ボタンユーザー") : Text(verbatim: displayName))
                             .bikeyFont(18, weight: .regular, relativeTo: .title3)
                             .foregroundStyle(AppColor.ink.opacity(0.92))
                             .lineLimit(1)
@@ -311,9 +456,11 @@ private struct ProfileCard: View {
 }
 
 private struct ProfileCardBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Group {
-            if let image = ProfileBundledImage.load("globebg") {
+            if let image = ProfileBundledImage.load(colorScheme == .dark ? "globebg-dark" : "globebg") {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
@@ -350,7 +497,7 @@ private enum ProfileBundledImage {
 private struct ProfilePortrait: View {
     var body: some View {
         Circle()
-            .fill(.white.opacity(0.92))
+            .fill(AppColor.surface.opacity(0.92))
             .overlay {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.system(size: 48, weight: .regular))
@@ -364,7 +511,7 @@ private struct ProfilePortrait: View {
 
 private struct ProfileStat: View {
     let value: String
-    let label: String
+    let label: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: 5) {
@@ -383,9 +530,9 @@ private struct ProfileStat: View {
 }
 
 private struct ProfileSectionTitle: View {
-    let title: String
+    let title: LocalizedStringKey
 
-    init(_ title: String) {
+    init(_ title: LocalizedStringKey) {
         self.title = title
     }
 
@@ -414,15 +561,15 @@ private struct ProfileListCard: View {
                 }
             }
         }
-        .background(.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.045), radius: 18, x: 0, y: 10)
     }
 }
 
 private struct ProfileRowModel {
     let icon: String
-    let title: String
-    let trailing: String?
+    let title: LocalizedStringKey
+    let trailing: LocalizedStringKey?
     let isDestructive: Bool
     let highlight: Bool
     let action: (() -> Void)?
@@ -430,8 +577,8 @@ private struct ProfileRowModel {
 
     init(
         icon: String,
-        title: String,
-        trailing: String? = nil,
+        title: LocalizedStringKey,
+        trailing: LocalizedStringKey? = nil,
         isDestructive: Bool = false,
         highlight: Bool = false,
         action: (() -> Void)? = nil,
@@ -492,7 +639,7 @@ private struct ProfileListRow: View {
             if model.action != nil {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(Color.black.opacity(0.34))
+                    .foregroundStyle(AppColor.muted.opacity(0.82))
             }
         }
         .padding(.horizontal, BikeyMetrics.Spacing.l - 1)
@@ -567,7 +714,7 @@ struct AIConsentInfoModal: View {
             }
             .frame(maxWidth: 348)
             .fixedSize(horizontal: false, vertical: true)
-            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
             .padding(.horizontal, BikeyMetrics.Spacing.l)
         }
@@ -621,7 +768,7 @@ struct AIConsentInfoModal: View {
                         .foregroundStyle(Color(red: 0.847, green: 0.306, blue: 0.345))
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(.white, in: Capsule())
+                        .background(AppColor.surface, in: Capsule())
                         .overlay(
                             Capsule()
                                 .stroke(Color(red: 0.847, green: 0.306, blue: 0.345).opacity(0.34), lineWidth: 0.8)
@@ -661,7 +808,7 @@ struct AIConsentInfoModal: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!agreedToPolicy)
-                .accessibilityHint(agreedToPolicy ? "" : "プライバシーポリシーへの同意が必要です")
+                .accessibilityHint(agreedToPolicy ? Text("") : Text("プライバシーポリシーへの同意が必要です"))
 
                 Button(action: onClose) {
                     Text("今は使わない")
@@ -732,7 +879,7 @@ struct HapticsFullAccessRequiredModal: View {
                             .foregroundStyle(AppColor.ink)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(.white, in: Capsule())
+                            .background(AppColor.surface, in: Capsule())
                             .overlay(
                                 Capsule()
                                     .stroke(AppColor.rule.opacity(0.45), lineWidth: 0.6)
@@ -745,7 +892,7 @@ struct HapticsFullAccessRequiredModal: View {
                 .padding(.bottom, BikeyMetrics.Spacing.m)
             }
             .frame(maxWidth: 320)
-            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
             .padding(.horizontal, BikeyMetrics.Spacing.xl)
         }
@@ -768,7 +915,7 @@ private struct AIConsentCompactSummary: View {
 
 private struct AIConsentDataRow: View {
     let icon: String
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -799,7 +946,7 @@ private struct ProfileConsentAgreementCheckbox: View {
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(isOn ? AppColor.charcoalAction : Color.white)
+                        .fill(isOn ? AppColor.charcoalAction : AppColor.surface)
                         .frame(width: 20, height: 20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -891,7 +1038,7 @@ struct SignOutConfirmModal: View {
                             .foregroundStyle(AppColor.ink)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(.white, in: Capsule())
+                            .background(AppColor.surface, in: Capsule())
                             .overlay(
                                 Capsule()
                                     .stroke(AppColor.rule.opacity(0.45), lineWidth: 0.6)
@@ -904,7 +1051,7 @@ struct SignOutConfirmModal: View {
                 .padding(.bottom, BikeyMetrics.Spacing.m)
             }
             .frame(maxWidth: 320)
-            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
             .padding(.horizontal, BikeyMetrics.Spacing.xl)
         }
@@ -989,7 +1136,7 @@ struct DeleteAccountConfirmModal: View {
                             .foregroundStyle(AppColor.ink)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(.white, in: Capsule())
+                            .background(AppColor.surface, in: Capsule())
                             .overlay(
                                 Capsule()
                                     .stroke(AppColor.rule.opacity(0.45), lineWidth: 0.6)
@@ -1003,7 +1150,7 @@ struct DeleteAccountConfirmModal: View {
                 .padding(.bottom, BikeyMetrics.Spacing.m)
             }
             .frame(maxWidth: 320)
-            .background(.white, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .shadow(color: .black.opacity(0.22), radius: 36, x: 0, y: 16)
             .padding(.horizontal, BikeyMetrics.Spacing.xl)
         }
@@ -1011,6 +1158,7 @@ struct DeleteAccountConfirmModal: View {
 }
 
 private struct KeyboardStylePickerView: View {
+    @Environment(\.dismiss) private var dismiss
     @Binding var selection: KeyboardPreferences.KeyboardStyle
 
     var body: some View {
@@ -1039,5 +1187,11 @@ private struct KeyboardStylePickerView: View {
         .background(AppColor.canvas.ignoresSafeArea())
         .navigationTitle("キーボード入力方式")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                BikeyNavigationBackButton { dismiss() }
+            }
+        }
     }
 }

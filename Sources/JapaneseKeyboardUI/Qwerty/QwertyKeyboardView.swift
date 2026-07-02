@@ -85,6 +85,9 @@ public struct QwertyKeyboardView: View {
             )
             .keyboardButtonStyle { params in
                 var style = params.standardStyle()
+                // Match native iOS 26 key caps: KeyboardKit's default corner
+                // radius reads ~1.5pt rounder than the system keyboard.
+                style.cornerRadius = 5.5
                 // KeyboardKit paints an inactive shift key near-white, so it
                 // reads as "active" against the other (gray) function keys. Pin
                 // it to the system function-key background — borrowed from the

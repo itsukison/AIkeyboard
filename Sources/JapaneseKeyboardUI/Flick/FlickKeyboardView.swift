@@ -1,4 +1,5 @@
 import JapaneseKeyboardCore
+import KeyboardKit
 import KeyboardPreferences
 import SwiftUI
 
@@ -75,6 +76,9 @@ public struct FlickKeyboardView: View {
                 toolbar
                 keyGrid
             }
+            // Same adaptive surface KeyboardKit paints for the QWERTY layout,
+            // so flick's background tracks light/dark identically to romaji.
+            .background { Keyboard.Background.standard }
             if let overlayContent {
                 overlayContent
             }
@@ -123,7 +127,6 @@ public struct FlickKeyboardView: View {
         .padding(.horizontal, 4)
         .padding(.top, topMargin)
         .padding(.bottom, 4)
-        .background(FlickKeyPalette.surface)
     }
 
     // MARK: - Pages (kana → ABC → 123 cycle via the row-3 left key)

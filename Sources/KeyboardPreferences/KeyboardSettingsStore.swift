@@ -10,11 +10,23 @@ public enum KeyboardStyle: String, Codable, Sendable, CaseIterable {
     }
 }
 
+/// Which language the keyboard inputs in. `.japanese` (the default) drives the
+/// existing romaji/kana → kana-kanji pipeline unchanged. Other languages are
+/// opt-in parallel modes that must never alter the Japanese path (see CLAUDE.md
+/// "Japanese is the default"). `KeyboardStyle` (romaji/flick) only applies when
+/// this is `.japanese`.
+public enum KeyboardLanguage: String, Codable, Sendable, CaseIterable {
+    case japanese
+    case english
+}
+
 public enum KeyboardSettingsStore {
     public static let appGroupIdentifier = AppGroup.identifier
     public static let keyboardStyleKey = "keyboardStyle"
+    public static let keyboardLanguageKey = "keyboardLanguage"
     public static let userPromptEntriesKey = "userPromptEntries"
     public static let conversionPreferenceEntriesKey = "conversionPreferenceEntries"
+    public static let nextWordPreferenceEntriesKey = "nextWordPreferenceEntries"
     public static let hapticsEnabledKey = "hapticsEnabled"
     public static let cloudAIEnabledKey = "cloudAIEnabled"
     public static let aiConsentGrantedKey = "aiConsentGranted"
@@ -42,6 +54,22 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(style.rawValue, forKey: keyboardStyleKey)
+    }
+
+    /// Defaults to `.japanese` when unset, so every existing user — and anyone
+    /// who never opens the language picker — stays on the Japanese keyboard.
+    public static func readKeyboardLanguage(defaults: UserDefaults? = sharedDefaults) -> KeyboardLanguage {
+        if let raw = defaults?.string(forKey: keyboardLanguageKey) {
+            return KeyboardLanguage(rawValue: raw) ?? .japanese
+        }
+        return .japanese
+    }
+
+    public static func writeKeyboardLanguage(
+        _ language: KeyboardLanguage,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(language.rawValue, forKey: keyboardLanguageKey)
     }
 
     public static func readHapticsEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {

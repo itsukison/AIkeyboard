@@ -78,6 +78,13 @@ const MAX_CANDIDATES = 5;
 const DEFAULT_CANDIDATES = 3;
 const MAX_PROMPT_CHARS = 1000;
 
+// PostHog ingestion. The project token is the same public client key shipped in
+// the container app binary (safe to expose); override with the
+// POSTHOG_PROJECT_TOKEN secret. Analytics are emitted here, on the server —
+// never from the keyboard extension (memory ceiling + no-network-in-typing-path).
+const POSTHOG_PROJECT_TOKEN_DEFAULT = "phc_rkuAvbqxdVqqG5jZuySrJq8CH4NrYG97Z2B7vv7GXhJw";
+const POSTHOG_HOST_DEFAULT = "https://us.i.posthog.com";
+
 const localUsage = new Map<string, UsageBucket>();
 
 Deno.serve(async (req) => {
@@ -162,7 +169,7 @@ Deno.serve(async (req) => {
     // Fire-and-forget: keep the worker alive long enough to finish the
     // insert, but don't make the user wait for it.
     // deno-lint-ignore no-explicit-any
-    (globalThis as any).EdgeRuntime?.waitUntil(
+    (globalThis as any).EdgeRuntime?.waitUntil(Promise.all([
       logRewriteEvent(eventId, {
         userId,
         request,
@@ -170,7 +177,14 @@ Deno.serve(async (req) => {
         provider: rewrite.provider,
         latencyMs,
       }),
-    );
+      captureRewriteAnalytics(eventId, {
+        userId,
+        request,
+        result,
+        provider: rewrite.provider,
+        latencyMs,
+      }),
+    ]));
     return json({ ...result, eventId });
   } catch (error) {
     const providerError = error instanceof ProviderError ? error : null;
@@ -310,6 +324,10 @@ async function handleFeedback(
     return jsonError("provider_error", "Failed to record feedback.", 502);
   }
 
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil(
+    captureFeedbackAnalytics(userId, eventId, selectedIndex),
+  );
   return json({ ok: true });
 }
 
@@ -482,6 +500,97 @@ async function logRewriteEvent(
   } catch (error) {
     console.error(JSON.stringify({
       event: "ai_rewrite_event_log_failed",
+      message: error instanceof Error ? error.message : "unknown error",
+    }));
+  }
+}
+
+// Mirrors each AI rewrite into PostHog as an `ai_rewrite` event so the product
+// dashboard can chart usage and count active users. Server-side by design — the
+// keyboard extension must never emit analytics. `distinct_id` is the Supabase
+// user id, which is the same id the container app calls PostHog `identify` with,
+// so these events unify onto the same person. Metadata only: no user text leaves
+// here (the text stays in ai_rewrite_events).
+async function captureRewriteAnalytics(
+  eventId: string,
+  input: {
+    userId: string;
+    request: RewriteRequest;
+    result: RewriteResult;
+    provider: ProviderName;
+    latencyMs: number;
+  },
+): Promise<void> {
+  await capturePostHogEvent("ai_rewrite", input.userId, {
+    event_id: eventId,
+    command_key: input.request.commandKey ?? null,
+    title: input.request.title ?? null,
+    refinement: input.request.refinement ?? null,
+    provider: input.provider,
+    language: input.result.language,
+    locale: input.request.locale ?? null,
+    app_version: input.request.appVersion ?? null,
+    is_reply: typeof input.request.replyTo === "string" &&
+      input.request.replyTo.trim().length > 0,
+    candidate_count: input.result.candidates.length,
+    input_length: [...input.request.text].length,
+    prompt_length: [...input.request.prompt].length,
+    output_length: input.result.candidates.reduce(
+      (sum, c) => sum + [...c.replacement].length,
+      0,
+    ),
+    latency_ms: input.latencyMs,
+  });
+}
+
+// Records the accepted candidate as `ai_rewrite_accepted`, keyed by the
+// originating event_id, so PostHog can compute the rewrite acceptance rate.
+async function captureFeedbackAnalytics(
+  userId: string,
+  eventId: string,
+  selectedIndex: number,
+): Promise<void> {
+  await capturePostHogEvent("ai_rewrite_accepted", userId, {
+    event_id: eventId,
+    selected_index: selectedIndex,
+  });
+}
+
+async function capturePostHogEvent(
+  event: string,
+  distinctId: string,
+  properties: Record<string, unknown>,
+): Promise<void> {
+  if ((Deno.env.get("POSTHOG_ANALYTICS_ENABLED") ?? "true") === "false") {
+    return;
+  }
+  const token = Deno.env.get("POSTHOG_PROJECT_TOKEN") ?? POSTHOG_PROJECT_TOKEN_DEFAULT;
+  const host = (Deno.env.get("POSTHOG_HOST") ?? POSTHOG_HOST_DEFAULT).replace(/\/+$/, "");
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${host}/capture/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: token,
+        event,
+        distinct_id: distinctId,
+        properties: { ...properties, $lib: "keyboard-rewrite-edge" },
+      }),
+    });
+    if (!response.ok) {
+      console.error(JSON.stringify({
+        event: "posthog_capture_failed",
+        name: event,
+        httpStatus: response.status,
+        message: (await response.text()).slice(0, 400),
+      }));
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "posthog_capture_failed",
+      name: event,
       message: error instanceof Error ? error.message : "unknown error",
     }));
   }
@@ -735,8 +844,8 @@ function systemInstructions(candidateCount: number): string {
   return [
     "You are a Japanese mobile keyboard writing assistant.",
     "Apply the user-supplied command instruction to the target text only.",
-    "Preserve meaning, names, numbers, URLs, dates, emoji, and line breaks.",
-    "Do not add explanations, greetings, markdown, quotes, or commentary.",
+    "Preserve meaning, names, numbers, URLs, dates, and emoji. Preserve line breaks unless the command explicitly asks to restructure or format the text.",
+    "Do not add explanations, markdown, quotes, commentary, or unsupported facts. Add greetings or closings only when the command explicitly requests them.",
     candidateInstruction,
     "Return strict JSON matching the schema.",
   ].join("\n");

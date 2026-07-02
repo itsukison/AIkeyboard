@@ -18,10 +18,21 @@ final class KeyboardViewController: KeyboardInputViewController {
     /// The day we last marked typing activity, so `textDidChange` writes to the
     /// App Group at most once per day instead of on every keystroke.
     private var typedDayMarker: String?
+    /// The previous committed word, so the next commit can be recorded as a
+    /// next-word (予測変換) transition in `NextWordPreferenceStore`.
+    private var lastCommittedWord: String?
     private lazy var aiKeyboardController = AIKeyboardController(
         controller: self,
         inputManager: inputManager
     )
+
+    #if DEBUG
+    deinit {
+        // Verifies the setupKeyboardView leak fix: this must fire after the
+        // keyboard is dismissed and iOS releases the presentation.
+        NSLog("🧹 KeyboardViewController deinit")
+    }
+    #endif
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -47,12 +58,12 @@ final class KeyboardViewController: KeyboardInputViewController {
         inputManager.onMarkedTextDidChange = { [weak self] text in
             self?.applyMarkedText(text)
         }
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let adapter = KanaKanjiAdapter()
-            await adapter.prewarm()
-            await MainActor.run {
-                self?.inputManager.setAdapter(adapter)
-            }
+        inputManager.leftContextProvider = { [weak self] in
+            self?.textDocumentProxy.documentContextBeforeInput
+        }
+        Task { [weak self] in
+            let adapter = await SharedConversionEngine.prewarmed.value
+            self?.inputManager.setAdapter(adapter)
         }
     }
 
@@ -66,7 +77,12 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 
     override func viewWillSetupKeyboardView() {
-        setupKeyboardView { controller in
+        // KeyboardKit retains this view-builder closure; capturing self
+        // strongly here is the documented KeyboardKit leak (controller →
+        // closure → controller), which pinned every re-presented controller
+        // instance in memory.
+        setupKeyboardView { [weak self] controller in
+            guard let self else { return AnyView(EmptyView()) }
             let manager = self.inputManager
             switch self.keyboardStyle {
             case .japaneseFlick:
@@ -119,15 +135,26 @@ final class KeyboardViewController: KeyboardInputViewController {
                             )
                         ),
                         overlayContent: AnyView(
-                            AIResultOverlayView(
-                                aiController: self.aiKeyboardController,
-                                onTriggerHaptic: { [weak self] in
-                                    self?.triggerKeyHaptic()
-                                },
-                                onSelectionHaptic: { [weak self] in
-                                    self?.triggerSelectionHaptic()
-                                }
-                            )
+                            ZStack {
+                                AIResultOverlayView(
+                                    aiController: self.aiKeyboardController,
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    },
+                                    onSelectionHaptic: { [weak self] in
+                                        self?.triggerSelectionHaptic()
+                                    }
+                                )
+                                ExpandedCandidateView(
+                                    inputManager: manager,
+                                    onSelect: { [weak self] candidate in
+                                        self?.commitCandidate(candidate)
+                                    },
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    }
+                                )
+                            }
                         )
                     )
                 )
@@ -159,15 +186,26 @@ final class KeyboardViewController: KeyboardInputViewController {
                             )
                         ),
                         overlayContent: AnyView(
-                            AIResultOverlayView(
-                                aiController: self.aiKeyboardController,
-                                onTriggerHaptic: { [weak self] in
-                                    self?.triggerKeyHaptic()
-                                },
-                                onSelectionHaptic: { [weak self] in
-                                    self?.triggerSelectionHaptic()
-                                }
-                            )
+                            ZStack {
+                                AIResultOverlayView(
+                                    aiController: self.aiKeyboardController,
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    },
+                                    onSelectionHaptic: { [weak self] in
+                                        self?.triggerSelectionHaptic()
+                                    }
+                                )
+                                ExpandedCandidateView(
+                                    inputManager: manager,
+                                    onSelect: { [weak self] candidate in
+                                        self?.commitCandidate(candidate)
+                                    },
+                                    onTriggerHaptic: { [weak self] in
+                                        self?.triggerKeyHaptic()
+                                    }
+                                )
+                            }
                         ),
                         shouldForceLowercaseAlphabeticCharacters: { [weak self] in
                             self?.shouldForceLowercaseAlphabeticCharacters ?? false
@@ -198,10 +236,18 @@ final class KeyboardViewController: KeyboardInputViewController {
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
         KeyboardUsageDailyStore.recordKeyboardOpen()
         keyboardAppearedAt = Date()
+        #if DEBUG
+        MemoryProbe.startSampling()
+        #endif
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        // Flush learned conversions to disk off the typing path.
+        inputManager.persistLearning()
+        #if DEBUG
+        MemoryProbe.stopSampling()
+        #endif
         aiKeyboardController.stopClipboardMonitoring()
         if let appearedAt = keyboardAppearedAt {
             let elapsed = Int(Date().timeIntervalSince(appearedAt))
@@ -352,18 +398,21 @@ final class KeyboardViewController: KeyboardInputViewController {
     func commitCandidate(_ candidate: Candidate) {
         guard inputManager.isComposing else { return }
         finalizeMarkedText(replacement: candidate.text)
-        recordConversionSelection(input: candidate.reading, replacement: candidate.text)
+        recordNextWord(candidate.text)
+        inputManager.recordCommitForLearning(candidate.text)
         inputManager.reset()
         inputManager.requestPrediction(after: candidate.text)
     }
 
     /// Tapping a next-word (予測変換) suggestion: nothing is being composed, so
-    /// just insert the word directly. v1 does not chain to a further prediction
-    /// (a suggestion carries no rich left-side context to predict from).
+    /// insert the word directly. Records the transition, feeds the tap back
+    /// into azooKey's learning, and chains to the next prediction round with
+    /// the accumulated morpheme context.
     @MainActor
     func commitPrediction(_ candidate: Candidate) {
         textDocumentProxy.insertText(candidate.text)
-        inputManager.clearPredictions()
+        recordNextWord(candidate.text)
+        inputManager.requestPrediction(after: candidate.text, followingPredictionTap: true)
     }
 
     /// 確定: commit the currently-displayed preview (selected candidate if the
@@ -372,10 +421,10 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func commitComposingForReturn() {
         guard inputManager.isComposing else { return }
-        let input = inputManager.currentConversionInput
         let replacement = inputManager.commitText
         finalizeMarkedText(replacement: replacement)
-        recordConversionSelection(input: input, replacement: replacement)
+        recordNextWord(replacement)
+        inputManager.recordCommitForLearning(replacement)
         inputManager.reset()
         inputManager.requestPrediction(after: replacement)
     }
@@ -383,10 +432,9 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func flushBufferToHost() {
         guard inputManager.isComposing else { return }
-        let input = inputManager.currentConversionInput
         let replacement = inputManager.commitText
         finalizeMarkedText(replacement: replacement)
-        recordConversionSelection(input: input, replacement: replacement)
+        inputManager.recordCommitForLearning(replacement)
         inputManager.reset()
     }
 
@@ -408,13 +456,15 @@ final class KeyboardViewController: KeyboardInputViewController {
         textDocumentProxy.insertText(replacement)
     }
 
-    private func recordConversionSelection(input: String, replacement: String) {
-        ConversionPreferenceStore.recordSelection(
-            scope: .japanese,
-            input: input,
-            candidate: replacement
-        )
-        inputManager.refreshConversionPreferenceEntries()
+    /// Learn the just-committed word as the next word after the previous one,
+    /// then carry it forward as the new "previous" for the following commit.
+    private func recordNextWord(_ committed: String) {
+        let word = committed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !word.isEmpty else { return }
+        if let previous = lastCommittedWord {
+            NextWordPreferenceStore.recordTransition(previous: previous, next: word)
+        }
+        lastCommittedWord = word
     }
 
     private func configureJapaneseKeyboardBehavior() {
@@ -466,6 +516,26 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 }
 
+/// Process-lifetime conversion engine. iOS creates a fresh input view
+/// controller on every keyboard presentation while the extension process
+/// persists (and leaked controller instances are a known iOS issue), so the
+/// converter + Zenzai llama context must exist exactly once per process —
+/// a per-controller engine stacks 10+ MB of dirty memory per reopen until
+/// jetsam kills the extension mid-launch.
+private enum SharedConversionEngine {
+    /// Created and prewarmed once, off the main thread, on first access.
+    /// Learning persists in the App Group so it survives keyboard restarts;
+    /// the default temp dir would be purged by iOS.
+    static let prewarmed = Task.detached(priority: .userInitiated) {
+        let adapter = KanaKanjiAdapter(
+            supportDirectoryURL: AppGroup.sharedContainerURL?
+                .appendingPathComponent("conversion-learning", isDirectory: true)
+        )
+        await adapter.prewarm()
+        return adapter
+    }
+}
+
 private extension KeyboardApp {
     static var bikeyJP: KeyboardApp {
         .init(
@@ -496,7 +566,7 @@ private final class KeyboardHapticFeedback {
 
     func triggerKeyPress() {
         guard isEnabled else { return }
-        keyPressGenerator.impactOccurred(intensity: 0.65)
+        keyPressGenerator.impactOccurred(intensity: 0.6)
         keyPressGenerator.prepare()
     }
 
@@ -506,3 +576,55 @@ private final class KeyboardHapticFeedback {
         selectionGenerator.prepare()
     }
 }
+
+#if DEBUG
+/// Diagnostic-only (DEBUG builds): samples the keyboard extension's real
+/// resident memory so we can read the on-device peak before deciding whether
+/// Zenzai (~+16 MB) fits under the ~40 MB jetsam ceiling. Never compiled into
+/// Release. Prints via NSLog so the numbers show in the Xcode console.
+enum MemoryProbe {
+    // Accessed only from the main run loop (view lifecycle + main-thread timer).
+    private nonisolated(unsafe) static var peakBytes: UInt64 = 0
+    private nonisolated(unsafe) static var timer: Timer?
+
+    /// Reset the peak and start sampling twice a second while the keyboard is up.
+    static func startSampling() {
+        peakBytes = 0
+        timer?.invalidate()
+        sample("cold-open")
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            sample("tick")
+        }
+    }
+
+    /// Stop sampling and print the final peak (the number to report back).
+    static func stopSampling() {
+        timer?.invalidate()
+        timer = nil
+        sample("FINAL")
+    }
+
+    private static func sample(_ label: String) {
+        let current = footprintBytes()
+        if current > peakBytes { peakBytes = current }
+        let available = os_proc_available_memory()
+        NSLog("📊 MEM [\(label)] current=\(mb(current)) peak=\(mb(peakBytes)) headroom-to-jetsam=\(mb(UInt64(max(0, available))))")
+    }
+
+    /// `phys_footprint` — the exact figure iOS jetsam uses to kill the extension.
+    private static func footprintBytes() -> UInt64 {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.stride / MemoryLayout<natural_t>.stride)
+        let kr = withUnsafeMutablePointer(to: &info) { ptr in
+            ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        return kr == KERN_SUCCESS ? info.phys_footprint : 0
+    }
+
+    private static func mb(_ bytes: UInt64) -> String {
+        String(format: "%.1f MB", Double(bytes) / 1_048_576)
+    }
+}
+#endif

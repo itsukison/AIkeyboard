@@ -8,7 +8,7 @@ struct PromptsScreen: View {
     @State private var entries: [UserPrompt] = UserPromptStore.readEntries()
     @State private var editorPayload: PromptEditorPayload?
     @State private var isSyncing = false
-    @State private var errorMessage: String?
+    @State private var errorMessage: LocalizedStringKey?
     @State private var showAuth = false
 
     private var isGuest: Bool { session.profile == nil }
@@ -96,7 +96,7 @@ struct PromptsScreen: View {
     }
 
     @ViewBuilder
-    private func sectionTitle(_ title: String) -> some View {
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .bikeyFont(13, weight: .medium, relativeTo: .footnote)
             .foregroundStyle(AppColor.muted)
@@ -117,7 +117,7 @@ struct PromptsScreen: View {
                     .padding(BikeyMetrics.Spacing.m)
             }
         }
-        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
     }
 
@@ -132,7 +132,7 @@ struct PromptsScreen: View {
                     .padding(BikeyMetrics.Spacing.m)
             }
             .frame(maxWidth: .infinity)
-            .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
         } else {
             VStack(spacing: 0) {
@@ -149,7 +149,7 @@ struct PromptsScreen: View {
                     }
                 }
             }
-            .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
         }
     }
@@ -177,7 +177,7 @@ struct PromptsScreen: View {
         title: String,
         prompt: String,
         isEnabled: Bool
-    ) async -> String? {
+    ) async -> LocalizedStringKey? {
         guard let profile = session.profile else { return "サインインが必要です。" }
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -219,7 +219,7 @@ struct PromptsScreen: View {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             return nil
         } catch {
-            let message = "保存できませんでした。"
+            let message: LocalizedStringKey = "保存できませんでした。"
             errorMessage = message
             return message
         }
@@ -234,7 +234,7 @@ struct PromptsScreen: View {
         return (title: defaultTitle, prompt: defaultPrompt)
     }
 
-    private func deletePrompt(entry: UserPrompt) async -> String? {
+    private func deletePrompt(entry: UserPrompt) async -> LocalizedStringKey? {
         guard let profile = session.profile else { return "サインインが必要です。" }
         isSyncing = true
         defer { isSyncing = false }
@@ -248,7 +248,7 @@ struct PromptsScreen: View {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             return nil
         } catch {
-            let message = "削除できませんでした。"
+            let message: LocalizedStringKey = "削除できませんでした。"
             errorMessage = message
             return message
         }
@@ -303,7 +303,7 @@ private struct GuestPromptsCTA: View {
         }
         .padding(BikeyMetrics.Spacing.m)
         .frame(maxWidth: .infinity)
-        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
     }
 }
@@ -401,7 +401,7 @@ private struct PromptsFloatingActionButton: View {
 // MARK: - Notice
 
 private struct PromptsNotice: View {
-    let text: String
+    let text: LocalizedStringKey
     let systemName: String
     let tint: Color
 
@@ -434,23 +434,23 @@ private let promptCharLimit = 1000
 
 private struct PromptEditor: View {
     let payload: PromptEditorPayload
-    let onSave: (String, String, Bool) async -> String?
+    let onSave: (String, String, Bool) async -> LocalizedStringKey?
     let onReset: (PromptEditorPayload) async -> (title: String, prompt: String)?
-    let onDelete: ((UserPrompt) async -> String?)?
+    let onDelete: ((UserPrompt) async -> LocalizedStringKey?)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var prompt: String
     @State private var isEnabled: Bool
     @State private var isSaving = false
-    @State private var validationMessage: String?
+    @State private var validationMessage: LocalizedStringKey?
     @FocusState private var focusedField: EditorField?
 
     init(
         payload: PromptEditorPayload,
-        onSave: @escaping (String, String, Bool) async -> String?,
+        onSave: @escaping (String, String, Bool) async -> LocalizedStringKey?,
         onReset: @escaping (PromptEditorPayload) async -> (title: String, prompt: String)?,
-        onDelete: ((UserPrompt) async -> String?)?
+        onDelete: ((UserPrompt) async -> LocalizedStringKey?)?
     ) {
         self.payload = payload
         self.onSave = onSave
@@ -476,9 +476,10 @@ private struct PromptEditor: View {
         payload.entry?.slot != .main
     }
 
-    private var screenTitle: String {
-        if payload.isNewCustom { return "カスタムプロンプト" }
-        return payload.entry?.title ?? "プロンプト"
+    private var screenTitle: Text {
+        if payload.isNewCustom { return Text("カスタムプロンプト") }
+        if let title = payload.entry?.title { return Text(verbatim: title) }
+        return Text("プロンプト")
     }
 
     var body: some View {
@@ -501,7 +502,7 @@ private struct PromptEditor: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
-                    Text(screenTitle)
+                    screenTitle
                         .bikeyFont(22, weight: .semibold, relativeTo: .title2)
                         .foregroundStyle(AppColor.ink)
                         .padding(.top, 8)
@@ -544,7 +545,7 @@ private struct PromptEditor: View {
                             }
                             .foregroundStyle(AppColor.ink)
                             .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(.white, in: Capsule())
+                            .background(AppColor.surface, in: Capsule())
                             .overlay(
                                 Capsule().stroke(AppColor.rule.opacity(0.4), lineWidth: 0.6)
                             )
@@ -569,7 +570,7 @@ private struct PromptEditor: View {
                             }
                             .foregroundStyle(AppColor.purple)
                             .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(.white, in: Capsule())
+                            .background(AppColor.surface, in: Capsule())
                             .overlay(
                                 Capsule().stroke(AppColor.rule.opacity(0.4), lineWidth: 0.6)
                             )
@@ -619,7 +620,7 @@ private struct EditorTopBar: View {
                     .foregroundStyle(AppColor.ink)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
-                    .background(.white, in: Capsule())
+                    .background(AppColor.surface, in: Capsule())
                     .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
             }
             .buttonStyle(.plain)
@@ -640,7 +641,7 @@ private struct EditorTopBar: View {
                 }
                 .padding(.horizontal, 22)
                 .padding(.vertical, 10)
-                .background(.white, in: Capsule())
+                .background(AppColor.surface, in: Capsule())
                 .shadow(color: .black.opacity(isSaveEnabled ? 0.05 : 0.02), radius: 6, x: 0, y: 3)
             }
             .buttonStyle(.plain)
@@ -676,14 +677,14 @@ private struct EditorTitleField: View {
                     }
                     .onSubmit { focused.wrappedValue = .prompt }
 
-                Text("\(text.count)/\(titleCharLimit)")
+                Text(verbatim: "\(text.count)/\(titleCharLimit)")
                     .bikeyFont(12, weight: .regular, relativeTo: .caption)
                     .foregroundStyle(AppColor.softText)
                     .monospacedDigit()
             }
             .padding(.horizontal, 18)
             .frame(minHeight: 52)
-            .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
@@ -711,7 +712,7 @@ private struct EditorPromptField: View {
                     .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                     .foregroundStyle(AppColor.muted)
                 Spacer()
-                Text("\(text.count)/\(promptCharLimit)")
+                Text(verbatim: "\(text.count)/\(promptCharLimit)")
                     .bikeyFont(12, weight: .regular, relativeTo: .caption)
                     .foregroundStyle(AppColor.softText)
                     .monospacedDigit()
@@ -725,7 +726,7 @@ private struct EditorPromptField: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .frame(minHeight: 160)
-                .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(

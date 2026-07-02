@@ -34,38 +34,58 @@ public struct CandidateBar: View {
     }
 
     private var candidateScroll: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(inputManager.candidates.enumerated()), id: \.element.id) { index, candidate in
-                        CandidateButton(
-                            candidate: candidate,
-                            isSelected: index == inputManager.selectedCandidateIndex,
-                            leadingPadding: index == 0 ? firstCandidateLeadingPadding : 14,
-                            onSelect: {
-                                onTriggerHaptic()
-                                onSelect(candidate)
-                            }
-                        )
-                        .id(index)
+        HStack(spacing: 0) {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(Array(inputManager.candidates.enumerated()), id: \.element.id) { index, candidate in
+                            CandidateButton(
+                                candidate: candidate,
+                                isSelected: index == inputManager.selectedCandidateIndex,
+                                leadingPadding: index == 0 ? firstCandidateLeadingPadding : 14,
+                                onSelect: {
+                                    onTriggerHaptic()
+                                    onSelect(candidate)
+                                }
+                            )
+                            .id(index)
 
-                        if index < inputManager.candidates.count - 1 {
-                            Divider()
-                                .frame(height: KeyboardChromeMetrics.toolbarDividerHeight - 4)
-                                .opacity(0.4)
+                            if index < inputManager.candidates.count - 1 {
+                                Divider()
+                                    .frame(height: KeyboardChromeMetrics.toolbarDividerHeight - 4)
+                                    .opacity(0.4)
+                            }
                         }
                     }
+                    .padding(.horizontal, horizontalPadding)
                 }
-                .padding(.horizontal, horizontalPadding)
-            }
-            .frame(height: KeyboardChromeMetrics.toolbarHeight)
-            .onChange(of: inputManager.selectedCandidateIndex) { newIndex in
-                guard let i = newIndex else { return }
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    proxy.scrollTo(i, anchor: .center)
+                .onChange(of: inputManager.selectedCandidateIndex) { newIndex in
+                    guard let i = newIndex else { return }
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        proxy.scrollTo(i, anchor: .center)
+                    }
                 }
             }
+
+            Divider()
+                .frame(height: KeyboardChromeMetrics.toolbarDividerHeight)
+                .opacity(0.4)
+
+            // Native ∧ expander: opens the full-candidate grid. Lives outside
+            // the scroll so it stays pinned at the trailing edge.
+            Button {
+                onTriggerHaptic()
+                inputManager.expandCandidateList()
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40, height: KeyboardChromeMetrics.toolbarHeight)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
+        .frame(height: KeyboardChromeMetrics.toolbarHeight)
     }
 
     private var predictionScroll: some View {

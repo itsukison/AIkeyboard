@@ -16,8 +16,9 @@ struct OnboardingFlow: View {
     @Environment(\.openURL) private var openURL
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
+    @AppStorage("aikJP.seenPromptsFeature") private var seenPromptsFeature = false
 
-    private let totalPages = 7
+    private let totalPages = 8
 
     var body: some View {
         Group {
@@ -63,8 +64,14 @@ struct OnboardingFlow: View {
                     style: selectedStyle
                 )
             case 5:
-                OnboardingSourcePage(
+                KeyboardPromptsPage(
                     progress: progress(for: 5),
+                    onBack: { goBack() },
+                    onContinue: { advance() }
+                )
+            case 6:
+                OnboardingSourcePage(
+                    progress: progress(for: 6),
                     onBack: { goBack() },
                     onContinue: { source in
                         if let source {
@@ -76,9 +83,9 @@ struct OnboardingFlow: View {
                         advance()
                     }
                 )
-            case 6:
+            case 7:
                 KeyboardConsentPage(
-                    progress: progress(for: 6),
+                    progress: progress(for: 7),
                     onBack: { goBack() },
                     onAgree: { completeOnboarding(consentGranted: true) },
                     onDecline: { completeOnboarding(consentGranted: false) }
@@ -88,7 +95,6 @@ struct OnboardingFlow: View {
             }
         }
         .transition(.opacity)
-        .preferredColorScheme(.light)
     }
 
     private var legacyPostAuthBody: some View {
@@ -152,6 +158,7 @@ struct OnboardingFlow: View {
     private func completeOnboarding(consentGranted: Bool) {
         seenReplyFeature = true
         seenFlickFeature = true
+        seenPromptsFeature = true
         KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
         PostHogSDK.shared.capture("ai_consent_decision", properties: [
             "granted": consentGranted,
@@ -208,7 +215,7 @@ private struct LegalFooterRow: View {
             .frame(width: 3, height: 3)
     }
 
-    private func footerLink(_ title: String, url: URL) -> some View {
+    private func footerLink(_ title: LocalizedStringKey, url: URL) -> some View {
         Button {
             activeURL = IdentifiedURL(url: url)
         } label: {
@@ -260,7 +267,7 @@ private struct EnableKeyboardCard: View {
         }
         .padding(BikeyMetrics.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.94), in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
+        .background(AppColor.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
         .shadow(color: .black.opacity(0.045), radius: 11, x: 0, y: 6)
     }
 }
@@ -285,7 +292,7 @@ private struct HowItWorksCard: View {
         }
         .padding(BikeyMetrics.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.94), in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
+        .background(AppColor.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: BikeyMetrics.Radius.largeCard, style: .continuous))
         .shadow(color: .black.opacity(0.045), radius: 11, x: 0, y: 6)
     }
 }
@@ -345,7 +352,7 @@ private struct KeyboardDemoBlock: View {
                     .foregroundStyle(AppColor.softText)
                     .tracking(0.6)
 
-                Text("きょうのよてい")
+                Text(verbatim: "きょうのよてい")
                     .bikeyFont(16, weight: .regular, relativeTo: .body)
                     .foregroundStyle(AppColor.ink)
                     .lineLimit(1)
@@ -477,7 +484,7 @@ struct OnboardingBrandMark<S: ShapeStyle>: View {
 }
 
 private struct OnboardingCapsuleLabel: View {
-    let title: String
+    let title: LocalizedStringKey
     let foreground: Color
     let background: Color
 

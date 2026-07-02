@@ -175,10 +175,10 @@ struct SignInForm: View {
 // MARK: - Scaffold
 
 private struct AuthFormScaffold<Content: View>: View {
-    let title: String
-    let subtitle: String?
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey?
     let progress: Double
-    let ctaTitle: String
+    let ctaTitle: LocalizedStringKey
     let isCtaEnabled: Bool
     var isCtaLoading: Bool = false
     let errorMessage: String?
@@ -239,7 +239,7 @@ private struct AuthFormScaffold<Content: View>: View {
 // MARK: - Auth text field
 
 struct AuthTextField<Field: Hashable>: View {
-    let label: String
+    let label: LocalizedStringKey
     @Binding var text: String
     let field: Field
     var focused: FocusState<Field?>.Binding
@@ -271,7 +271,7 @@ struct AuthTextField<Field: Hashable>: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(
-                    isFocused ? OnboardingPalette.ink.opacity(0.65) : OnboardingPalette.fieldStroke,
+                    isFocused ? AppColor.purple.opacity(0.65) : OnboardingPalette.fieldStroke,
                     lineWidth: isFocused ? 1.4 : 1
                 )
         )
@@ -288,7 +288,7 @@ struct AuthTextField<Field: Hashable>: View {
 
     @ViewBuilder
     private var inputField: some View {
-        let prompt = Text(labelFloated ? "" : label).foregroundColor(OnboardingPalette.subInk.opacity(0.65))
+        let prompt = (labelFloated ? Text("") : Text(label)).foregroundColor(OnboardingPalette.subInk.opacity(0.65))
         Group {
             if isSecure && !isPasswordVisible {
                 SecureField("", text: $text, prompt: prompt)
@@ -336,7 +336,7 @@ struct AuthTextField<Field: Hashable>: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(isPasswordVisible ? "パスワードを隠す" : "パスワードを表示")
+            .accessibilityLabel(isPasswordVisible ? Text("パスワードを隠す") : Text("パスワードを表示"))
         } else if isFocused && hasContent {
             Button {
                 text = ""
@@ -347,7 +347,7 @@ struct AuthTextField<Field: Hashable>: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("入力をクリア")
+            .accessibilityLabel(Text("入力をクリア"))
             .transition(.opacity)
         }
     }

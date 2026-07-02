@@ -80,6 +80,20 @@ final class UserSession: ObservableObject {
         state = .signedOut
     }
 
+    func submitFeedback(category: String, message: String, appVersion: String) async throws {
+        struct Body: Encodable {
+            let category: String
+            let message: String
+            let appVersion: String
+        }
+        try await supabase.functions.invoke(
+            "submit-feedback",
+            options: FunctionInvokeOptions(
+                body: Body(category: category, message: message, appVersion: appVersion)
+            )
+        )
+    }
+
     func signUp(name: String, email: String, password: String) async throws {
         let response = try await supabase.auth.signUp(
             email: email,

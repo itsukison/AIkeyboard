@@ -119,7 +119,7 @@ struct BikeyTextField<Field: Hashable>: View {
 }
 
 struct BikeyKeyboardToolbar: ViewModifier {
-    var dismissTitle: String = "完了"
+    var dismissTitle: LocalizedStringKey = "完了"
     var onDismiss: () -> Void
 
     func body(content: Content) -> some View {
@@ -134,7 +134,7 @@ struct BikeyKeyboardToolbar: ViewModifier {
 }
 
 extension View {
-    func bikeyKeyboardToolbar(dismissTitle: String = "完了", onDismiss: @escaping () -> Void) -> some View {
+    func bikeyKeyboardToolbar(dismissTitle: LocalizedStringKey = "完了", onDismiss: @escaping () -> Void) -> some View {
         modifier(BikeyKeyboardToolbar(dismissTitle: dismissTitle, onDismiss: onDismiss))
     }
 }

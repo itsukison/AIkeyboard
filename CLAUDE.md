@@ -68,8 +68,10 @@ The extension ships with `RequestsOpenAccess = YES` (Full Access), which the Clo
 ### App Group is the only IPC
 Container ↔ extension data flows through the App Group container (`group.co.gastroduce-japan.bikey.japanese`). No URL schemes, no shared keychain in v1.
 
-### Scope is pure Japanese
-No bilingual logic. No English autocorrect. No language detection. If a feature only makes sense in mixed JA/EN, it does not belong here.
+### Japanese is the default; other languages are opt-in parallel modes
+Japanese is what the keyboard ships with and every existing user keeps. A user may explicitly choose a different keyboard language (English first; Simplified Chinese planned) in onboarding or settings, stored as `KeyboardLanguage` in the App Group (default `.japanese`).
+
+The hard rule that replaced the old "pure Japanese" constraint: **a non-Japanese mode must never alter the Japanese input path.** When `KeyboardLanguage` is `.japanese`, the existing romaji/kana → `KanaKanjiAdapter` → `InputManager` marked-text flow must run byte-for-byte as before. English (and later Chinese) live in their own parallel branches reached only when their language is selected. No mixed JA/EN logic inside one mode, no language auto-detection — the mode is an explicit, persisted user choice.
 
 ---
 

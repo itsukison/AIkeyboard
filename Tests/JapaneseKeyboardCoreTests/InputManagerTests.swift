@@ -216,29 +216,64 @@ final class InputManagerTests: XCTestCase {
         XCTAssertEqual(im.commitText, "きょう？")
     }
 
-    func testPreferenceEntriesRerankCandidates() async {
-        let now = Date()
-        let im = InputManager(conversionPreferenceEntries: {
-            [
-                ConversionPreferenceEntry(
-                    scope: .japanese,
-                    inputKey: "きょう",
-                    candidateKey: "きょう",
-                    displayText: "きょう",
-                    acceptedCount: 4,
-                    lastUsedAt: now,
-                    updatedAt: now
-                )
-            ]
+    // Learned next-word history surfaces in the prediction bar after a commit.
+    // With no adapter set, requestPrediction takes the synchronous learned-only
+    // path, so we can assert without awaiting azooKey.
+    func testRequestPredictionShowsLearnedSuggestions() {
+        let im = InputManager(nextWordSuggestions: { committed in
+            committed == "食べたい"
+                ? [Candidate(text: "ラーメン", reading: ""), Candidate(text: "そば", reading: "")]
+                : []
         })
-        im.setAdapter(KanaKanjiAdapter())
+        im.requestPrediction(after: "食べたい")
+        XCTAssertEqual(im.predictionSuggestions.map(\.text), ["ラーメン", "そば"])
 
+        im.requestPrediction(after: "知らない")
+        XCTAssertTrue(im.predictionSuggestions.isEmpty)
+    }
+
+    // The prediction bar scrolls horizontally, so the merge cap is 10 (was 4).
+    func testPredictionBarCapsAtTen() {
+        let many = (0..<12).map { Candidate(text: "語\($0)", reading: "") }
+        let im = InputManager(nextWordSuggestions: { _ in many })
+        im.requestPrediction(after: "何か")
+        XCTAssertEqual(im.predictionSuggestions.count, 10)
+    }
+
+    func testExpandCandidateListNoOpWithoutCandidates() async {
+        let im = InputManager()
+        im.setAdapter(KanaKanjiAdapter())
+        im.expandCandidateList()
+        XCTAssertFalse(im.isCandidateListExpanded)
+    }
+
+    func testExpandAndCollapseCandidateList() async {
+        let im = InputManager()
+        im.setAdapter(KanaKanjiAdapter())
         for ch in "kyou" {
             im.appendRomaji(ch)
         }
         await im.currentConversionTask()?.value
-
         XCTAssertFalse(im.candidates.isEmpty)
-        XCTAssertEqual(im.candidates.first?.text, "きょう")
+
+        im.expandCandidateList()
+        XCTAssertTrue(im.isCandidateListExpanded)
+
+        im.collapseCandidateList()
+        XCTAssertFalse(im.isCandidateListExpanded)
+    }
+
+    func testResetAutoCollapsesCandidateList() async {
+        let im = InputManager()
+        im.setAdapter(KanaKanjiAdapter())
+        for ch in "kyou" {
+            im.appendRomaji(ch)
+        }
+        await im.currentConversionTask()?.value
+        im.expandCandidateList()
+        XCTAssertTrue(im.isCandidateListExpanded)
+
+        im.reset()
+        XCTAssertFalse(im.isCandidateListExpanded)
     }
 }

@@ -25,6 +25,7 @@ struct FirstRunFlow: View {
             switch phase {
             case .welcome:
                 WelcomePage(onStart: { withAnimation(.easeInOut(duration: 0.2)) { phase = .onboarding } })
+                    .environment(\.colorScheme, .light)
             case .onboarding:
                 OnboardingFlow(onFinish: { withAnimation(.easeInOut(duration: 0.2)) { phase = .auth } })
             case .auth:
@@ -32,7 +33,6 @@ struct FirstRunFlow: View {
             }
         }
         .transition(.opacity)
-        .preferredColorScheme(.light)
     }
 }
 
@@ -123,7 +123,6 @@ struct AuthChoiceScreen: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
     }
 }
 
@@ -174,7 +173,7 @@ private struct AuthChoicePage: View {
         }
     }
 
-    private var subtitle: String {
+    private var subtitle: LocalizedStringKey {
         onSkip != nil
             ? "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。スキップして後から登録することもできます。"
             : "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。"
@@ -182,7 +181,7 @@ private struct AuthChoicePage: View {
 }
 
 private struct AuthBenefitCard: View {
-    private let benefits: [(icon: String, text: String)] = [
+    private let benefits: [(icon: String, text: LocalizedStringKey)] = [
         ("pencil.line", "AIで敬語・ビジネス文面に書き直し"),
         ("bookmark", "カスタムプロンプトを保存・同期"),
         ("iphone", "複数の端末で設定を引き継ぎ")
@@ -194,9 +193,9 @@ private struct AuthBenefitCard: View {
                 HStack(spacing: 14) {
                     ZStack {
                         Circle()
-                            .fill(Color.white)
+                            .fill(OnboardingPalette.fieldFill)
                             .frame(width: 38, height: 38)
-                            .overlay(Circle().stroke(Color.black.opacity(0.05), lineWidth: 0.5))
+                            .overlay(Circle().stroke(OnboardingPalette.fieldStroke.opacity(0.55), lineWidth: 0.5))
                         Image(systemName: benefit.icon)
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(OnboardingPalette.ink)
@@ -215,7 +214,7 @@ private struct AuthBenefitCard: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color(red: 0.93, green: 0.92, blue: 0.91))
+                .fill(AppColor.surfaceElevated)
         )
     }
 }
@@ -266,7 +265,7 @@ private struct LegalFooterRow: View {
             .frame(width: 3, height: 3)
     }
 
-    private func footerLink(_ title: String, url: URL) -> some View {
+    private func footerLink(_ title: LocalizedStringKey, url: URL) -> some View {
         Button {
             activeURL = IdentifiedURL(url: url)
         } label: {

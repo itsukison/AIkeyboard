@@ -10,12 +10,52 @@ public actor KanaKanjiAdapter {
     /// `Candidate` only carries text + reading, which isn't enough context for
     /// `requestPostCompositionPredictionCandidates`.
     private var lastConversion: ConversionResult?
+    /// Whether Zenzai was enabled at init (weight bundled and enough jetsam
+    /// headroom). Kept for a DEBUG confirmation log in `prewarm()`.
+    private let zenzaiEnabled: Bool
+    private let zenzaiWeightURL: URL?
+    /// Left context currently baked into `options.zenzaiMode`, so a repeated
+    /// convert call with the same context skips the mode rebuild.
+    private var currentLeftContext: String?
+    /// The azooKey candidate the last `predictNextWords` predictions extend,
+    /// plus those predictions, retained so a tapped prediction can be fed back
+    /// into learning (`updateLearningData(_:with:)`) and joined into a new
+    /// base for chained prediction — the mechanism the upstream azooKey app
+    /// relies on for its post-commit prediction quality.
+    private var lastPredictionBase: KanaKanjiConverterModule.Candidate?
+    private var lastPredictions: [PostCompositionPredictionCandidate] = []
+    /// After a prediction tap: the tapped text and the joined candidate that
+    /// becomes the left-side context for the next prediction round. Cleared on
+    /// the next conversion (typing supersedes the chain).
+    private var chainedBase: (text: String, candidate: KanaKanjiConverterModule.Candidate)?
 
     public init(supportDirectoryURL: URL? = nil) {
         let supportURL = supportDirectoryURL
             ?? FileManager.default.temporaryDirectory.appendingPathComponent("KeigoButton", isDirectory: true)
         try? FileManager.default.createDirectory(at: supportURL, withIntermediateDirectories: true)
         self.converter = KanaKanjiConverter.withDefaultDictionary()
+        // Zenzai (neural conversion) — xsmall CPU model bundled as a resource.
+        // Falls back to .off if the weight isn't bundled so a missing model can
+        // never crash the build/runtime, and when jetsam headroom is short:
+        // Zenzai costs ~25 MB of transient dirty memory (KV + compute + first
+        // decode) on top of the classical converter, and the extension's cap
+        // shrinks under host-app memory pressure — classical-only conversion
+        // beats a jetsam kill at launch. inferenceLimit 1 for lowest latency.
+        let weightURL = Bundle.module.url(forResource: "zenz-xsmall", withExtension: "gguf")
+        self.zenzaiWeightURL = weightURL
+        let zenzai: ConvertRequestOptions.ZenzaiMode
+        if let weightURL, Self.hasZenzaiHeadroom {
+            zenzai = .on(
+                weight: weightURL,
+                inferenceLimit: 1,
+                personalizationMode: nil,
+                versionDependentMode: .v3(.init())
+            )
+            self.zenzaiEnabled = true
+        } else {
+            zenzai = .off
+            self.zenzaiEnabled = false
+        }
         // Built once: constructing options per convert call would re-read the
         // emoji TSV from disk on every keystroke (TextReplacer's init parses
         // the whole file). `.empty` because the replacer only feeds
@@ -35,23 +75,32 @@ public actor KanaKanjiAdapter {
             englishCandidateInRoman2KanaInput: false,
             fullWidthRomanCandidate: false,
             halfWidthKanaCandidate: false,
-            learningType: .nothing,
-            maxMemoryCount: 0,
+            // Use azooKey's own adaptive lattice learning: committed choices
+            // re-rank future conversions of the same/related readings, and —
+            // unlike our exact-match reranker — can pull a learned word up into
+            // the candidate list. Requires a persistent `memoryDirectoryURL`
+            // (App Group, passed by the caller); the temp-dir fallback would
+            // make learning evaporate. Bounded count keeps resident memory and
+            // the on-dismiss merge cost in check under the extension jetsam ceiling.
+            learningType: .inputAndOutput,
+            maxMemoryCount: 5000,
             shouldResetMemory: false,
             memoryDirectoryURL: supportURL,
             sharedContainerURL: supportURL,
             textReplacer: .empty,
             specialCandidateProviders: KanaKanjiConverter.defaultSpecialCandidateProviders,
-            zenzaiMode: .off,
+            zenzaiMode: zenzai,
             metadata: .init(versionString: "KeigoButton/1.0")
         )
     }
 
-    public func convert(kana: String, maxCandidates: Int = 10) -> [Candidate] {
+    public func convert(kana: String, maxCandidates: Int = 10, leftContext: String? = nil) -> [Candidate] {
         guard !kana.isEmpty else { return [] }
         // A keystroke may have cancelled this request while it was queued
         // behind another conversion; skip the wasted lattice work.
         guard !Task.isCancelled else { return [] }
+        applyLeftContext(leftContext)
+        chainedBase = nil
 
         var composingText = ComposingText()
         composingText.insertAtCursorPosition(kana, inputStyle: .direct)
@@ -68,26 +117,99 @@ public actor KanaKanjiAdapter {
         return candidates
     }
 
+    /// Bake the text left of the composition into Zenzai's conversion prompt
+    /// (zenz-v3's 文脈考慮変換), matching what the upstream azooKey app passes.
+    /// The context is captured once per composition by the caller, so within a
+    /// composition this is a no-op after the first keystroke.
+    private func applyLeftContext(_ raw: String?) {
+        guard zenzaiEnabled, let weightURL = zenzaiWeightURL else { return }
+        let context = raw.flatMap { $0.isEmpty ? nil : String($0.suffix(40)) }
+        guard context != currentLeftContext else { return }
+        currentLeftContext = context
+        options.zenzaiMode = .on(
+            weight: weightURL,
+            inferenceLimit: 1,
+            personalizationMode: nil,
+            versionDependentMode: .v3(.init(
+                leftSideContext: context,
+                maxLeftSideContextLength: 20
+            ))
+        )
+    }
+
     /// Next-word (予測変換) suggestions to show after the user commits a word,
     /// while nothing is being composed. `committedText` must match a candidate
-    /// from the most recent `convert(...)`; otherwise (e.g. a raw-kana commit)
-    /// we have no rich left-side context and return nothing rather than guess.
-    public func predictNextWords(after committedText: String, maxCandidates: Int = 3) -> [Candidate] {
-        guard let leftSideCandidate = lastConversion?.mainResults.first(where: { $0.text == committedText }) else {
+    /// from the most recent `convert(...)` or the chained base built by
+    /// `recordPredictionCommit`; otherwise (e.g. a raw-kana commit) we have no
+    /// rich left-side context and return nothing rather than guess.
+    public func predictNextWords(after committedText: String, maxCandidates: Int = 10) -> [Candidate] {
+        let leftSideCandidate: KanaKanjiConverterModule.Candidate
+        if let match = lastConversion?.mainResults.first(where: { $0.text == committedText }) {
+            leftSideCandidate = match
+        } else if let chained = chainedBase, chained.text == committedText {
+            leftSideCandidate = chained.candidate
+        } else {
             return []
         }
+        // Corpus prior keyed on the committed chunk's trailing morpheme(s)
+        // (Japanese is head-final). Trigram (last two morphemes) goes first for
+        // sharper context, backing off to the bigram table; both rank ahead of
+        // azooKey's zero-hint guesses, which surface rare junk (ラー油).
+        let morphemes = leftSideCandidate.data
+        let bigramTexts = morphemes.last
+            .map { NextWordPrior.shared?.suggestions(after: $0.word) ?? [] } ?? []
+        let lastTwo = Array(morphemes.suffix(2))
+        let trigramTexts = lastTwo.count == 2
+            ? (NextWordPrior.sharedTrigram?.suggestions(after: lastTwo[0].word, lastTwo[1].word) ?? [])
+            : []
+        let priorTexts = trigramTexts + bigramTexts
         let predictions = converter.requestPostCompositionPredictionCandidates(
             leftSideCandidate: leftSideCandidate,
             options: options
         )
+        lastPredictionBase = leftSideCandidate
+        lastPredictions = predictions
         var seen = Set<String>()
         var result: [Candidate] = []
-        for prediction in predictions {
-            guard seen.insert(prediction.text).inserted else { continue }
-            result.append(Candidate(text: prediction.text, reading: ""))
+        for text in priorTexts + predictions.map(\.text) {
+            guard !text.isEmpty, seen.insert(text).inserted else { continue }
+            result.append(Candidate(text: text, reading: ""))
             if result.count == maxCandidates { break }
         }
         return result
+    }
+
+    /// Learn a tapped next-word prediction and extend the chain: feeds the
+    /// selection into azooKey's adaptive learning (the main quality driver of
+    /// its zero-hint predictions) and joins it onto the base candidate so the
+    /// next `predictNextWords(after: predictionText)` keeps the accumulated
+    /// morpheme context instead of going blind. No-op for a tap on a
+    /// corpus-prior suggestion that azooKey didn't produce.
+    public func recordPredictionCommit(_ predictionText: String) {
+        guard let base = lastPredictionBase,
+              let prediction = lastPredictions.first(where: { $0.text == predictionText }) else {
+            return
+        }
+        converter.updateLearningData(base, with: prediction)
+        chainedBase = (predictionText, prediction.join(to: base))
+    }
+
+    /// Record a committed word into azooKey's adaptive learning so the same
+    /// reading ranks this choice higher next time. Cheap (in-RAM trie); the
+    /// on-disk persistence happens separately in `persistLearning()`. No-op for
+    /// a raw-kana commit that doesn't match a rich candidate from the last
+    /// conversion — we'd have no morpheme data to learn from.
+    public func recordCommit(_ committedText: String) {
+        guard let candidate = lastConversion?.mainResults.first(where: { $0.text == committedText }) else {
+            return
+        }
+        converter.updateLearningData(candidate)
+    }
+
+    /// Flush in-RAM learning into the on-disk long-term memory. Expensive
+    /// (LOUDS rebuild) — call only off the typing path, e.g. keyboard dismiss.
+    public func persistLearning() {
+        converter.commitUpdateLearningData()
     }
 
     /// Clears the converter's incremental lattice state when a composition
@@ -100,6 +222,22 @@ public actor KanaKanjiAdapter {
     /// the lazy dictionary-load cost (charID, mm.binary, LOUDS shard I/O).
     public func prewarm() {
         _ = convert(kana: "あ")
+        #if DEBUG
+        NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) status=[\(converter.zenzStatus)]")
+        #endif
         converter.stopComposition()
+    }
+
+    /// Zenzai needs ~25 MB of dirty-memory headroom on top of the classical
+    /// converter's peak; require a comfortable margin so a pressured host
+    /// (smaller jetsam cap) silently falls back to classical conversion
+    /// instead of being killed. iOS-only API; non-iOS builds (tests) have no
+    /// comparable budget.
+    private static var hasZenzaiHeadroom: Bool {
+        #if os(iOS)
+        return os_proc_available_memory() > 50 * 1024 * 1024
+        #else
+        return true
+        #endif
     }
 }
