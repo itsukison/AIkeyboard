@@ -1,5 +1,6 @@
 import Foundation
 import KanaKanjiConverterModuleWithDefaultDictionary
+import KeyboardPreferences
 
 public actor KanaKanjiAdapter {
     private let converter: KanaKanjiConverter
@@ -10,10 +11,15 @@ public actor KanaKanjiAdapter {
     /// `Candidate` only carries text + reading, which isn't enough context for
     /// `requestPostCompositionPredictionCandidates`.
     private var lastConversion: ConversionResult?
-    /// Whether Zenzai was enabled at init (weight bundled and enough jetsam
-    /// headroom). Kept for a DEBUG confirmation log in `prewarm()`.
-    private let zenzaiEnabled: Bool
+    /// Whether Zenzai is currently active (weight bundled, user-enabled,
+    /// enough jetsam headroom at init, and the latency gate hasn't tripped).
+    private var zenzaiEnabled: Bool
     private let zenzaiWeightURL: URL?
+    /// Trips when the rolling median conversion latency shows this device is
+    /// too slow for neural conversion — the speed counterpart of the memory
+    /// headroom gate. Once tripped, the decision persists via
+    /// `KeyboardSettingsStore.recordZenzaiAutoDisabled` until the next build.
+    private var latencyGate = ZenzaiLatencyGate()
     /// Left context currently baked into `options.zenzaiMode`, so a repeated
     /// convert call with the same context skips the mode rebuild.
     private var currentLeftContext: String?
@@ -108,7 +114,11 @@ public actor KanaKanjiAdapter {
         composingText.insertAtCursorPosition(kana, inputStyle: .direct)
 
         options.N_best = maxCandidates
+        let conversionStart: ContinuousClock.Instant? = zenzaiEnabled ? .now : nil
         let results = converter.requestCandidates(composingText, options: options)
+        if let conversionStart {
+            recordZenzaiLatency(since: conversionStart)
+        }
         lastConversion = results
 
         let texts = Array(results.mainResults.prefix(maxCandidates).map(\.text))
@@ -240,6 +250,36 @@ public actor KanaKanjiAdapter {
         NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) status=[\(converter.zenzStatus)]")
         #endif
         converter.stopComposition()
+    }
+
+    /// Feeds the latency gate with one conversion's duration; when it trips,
+    /// the rest of the process runs classical conversion and the decision is
+    /// persisted (until the next app build re-probes). Samples taken under
+    /// CPU throttling are withheld — a device in Low Power Mode or running
+    /// hot is slow on purpose, which says nothing about its real speed.
+    private func recordZenzaiLatency(since start: ContinuousClock.Instant) {
+        let info = ProcessInfo.processInfo
+        guard !info.isLowPowerModeEnabled, info.thermalState == .nominal else { return }
+        let duration = start.duration(to: .now)
+        var milliseconds = Double(duration.components.seconds) * 1000
+            + Double(duration.components.attoseconds) / 1e15
+        #if DEBUG
+        // On-device verification hook: inflating the *sample* (not sleeping)
+        // trips the gate without degrading typing. Set from the container's
+        // DEBUG-only row; never compiled into Release.
+        if KeyboardSettingsStore.sharedDefaults?.bool(forKey: "debug.zenzaiForceSlowSample") == true {
+            milliseconds += 300
+        }
+        NSLog("%@", String(format: "📉 ZENZAI conversion %.1f ms", milliseconds))
+        #endif
+        if latencyGate.record(latencyMilliseconds: milliseconds) {
+            zenzaiEnabled = false
+            options.zenzaiMode = .off
+            KeyboardSettingsStore.recordZenzaiAutoDisabled()
+            #if DEBUG
+            NSLog("%@", "📉 ZENZAI latency gate TRIPPED — classical conversion for the rest of this process")
+            #endif
+        }
     }
 
     /// Zenzai needs ~25 MB of dirty-memory headroom on top of the classical

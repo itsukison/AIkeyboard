@@ -69,6 +69,31 @@ final class KeyboardSettingsStoreTests: XCTestCase {
         XCTAssertTrue(KeyboardSettingsStore.readZenzaiEnabled(defaults: defaults))
     }
 
+    func testZenzaiAutoDisablePersistsForSameBuild() {
+        KeyboardSettingsStore.recordZenzaiAutoDisabled(build: "12", defaults: defaults)
+
+        XCTAssertTrue(KeyboardSettingsStore.isZenzaiAutoDisabled(currentBuild: "12", defaults: defaults))
+    }
+
+    func testZenzaiAutoDisableReprobesOnNewBuild() {
+        KeyboardSettingsStore.recordZenzaiAutoDisabled(build: "12", defaults: defaults)
+
+        XCTAssertFalse(KeyboardSettingsStore.isZenzaiAutoDisabled(currentBuild: "13", defaults: defaults))
+        // The stale verdict is cleared, so even the original build probes again.
+        XCTAssertFalse(KeyboardSettingsStore.isZenzaiAutoDisabled(currentBuild: "12", defaults: defaults))
+    }
+
+    func testZenzaiAutoDisablePendingReportIsTakenOnce() {
+        KeyboardSettingsStore.recordZenzaiAutoDisabled(build: "12", defaults: defaults)
+
+        XCTAssertTrue(KeyboardSettingsStore.takeZenzaiAutoDisablePendingReport(defaults: defaults))
+        XCTAssertFalse(KeyboardSettingsStore.takeZenzaiAutoDisablePendingReport(defaults: defaults))
+    }
+
+    func testZenzaiAutoDisableDefaultsToFalse() {
+        XCTAssertFalse(KeyboardSettingsStore.isZenzaiAutoDisabled(currentBuild: "12", defaults: defaults))
+    }
+
     func testKeySizeObserverReadsStoreOnInit() {
         KeyboardSettingsStore.writeKeyboardKeySizePreset(.large, defaults: defaults)
 

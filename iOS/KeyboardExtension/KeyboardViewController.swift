@@ -575,10 +575,13 @@ private enum SharedConversionEngine {
         let adapter = KanaKanjiAdapter(
             supportDirectoryURL: AppGroup.sharedContainerURL?
                 .appendingPathComponent("conversion-learning", isDirectory: true),
-            // User opt-out for neural conversion. Read once here because the
-            // adapter (and its llama context) is process-lifetime; a toggle
-            // flip applies when iOS next recycles the extension process.
+            // User opt-out AND the latency gate's persisted verdict (auto-off
+            // when this device proved too slow; re-probes on a new build).
+            // Read once here because the adapter (and its llama context) is
+            // process-lifetime; changes apply when iOS next recycles the
+            // extension process.
             zenzaiUserEnabled: KeyboardSettingsStore.readZenzaiEnabled()
+                && !KeyboardSettingsStore.isZenzaiAutoDisabled()
         )
         await adapter.prewarm()
         return adapter

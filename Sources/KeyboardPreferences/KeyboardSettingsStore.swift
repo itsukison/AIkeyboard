@@ -48,6 +48,8 @@ public enum KeyboardSettingsStore {
     public static let nextWordPreferenceEntriesKey = "nextWordPreferenceEntries"
     public static let hapticsEnabledKey = "hapticsEnabled"
     public static let zenzaiEnabledKey = "zenzaiEnabled"
+    public static let zenzaiAutoDisabledBuildKey = "zenzaiAutoDisabledBuild"
+    public static let zenzaiAutoDisablePendingReportKey = "zenzaiAutoDisablePendingReport"
     public static let cloudAIEnabledKey = "cloudAIEnabled"
     public static let aiConsentGrantedKey = "aiConsentGranted"
     public static let aiCommercialOptInKey = "aiCommercialOptIn"
@@ -141,6 +143,54 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(enabled, forKey: zenzaiEnabledKey)
+    }
+
+    /// Called by the conversion engine when the latency gate trips: Zenzai is
+    /// too slow on this device. Records the build so the decision persists
+    /// across keyboard processes, plus a pending-report flag the container
+    /// forwards to analytics (the extension can't emit analytics itself).
+    public static func recordZenzaiAutoDisabled(
+        build: String = currentBuild,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(build, forKey: zenzaiAutoDisabledBuildKey)
+        defaults?.set(true, forKey: zenzaiAutoDisablePendingReportKey)
+    }
+
+    /// Whether the latency gate previously disabled Zenzai on this device.
+    /// The decision is scoped to the app build that made it: a new build
+    /// clears the flag and probes again, so a device isn't punished forever
+    /// for one slow week (and OS/app updates get a fresh chance).
+    public static func isZenzaiAutoDisabled(
+        currentBuild: String = currentBuild,
+        defaults: UserDefaults? = sharedDefaults
+    ) -> Bool {
+        guard let stored = defaults?.string(forKey: zenzaiAutoDisabledBuildKey) else {
+            return false
+        }
+        if stored != currentBuild {
+            defaults?.removeObject(forKey: zenzaiAutoDisabledBuildKey)
+            return false
+        }
+        return true
+    }
+
+    /// Read-and-clear for the container's analytics bridge: returns `true`
+    /// exactly once per gate trip.
+    public static func takeZenzaiAutoDisablePendingReport(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> Bool {
+        guard defaults?.bool(forKey: zenzaiAutoDisablePendingReportKey) == true else {
+            return false
+        }
+        defaults?.removeObject(forKey: zenzaiAutoDisablePendingReportKey)
+        return true
+    }
+
+    /// Public only because default argument values must match their
+    /// function's access level; callers should not need it directly.
+    public static var currentBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
     }
 
     public static func readCloudAIEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {

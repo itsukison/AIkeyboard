@@ -59,6 +59,7 @@ struct KeigoButtonApp: App {
                 .onAppear {
                     KeyboardSettingsStore.writeCloudAIEnabled(true)
                     flushKeyboardUsageDays()
+                    reportZenzaiAutoDisableIfPending()
                 }
         }
     }
@@ -75,6 +76,16 @@ struct KeigoButtonApp: App {
                 "active_seconds": day.activeSeconds,
                 "typed": day.typed,
             ])
+        }
+    }
+
+    /// One-shot report that the Zenzai latency gate disabled neural
+    /// conversion on this device (the SDK attaches the device model). Same
+    /// bridge as usage days: the extension only sets an App Group flag, the
+    /// container does the network.
+    private func reportZenzaiAutoDisableIfPending() {
+        if KeyboardSettingsStore.takeZenzaiAutoDisablePendingReport() {
+            PostHogSDK.shared.capture("zenzai_auto_disabled")
         }
     }
 }

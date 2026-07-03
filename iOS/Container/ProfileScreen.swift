@@ -19,6 +19,13 @@ struct ProfileScreen: View {
     private var hapticsEnabled = false
     @AppStorage(KeyboardSettingsStore.zenzaiEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
     private var zenzaiEnabled = true
+    #if DEBUG
+    // Verification hook for the Zenzai latency gate: inflates the keyboard's
+    // latency samples so the gate trips without real slowness. Turning it OFF
+    // also clears the gate's persisted verdict so the test can be repeated.
+    @AppStorage("debug.zenzaiForceSlowSample", store: KeyboardSettingsStore.sharedDefaults)
+    private var debugZenzaiForceSlow = false
+    #endif
 
     init(showAbout: Binding<Bool> = .constant(false)) {
         _showAbout = showAbout
@@ -75,31 +82,7 @@ struct ProfileScreen: View {
                     ProfileSectionTitle("その他")
                         .padding(.top, BikeyMetrics.Spacing.l + 2)
 
-                    ProfileListCard(
-                        rows: [
-                            .init(
-                                icon: "keyboard",
-                                title: "キーボード",
-                                trailing: keyboardSettingsDisplayName,
-                                action: { showKeyboardSettings = true }
-                            ),
-                            .init(
-                                icon: "hand.tap",
-                                title: "触覚フィードバック",
-                                toggle: hapticsBinding
-                            ),
-                            .init(
-                                icon: "sparkles",
-                                title: "高精度変換",
-                                toggle: $zenzaiEnabled
-                            ),
-                            .init(
-                                icon: "info.circle",
-                                title: "敬語ボタンについて",
-                                action: { showAbout = true }
-                            )
-                        ]
-                    )
+                    ProfileListCard(rows: otherRows)
                     .padding(.top, BikeyMetrics.Spacing.s)
 
                     Spacer(minLength: 84)
@@ -133,6 +116,59 @@ struct ProfileScreen: View {
             .guestAuthCover(isPresented: $showAuth)
         }
     }
+
+    private var otherRows: [ProfileRowModel] {
+        var rows: [ProfileRowModel] = [
+            .init(
+                icon: "keyboard",
+                title: "キーボード",
+                trailing: keyboardSettingsDisplayName,
+                action: { showKeyboardSettings = true }
+            ),
+            .init(
+                icon: "hand.tap",
+                title: "触覚フィードバック",
+                toggle: hapticsBinding
+            ),
+            .init(
+                icon: "sparkles",
+                title: "高精度変換",
+                toggle: $zenzaiEnabled
+            ),
+            .init(
+                icon: "info.circle",
+                title: "敬語ボタンについて",
+                action: { showAbout = true }
+            )
+        ]
+        #if DEBUG
+        rows.append(.init(
+            icon: "tortoise",
+            title: "DEBUG: 変換を遅く見せる",
+            toggle: debugZenzaiForceSlowBinding
+        ))
+        #endif
+        return rows
+    }
+
+    #if DEBUG
+    private var debugZenzaiForceSlowBinding: Binding<Bool> {
+        Binding(
+            get: { debugZenzaiForceSlow },
+            set: { enabled in
+                debugZenzaiForceSlow = enabled
+                if !enabled {
+                    // Reset the gate's persisted verdict so the force-trip
+                    // test can be run again without reinstalling.
+                    KeyboardSettingsStore.sharedDefaults?
+                        .removeObject(forKey: KeyboardSettingsStore.zenzaiAutoDisabledBuildKey)
+                    KeyboardSettingsStore.sharedDefaults?
+                        .removeObject(forKey: KeyboardSettingsStore.zenzaiAutoDisablePendingReportKey)
+                }
+            }
+        )
+    }
+    #endif
 
     private var hapticsBinding: Binding<Bool> {
         Binding(
