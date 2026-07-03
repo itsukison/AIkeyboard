@@ -731,7 +731,7 @@ private struct CommercialConsentCheckbox: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 30, height: 30)
+                .frame(width: 44, height: 44, alignment: .top)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -768,7 +768,7 @@ struct ConsentDataCard: View {
             Divider()
                 .overlay(OnboardingPalette.fieldStroke.opacity(0.55))
 
-            ConsentDataRow(icon: "cpu", text: "送信先：第三者のAIサービス（Cerebras・Groq）")
+            ConsentDataRow(icon: "cpu", text: "送信先：第三者のAIサービス")
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -785,7 +785,7 @@ private struct ConsentAgreementCheckbox: View {
     let onOpenPrivacy: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             Button {
                 isOn.toggle()
             } label: {
@@ -804,7 +804,7 @@ private struct ConsentAgreementCheckbox: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 30, height: 30)
+                .frame(width: 44, height: 44, alignment: .top)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -820,7 +820,7 @@ private struct ConsentAgreementCheckbox: View {
                     return .handled
                 })
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -1912,6 +1912,92 @@ struct PromptsFeatureSheet: View {
                 dismiss()
             } label: {
                 Text("プロンプトを編集する")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(AppColor.charcoalAction, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
+// MARK: - Zenzai neural conversion announcement (existing users)
+//
+// Shown once when the update that enables on-device neural conversion lands.
+// The feature is on by default (with an automatic memory fallback), so the
+// sheet only informs and points at the ProfileScreen toggle — no CTA needed
+// beyond dismissal.
+
+struct ZenzaiFeatureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(AppColor.surface, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("新機能")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("変換が、\nもっと賢く。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("AIによるかな漢字変換を搭載しました。文脈を読んで、より自然な変換候補を提案します。すべて端末内で動作し、入力内容が送信されることはありません。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "sparkles", text: "文脈を理解して変換候補を提案")
+                        ReplyFeaturePoint(icon: "iphone", text: "端末内で完結、オフラインでも動作")
+                        ReplyFeaturePoint(icon: "switch.2", text: "設定の「高精度変換」でいつでも切り替え")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            Button {
+                dismiss()
+            } label: {
+                Text("さっそく使う")
                     .bikeyFont(15, weight: .medium, relativeTo: .body)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

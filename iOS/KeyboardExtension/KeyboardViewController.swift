@@ -11,6 +11,10 @@ final class KeyboardViewController: KeyboardInputViewController {
     private let keyboardHaptics = KeyboardHapticFeedback()
     private var manualKeyboardCase: Keyboard.KeyboardCase?
     private var hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+    /// Refreshed in `viewWillAppear` so key-size changes made in the container
+    /// app apply to an already-alive keyboard process (App Group writes from
+    /// another process never fire this process's KVO/@AppStorage).
+    private let keySizeObserver = KeyboardKeySizeObserver()
     private var lastSyncedFullAccessStatus: Bool?
     /// When the keyboard last became visible, used to tally active seconds on
     /// disappear. In-memory only — never persisted.
@@ -21,6 +25,9 @@ final class KeyboardViewController: KeyboardInputViewController {
     /// The previous committed word, so the next commit can be recorded as a
     /// next-word (予測変換) transition in `NextWordPreferenceStore`.
     private var lastCommittedWord: String?
+    /// Pending re-check that the host document still contains the marked text
+    /// (see `scheduleStaleCompositionCheck`).
+    private var staleCompositionCheck: Task<Void, Never>?
     private lazy var aiKeyboardController = AIKeyboardController(
         controller: self,
         inputManager: inputManager
@@ -89,6 +96,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                 return AnyView(
                     FlickKeyboardView(
                         inputManager: manager,
+                        keySizeObserver: self.keySizeObserver,
                         onSelectCandidate: { [weak self] candidate in
                             self?.commitCandidate(candidate)
                         },
@@ -164,6 +172,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                         services: controller.services,
                         keyboardContext: controller.state.keyboardContext,
                         inputManager: manager,
+                        keySizeObserver: self.keySizeObserver,
                         onSelectCandidate: { [weak self] candidate in
                             self?.commitCandidate(candidate)
                         },
@@ -229,6 +238,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         super.viewWillAppear(animated)
         autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+        keySizeObserver.refresh()
         configureInputManager()
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
@@ -273,6 +283,37 @@ final class KeyboardViewController: KeyboardInputViewController {
         aiKeyboardController.documentDidChange()
         aiKeyboardController.refreshReplyAvailability()
         markTypedActivityIfNeeded()
+        scheduleStaleCompositionCheck()
+    }
+
+    /// A host app can rewrite its document without any key event reaching the
+    /// extension — most commonly a chat app's send button clearing the field.
+    /// iOS tears down the marked text on the host side, but the composing
+    /// buffer here would keep going and leak the stale text into the next
+    /// input. While composing, the document context must end with our marked
+    /// text; when it doesn't, re-check once after a short delay (proxy edits
+    /// apply asynchronously, so a just-issued setMarkedText may not be visible
+    /// yet) and drop the buffer if the composition is still gone from the host.
+    private func scheduleStaleCompositionCheck() {
+        guard inputManager.isComposing else { return }
+        let marked = inputManager.markedText
+        guard !marked.isEmpty, isCompositionMissingFromHost(marked) else { return }
+        staleCompositionCheck?.cancel()
+        staleCompositionCheck = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard !Task.isCancelled, let self else { return }
+            // Typing in the meantime changed the marked text; the newest
+            // textDidChange has re-evaluated against the current state.
+            guard self.inputManager.isComposing, self.inputManager.markedText == marked else { return }
+            if self.isCompositionMissingFromHost(marked) {
+                self.inputManager.abandonComposition()
+            }
+        }
+    }
+
+    private func isCompositionMissingFromHost(_ marked: String) -> Bool {
+        let before = textDocumentProxy.documentContextBeforeInput ?? ""
+        return !before.hasSuffix(marked)
     }
 
     /// Marks the user active for today at most once per day; the in-memory guard
@@ -449,10 +490,14 @@ final class KeyboardViewController: KeyboardInputViewController {
         }
     }
 
+    /// Inserting while marked text is active replaces it atomically (UIKit
+    /// contract; azooKey commits the same way, insert-first). Clearing first
+    /// via setMarkedText("")/unmarkText made the commit depend on host quirks:
+    /// a host that mishandles the empty update commits the old preview on
+    /// unmarkText and the insert then duplicates it. The trailing clear still
+    /// happens — the caller's `reset()` notifies an empty marked text.
     @MainActor
     private func finalizeMarkedText(replacement: String) {
-        textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
-        textDocumentProxy.unmarkText()
         textDocumentProxy.insertText(replacement)
     }
 
@@ -529,7 +574,11 @@ private enum SharedConversionEngine {
     static let prewarmed = Task.detached(priority: .userInitiated) {
         let adapter = KanaKanjiAdapter(
             supportDirectoryURL: AppGroup.sharedContainerURL?
-                .appendingPathComponent("conversion-learning", isDirectory: true)
+                .appendingPathComponent("conversion-learning", isDirectory: true),
+            // User opt-out for neural conversion. Read once here because the
+            // adapter (and its llama context) is process-lifetime; a toggle
+            // flip applies when iOS next recycles the extension process.
+            zenzaiUserEnabled: KeyboardSettingsStore.readZenzaiEnabled()
         )
         await adapter.prewarm()
         return adapter

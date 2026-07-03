@@ -17,6 +17,7 @@ struct OnboardingFlow: View {
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
     @AppStorage("aikJP.seenPromptsFeature") private var seenPromptsFeature = false
+    @AppStorage("aikJP.seenZenzaiFeature") private var seenZenzaiFeature = false
 
     private let totalPages = 8
 
@@ -159,6 +160,7 @@ struct OnboardingFlow: View {
         seenReplyFeature = true
         seenFlickFeature = true
         seenPromptsFeature = true
+        seenZenzaiFeature = true
         KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
         // Stash the optional commercial opt-in; synced to Supabase on sign-in.
         KeyboardSettingsStore.writeAICommercialOptIn(commercialOptIn)

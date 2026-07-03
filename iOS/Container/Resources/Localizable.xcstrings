@@ -4,6 +4,22 @@
     "" : {
 
     },
+    "AIによるかな漢字変換を搭載しました。文脈を読んで、より自然な変換候補を提案します。すべて端末内で動作し、入力内容が送信されることはありません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kana-kanji conversion is now powered by AI. It reads the context and suggests more natural candidates. Everything runs on your device — nothing you type is ever sent anywhere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搭载了 AI 假名汉字转换。根据上下文提供更自然的候选词。全部在设备内运行，输入内容绝不会被发送。"
+          }
+        }
+      }
+    },
     "「敬語」ボタンの変換のしかたを変えたり、よく使う言い換えを自分のボタンとして追加できます。設定の「プロンプト」からいつでも編集できます。" : {
       "localizations" : {
         "en" : {
@@ -369,6 +385,22 @@
     },
     "YouTube" : {
 
+    },
+    "さっそく使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start using it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即使用"
+          }
+        }
+      }
     },
     "アカウント" : {
       "localizations" : {
@@ -2175,6 +2207,22 @@
         }
       }
     },
+    "変換が、\nもっと賢く。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversion,\nnow smarter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转换，\n更加智能。"
+          }
+        }
+      }
+    },
     "始める" : {
       "localizations" : {
         "en" : {
@@ -2421,6 +2469,22 @@
         }
       }
     },
+    "文脈を理解して変換候補を提案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggests candidates based on context"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "理解上下文并提供候选词"
+          }
+        }
+      }
+    },
     "新しいバージョンが利用可能です。最新版にアップデートすると、最新の機能と改善をご利用いただけます。" : {
       "localizations" : {
         "en" : {
@@ -2637,6 +2701,22 @@
         }
       }
     },
+    "端末内で完結、オフラインでも動作" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fully on-device, works offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全在设备内完成，离线也可使用"
+          }
+        }
+      }
+    },
     "自動" : {
       "localizations" : {
         "en" : {
@@ -2761,6 +2841,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设置、通用、键盘、键盘、添加新键盘、敬語ボタン"
+          }
+        }
+      }
+    },
+    "設定の「高精度変換」でいつでも切り替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle anytime via \"High-accuracy conversion\" in settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可随时在设置的「高精度转换」中切换"
           }
         }
       }
@@ -3023,6 +3119,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
+          }
+        }
+      }
+    },
+    "高精度変換" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High-accuracy conversion"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高精度转换"
           }
         }
       }

@@ -23,8 +23,8 @@ The AI rewrite mode lives in the keyboard extension's toolbar and overlay. It
 sends the captured input to a Supabase Edge Function (`keyboard-rewrite`) only
 when the user explicitly taps an AI command. Every keystroke is **not** sent.
 
-Internal/legacy name: `BikeyJP` (still the Xcode scheme name). User-facing name
-is `AIキーボード`.
+Internal name: `KeigoButton` (Xcode project + scheme; the older `BikeyJP` name
+survives only in stray docs). User-facing name is `AIキーボード`.
 
 ---
 
@@ -39,7 +39,7 @@ them gets users killed by jetsam or rejected by App Review.
   network, and only after the user taps a command. Never send keystrokes,
   never run analytics from the extension.
 - **App Group is the only IPC** between container and extension. Identifier:
-  `group.co.gastroduce-japan.bikey.japanese`. No URL schemes (except the
+  `group.com.core7.keigobutton`. No URL schemes (except the
   `aikeyboard://settings` deeplink from the keyboard to the container) and
   no shared keychain in v1.
 - **Keyboard surface looks native, container looks Bikey**. Do not put purple
@@ -76,7 +76,7 @@ them gets users killed by jetsam or rejected by App Review.
 │   ├── JapaneseKeyboardAI/           ← AI rewrite domain (capture, replace, service)
 │   └── KeyboardPreferences/          ← App Group settings + auth token cache
 ├── iOS/
-│   ├── Container/                    ← main app target (BikeyJP)
+│   ├── Container/                    ← main app target (KeigoButton)
 │   │   └── Design/                   ← Bikey Design System (container-only)
 │   ├── KeyboardExtension/            ← UIInputViewController + UIKit glue
 │   │   └── AI/                       ← AIKeyboardController, toolbar view, proxy adapter
@@ -154,8 +154,14 @@ state machine. The flow:
    gesture in the extension. ASCII letters and `-` get routed into
    `InputManager.appendRomaji`; everything else falls through to KeyboardKit.
 2. `RomajiInputBuffer` accumulates romaji and exposes a live `displayKana`.
-3. On each change, `InputManager` schedules a 15 ms-debounced async
-   conversion through `KanaKanjiAdapter` (wraps AzooKey's converter).
+3. On each change, `InputManager` schedules an async conversion through
+   `KanaKanjiAdapter` (wraps AzooKey's converter). There is no debounce:
+   the kana preview is already on screen, the converter extends its
+   lattice incrementally, and the actor serializes requests, so eager
+   conversion trades a few ms off-main for one-for-one candidate latency.
+   Once the user starts cycling candidates (space → 次候補), the published
+   `candidates` array is frozen so a late-landing result can't rebuild the
+   rows and cancel an in-flight tap.
 4. Candidates come back, are re-ranked by per-user learning data
    (`ConversionPreferenceStore`), and exposed as `@Published candidates`.
 5. The marked-text preview is pushed to `UITextDocumentProxy` via the
@@ -164,6 +170,29 @@ state machine. The flow:
    (`commitComposingForReturn`); tapping a candidate in `CandidateBar`
    commits directly. Backspace first cancels candidate selection, then
    shrinks the buffer.
+
+### Zenzai (neural conversion)
+
+Since 1.0.9 the converter runs Zenzai (zenz-v3.1-xsmall GGUF, llama.cpp CPU)
+inside the extension. Key facts:
+
+- The converter dependency is our fork
+  `itsukison/AzooKeyKanaKanjiConverter` (trait `ZenzaiCPU`), whose
+  `llama.xcframework` is Metal-free — upstream's binary has Metal compiled in
+  and **aborts at model load inside keyboard extensions**. See the fork's
+  `BUILDING.md` before touching this.
+- The weight `Sources/JapaneseKeyboardCore/Resources/zenz-xsmall.gguf` is
+  committed (gitignore exception). If it's missing, conversion silently falls
+  back to classical — check the DEBUG `📕 ZENZAI` log in `prewarm()`.
+- One converter per process (`SharedConversionEngine` in
+  `KeyboardViewController.swift`): iOS leaks input view controllers, and a
+  per-controller llama context stacks dirty memory until jetsam kills the
+  keyboard mid-launch. Never build a second `KanaKanjiAdapter` in the
+  extension.
+- Two gates, both in front of `zenzaiMode: .on`: the user toggle
+  (`KeyboardSettingsStore.readZenzaiEnabled`, default true, ProfileScreen
+  「高精度変換」) and the jetsam-headroom check
+  (`os_proc_available_memory() > 50 MB`) in `KanaKanjiAdapter`.
 
 Critical edge cases (do not regress):
 
@@ -202,7 +231,7 @@ code, the code wins — fix the doc.
 xcodegen generate
 
 # open in Xcode
-open BikeyJP.xcodeproj
+open KeigoButton.xcodeproj
 
 # package-level tests (Core IME logic only — extension and AI flows are
 # tested via the JapaneseKeyboardCoreTests / JapaneseKeyboardUITests targets

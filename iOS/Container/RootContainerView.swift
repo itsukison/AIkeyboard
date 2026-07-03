@@ -61,6 +61,7 @@ struct RootContainerView: View {
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
     @AppStorage("aikJP.seenPromptsFeature") private var seenPromptsFeature = false
+    @AppStorage("aikJP.seenZenzaiFeature") private var seenZenzaiFeature = false
     @AppStorage("aikJP.lastReviewPromptVersion") private var lastReviewPromptVersion = ""
     @AppStorage("aikJP.dismissedUpdateVersion") private var dismissedUpdateVersion = ""
     @AppStorage("aikJP.lastUpdateCheckAt") private var lastUpdateCheckAt: Double = 0
@@ -85,6 +86,7 @@ struct RootContainerView: View {
         case reply
         case flick
         case prompts
+        case zenzai
         var id: String { rawValue }
     }
 
@@ -101,7 +103,7 @@ struct RootContainerView: View {
                 if hasCompletedFirstRun {
                     signedInBody
                 } else {
-                    FirstRunFlow(onComplete: { hasCompletedFirstRun = true })
+                    FirstRunFlow()
                 }
             case .signedIn:
                 signedInBody
@@ -211,6 +213,7 @@ struct RootContainerView: View {
                 case .reply: ReplyFeatureSheet()
                 case .flick: FlickFeatureSheet()
                 case .prompts: PromptsFeatureSheet(onOpen: { selectedTab = .prompts })
+                case .zenzai: ZenzaiFeatureSheet()
                 }
             }
             .presentationDetents([.large])
@@ -232,6 +235,9 @@ struct RootContainerView: View {
             } else if !seenPromptsFeature {
                 seenPromptsFeature = true
                 whatsNewSheet = .prompts
+            } else if !seenZenzaiFeature {
+                seenZenzaiFeature = true
+                whatsNewSheet = .zenzai
             }
             await maybeCheckForUpdate()
         }

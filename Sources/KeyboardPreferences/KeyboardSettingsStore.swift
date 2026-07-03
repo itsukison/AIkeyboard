@@ -10,6 +10,24 @@ public enum KeyboardStyle: String, Codable, Sendable, CaseIterable {
     }
 }
 
+public enum KeyboardKeySizePreset: String, Codable, Sendable, CaseIterable {
+    case small
+    case slightlySmall
+    case standard
+    case slightlyLarge
+    case large
+
+    public var keyCapInsetAdjustment: Double {
+        switch self {
+        case .small: return 4.0
+        case .slightlySmall: return 2.0
+        case .standard: return 0
+        case .slightlyLarge: return -2.0
+        case .large: return -4.0
+        }
+    }
+}
+
 /// Which language the keyboard inputs in. `.japanese` (the default) drives the
 /// existing romaji/kana → kana-kanji pipeline unchanged. Other languages are
 /// opt-in parallel modes that must never alter the Japanese path (see CLAUDE.md
@@ -23,11 +41,13 @@ public enum KeyboardLanguage: String, Codable, Sendable, CaseIterable {
 public enum KeyboardSettingsStore {
     public static let appGroupIdentifier = AppGroup.identifier
     public static let keyboardStyleKey = "keyboardStyle"
+    public static let keyboardKeySizePresetKey = "keyboardKeySizePreset"
     public static let keyboardLanguageKey = "keyboardLanguage"
     public static let userPromptEntriesKey = "userPromptEntries"
     public static let conversionPreferenceEntriesKey = "conversionPreferenceEntries"
     public static let nextWordPreferenceEntriesKey = "nextWordPreferenceEntries"
     public static let hapticsEnabledKey = "hapticsEnabled"
+    public static let zenzaiEnabledKey = "zenzaiEnabled"
     public static let cloudAIEnabledKey = "cloudAIEnabled"
     public static let aiConsentGrantedKey = "aiConsentGranted"
     public static let aiCommercialOptInKey = "aiCommercialOptIn"
@@ -55,6 +75,22 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(style.rawValue, forKey: keyboardStyleKey)
+    }
+
+    public static func readKeyboardKeySizePreset(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> KeyboardKeySizePreset {
+        guard let raw = defaults?.string(forKey: keyboardKeySizePresetKey) else {
+            return .standard
+        }
+        return KeyboardKeySizePreset(rawValue: raw) ?? .standard
+    }
+
+    public static func writeKeyboardKeySizePreset(
+        _ preset: KeyboardKeySizePreset,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(preset.rawValue, forKey: keyboardKeySizePresetKey)
     }
 
     /// Defaults to `.japanese` when unset, so every existing user — and anyone
@@ -86,6 +122,25 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(enabled, forKey: hapticsEnabledKey)
+    }
+
+    /// Zenzai (on-device neural conversion). Defaults to `true`; the keyboard
+    /// still falls back to classical conversion automatically when jetsam
+    /// headroom is short, independent of this setting. Read once per extension
+    /// process at converter creation, so a flip takes effect the next time iOS
+    /// relaunches the keyboard process.
+    public static func readZenzaiEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        if let value = defaults?.object(forKey: zenzaiEnabledKey) as? Bool {
+            return value
+        }
+        return true
+    }
+
+    public static func writeZenzaiEnabled(
+        _ enabled: Bool,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(enabled, forKey: zenzaiEnabledKey)
     }
 
     public static func readCloudAIEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {

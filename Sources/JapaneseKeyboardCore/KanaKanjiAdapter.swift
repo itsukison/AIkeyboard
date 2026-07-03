@@ -29,7 +29,7 @@ public actor KanaKanjiAdapter {
     /// the next conversion (typing supersedes the chain).
     private var chainedBase: (text: String, candidate: KanaKanjiConverterModule.Candidate)?
 
-    public init(supportDirectoryURL: URL? = nil) {
+    public init(supportDirectoryURL: URL? = nil, zenzaiUserEnabled: Bool = true) {
         let supportURL = supportDirectoryURL
             ?? FileManager.default.temporaryDirectory.appendingPathComponent("KeigoButton", isDirectory: true)
         try? FileManager.default.createDirectory(at: supportURL, withIntermediateDirectories: true)
@@ -41,10 +41,12 @@ public actor KanaKanjiAdapter {
         // decode) on top of the classical converter, and the extension's cap
         // shrinks under host-app memory pressure — classical-only conversion
         // beats a jetsam kill at launch. inferenceLimit 1 for lowest latency.
+        // `zenzaiUserEnabled` is the user's opt-out toggle (App Group setting,
+        // read by the caller — Core stays decoupled from KeyboardPreferences).
         let weightURL = Bundle.module.url(forResource: "zenz-xsmall", withExtension: "gguf")
         self.zenzaiWeightURL = weightURL
         let zenzai: ConvertRequestOptions.ZenzaiMode
-        if let weightURL, Self.hasZenzaiHeadroom {
+        if let weightURL, zenzaiUserEnabled, Self.hasZenzaiHeadroom {
             zenzai = .on(
                 weight: weightURL,
                 inferenceLimit: 1,
