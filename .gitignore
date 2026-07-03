@@ -78,6 +78,9 @@ Temporary Items
 
 # AI / Large Models
 *.gguf
+# The bundled Zenzai weight ships with the app and must survive a clean
+# checkout — a missing gguf silently disables neural conversion.
+!Sources/JapaneseKeyboardCore/Resources/zenz-xsmall.gguf
 
 # Local config
 Config/Local.xcconfig
