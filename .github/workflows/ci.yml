@@ -25,6 +25,11 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
+      # project.yml points both targets at the gitignored Config/Local.xcconfig;
+      # without a stand-in, xcodegen's spec validation fails on a clean checkout.
+      - name: Create local config from example
+        run: cp Config/Local.example.xcconfig Config/Local.xcconfig
+
       - name: Generate project
         run: xcodegen generate
 
