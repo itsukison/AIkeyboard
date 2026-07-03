@@ -17,8 +17,6 @@ struct ProfileScreen: View {
     @State private var showAuth = false
     @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
     private var hapticsEnabled = false
-    @AppStorage(KeyboardSettingsStore.zenzaiEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
-    private var zenzaiEnabled = true
     #if DEBUG
     // Verification hook for the Zenzai latency gate: inflates the keyboard's
     // latency samples so the gate trips without real slowness. Turning it OFF
@@ -129,11 +127,6 @@ struct ProfileScreen: View {
                 icon: "hand.tap",
                 title: "触覚フィードバック",
                 toggle: hapticsBinding
-            ),
-            .init(
-                icon: "sparkles",
-                title: "高精度変換",
-                toggle: $zenzaiEnabled
             ),
             .init(
                 icon: "info.circle",

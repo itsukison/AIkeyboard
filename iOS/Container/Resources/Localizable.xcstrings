@@ -4,22 +4,6 @@
     "" : {
 
     },
-    "AIによるかな漢字変換を搭載しました。文脈を読んで、より自然な変換候補を提案します。すべて端末内で動作し、入力内容が送信されることはありません。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kana-kanji conversion is now powered by AI. It reads the context and suggests more natural candidates. Everything runs on your device — nothing you type is ever sent anywhere."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搭载了 AI 假名汉字转换。根据上下文提供更自然的候选词。全部在设备内运行，输入内容绝不会被发送。"
-          }
-        }
-      }
-    },
     "「敬語」ボタンの変換のしかたを変えたり、よく使う言い換えを自分のボタンとして追加できます。設定の「プロンプト」からいつでも編集できます。" : {
       "localizations" : {
         "en" : {
@@ -51,6 +35,9 @@
           }
         }
       }
+    },
+    "【任意】日本語AIの改善に協力する" : {
+
     },
     "%@回書き直し" : {
       "localizations" : {
@@ -163,6 +150,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用 AI 改写为敬语和商务措辞"
+          }
+        }
+      }
+    },
+    "AIによるかな漢字変換を搭載しました。文脈を読んで、より自然な変換候補を提案します。すべて端末内で動作し、入力内容が送信されることはありません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kana-kanji conversion is now powered by AI. It reads the context and suggests more natural candidates. Everything runs on your device — nothing you type is ever sent anywhere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搭载了 AI 假名汉字转换。根据上下文提供更自然的候选词。全部在设备内运行，输入内容绝不会被发送。"
           }
         }
       }
@@ -386,22 +389,6 @@
     "YouTube" : {
 
     },
-    "さっそく使う" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start using it"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "立即使用"
-          }
-        }
-      }
-    },
     "アカウント" : {
       "localizations" : {
         "en" : {
@@ -483,6 +470,7 @@
       }
     },
     "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。スキップして後から登録することもできます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -706,6 +694,9 @@
         }
       }
     },
+    "キーボード" : {
+
+    },
     "キーボードを試す" : {
       "localizations" : {
         "en" : {
@@ -723,6 +714,7 @@
       }
     },
     "キーボード入力方式" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -737,6 +729,9 @@
           }
         }
       }
+    },
+    "キーボード設定" : {
+
     },
     "キャンセル" : {
       "localizations" : {
@@ -935,6 +930,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录后可自由自定义并同步主按钮和附加按钮。"
+          }
+        }
+      }
+    },
+    "さっそく使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start using it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即使用"
           }
         }
       }
@@ -1973,6 +1984,9 @@
     "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけ、品質向上により将来的に変換精度の改善につながる可能性があります。" : {
 
     },
+    "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけます。" : {
+
+    },
     "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。任意です。" : {
 
     },
@@ -2024,7 +2038,11 @@
         }
       }
     },
+    "入力方式" : {
+
+    },
     "入力方式はいつでも変更できます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2701,6 +2719,22 @@
         }
       }
     },
+    "端末に合わせて自動で最適化" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically tuned to your device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根据设备自动优化"
+          }
+        }
+      }
+    },
     "端末内で完結、オフラインでも動作" : {
       "localizations" : {
         "en" : {
@@ -2841,22 +2875,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设置、通用、键盘、键盘、添加新键盘、敬語ボタン"
-          }
-        }
-      }
-    },
-    "設定の「高精度変換」でいつでも切り替え" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toggle anytime via \"High-accuracy conversion\" in settings"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可随时在设置的「高精度转换」中切换"
           }
         }
       }
@@ -3060,6 +3078,7 @@
       }
     },
     "送信先：第三者のAIサービス（Cerebras・Groq）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3119,22 +3138,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
-          }
-        }
-      }
-    },
-    "高精度変換" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "High-accuracy conversion"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "高精度转换"
           }
         }
       }

@@ -1984,7 +1984,7 @@ struct ZenzaiFeatureSheet: View {
                     VStack(alignment: .leading, spacing: 12) {
                         ReplyFeaturePoint(icon: "sparkles", text: "文脈を理解して変換候補を提案")
                         ReplyFeaturePoint(icon: "iphone", text: "端末内で完結、オフラインでも動作")
-                        ReplyFeaturePoint(icon: "switch.2", text: "設定の「高精度変換」でいつでも切り替え")
+                        ReplyFeaturePoint(icon: "gauge.with.needle", text: "端末に合わせて自動で最適化")
                     }
 
                     Spacer(minLength: 0)
