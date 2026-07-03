@@ -1,5 +1,6 @@
 import JapaneseKeyboardCore
 import KeyboardKit
+import KeyboardPreferences
 import SwiftUI
 
 public struct QwertyKeyboardView: View {
@@ -17,11 +18,15 @@ public struct QwertyKeyboardView: View {
     public let overlayContent: AnyView?
     public let shouldForceLowercaseAlphabeticCharacters: () -> Bool
     public let manualKeyboardCase: () -> Keyboard.KeyboardCase?
+    // Injected (not @AppStorage): the host refreshes it on appearance because
+    // iOS never notifies this process of the container app's App Group writes.
+    @ObservedObject private var keySizeObserver: KeyboardKeySizeObserver
 
     public init(
         services: Keyboard.Services,
         keyboardContext: KeyboardContext,
         inputManager: InputManager,
+        keySizeObserver: KeyboardKeySizeObserver,
         onSelectCandidate: @escaping (Candidate) -> Void,
         onTriggerHaptic: @escaping () -> Void = {},
         toolbarContent: AnyView? = nil,
@@ -32,6 +37,7 @@ public struct QwertyKeyboardView: View {
         self.services = services
         self.keyboardContext = keyboardContext
         self.inputManager = inputManager
+        self.keySizeObserver = keySizeObserver
         self.onSelectCandidate = onSelectCandidate
         self.onTriggerHaptic = onTriggerHaptic
         self.toolbarContent = toolbarContent
@@ -120,6 +126,7 @@ public struct QwertyKeyboardView: View {
         // 10→12pt). Horizontal insets already match native, so leave them.
         layout.deviceConfiguration.buttonInsets.top += 1
         layout.deviceConfiguration.buttonInsets.bottom += 1
+        layout.applyKeyboardKeySizePreset(keyboardKeySizePreset)
         if shouldForceLowercaseAlphabeticCharacters() {
             layout.forceLowercasedAlphabeticCharacters(for: keyboardContext.keyboardType)
             layout.forceInactiveAlphabeticShift(for: keyboardContext.keyboardType)
@@ -128,6 +135,10 @@ public struct QwertyKeyboardView: View {
         layout.insertLongVowelKeyOnHomeRow()
         layout.replaceEnglishPunctuationWithJapanese(for: keyboardContext.keyboardType)
         return layout
+    }
+
+    private var keyboardKeySizePreset: KeyboardKeySizePreset {
+        keySizeObserver.preset
     }
 }
 
@@ -180,6 +191,14 @@ private struct SpaceKeyLabel: View {
 }
 
 extension KeyboardLayout {
+    mutating func applyKeyboardKeySizePreset(_ preset: KeyboardKeySizePreset) {
+        let adjustment = CGFloat(preset.keyCapInsetAdjustment)
+        deviceConfiguration.buttonInsets.top += adjustment
+        deviceConfiguration.buttonInsets.leading += adjustment
+        deviceConfiguration.buttonInsets.bottom += adjustment
+        deviceConfiguration.buttonInsets.trailing += adjustment
+    }
+
     mutating func insertInputModeSwitchKeyBeforeSpace() {
         remove(.nextKeyboard)
         tryInsertBottomRowAction(.nextKeyboard, before: .space)

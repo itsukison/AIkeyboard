@@ -309,6 +309,20 @@ public final class InputManager: ObservableObject {
     }
 
     public func reset() {
+        resetCompositionState()
+        notifyMarkedTextChange()
+    }
+
+    /// Drop the composition without emitting any marked-text operations.
+    /// For external document changes (e.g. a chat app's send button clearing
+    /// the field): the host has already destroyed the marked text, so pushing
+    /// a marked-text clear would write into the fresh document instead.
+    public func abandonComposition() {
+        resetCompositionState()
+        lastNotifiedMarkedText = ""
+    }
+
+    private func resetCompositionState() {
         clearPredictions()
         conversionTask?.cancel()
         conversionTask = nil
@@ -328,7 +342,6 @@ public final class InputManager: ObservableObject {
         if isComposing {
             isComposing = false
         }
-        notifyMarkedTextChange()
     }
 
     /// Exposed for tests: await any in-flight conversion before asserting candidates.

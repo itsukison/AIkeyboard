@@ -102,7 +102,7 @@ characters (dakuten / emoji ZWJ sequences) live alongside the engine.
 
 ## Data flow between container and extension
 
-Only the App Group `group.co.gastroduce-japan.bikey.japanese` is shared.
+Only the App Group `group.com.core7.keigobutton` is shared.
 Keys (in `KeyboardSettingsStore`):
 
 | Key | Writer | Reader |

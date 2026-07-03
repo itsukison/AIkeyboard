@@ -6,12 +6,9 @@ enum WelcomeAuthRoute: Hashable {
 }
 
 /// First-run experience for users who have not completed onboarding:
-/// welcome → keyboard onboarding → account choice (create / sign in / skip).
-/// Auth is deferred to the end so the keyboard's purpose is shown to everyone,
-/// and skipping lands the user in a fully usable guest app.
+/// welcome → keyboard onboarding → account choice (create / sign in).
+/// Auth is deferred to the end so the keyboard's purpose is shown first.
 struct FirstRunFlow: View {
-    let onComplete: () -> Void
-
     @State private var phase: Phase = .welcome
 
     private enum Phase {
@@ -29,7 +26,7 @@ struct FirstRunFlow: View {
             case .onboarding:
                 OnboardingFlow(onFinish: { withAnimation(.easeInOut(duration: 0.2)) { phase = .auth } })
             case .auth:
-                AuthChoiceScreen(onSkip: onComplete)
+                AuthChoiceScreen()
             }
         }
         .transition(.opacity)
@@ -98,10 +95,8 @@ private struct WelcomePage: View {
 // MARK: - Account choice
 
 /// Account step shown at the end of onboarding and re-used as an in-app sheet
-/// from guest surfaces. `onSkip` drives the onboarding "スキップ" affordance;
-/// `onClose` drives the in-app dismiss (chevron).
+/// from guest surfaces. `onClose` drives the in-app dismiss (chevron).
 struct AuthChoiceScreen: View {
-    var onSkip: (() -> Void)? = nil
     var onClose: (() -> Void)? = nil
 
     @State private var path: [WelcomeAuthRoute] = []
@@ -111,7 +106,6 @@ struct AuthChoiceScreen: View {
             AuthChoicePage(
                 onSignUp: { path.append(.signUp) },
                 onSignIn: { path.append(.signIn) },
-                onSkip: onSkip,
                 onClose: onClose
             )
             .navigationDestination(for: WelcomeAuthRoute.self) { route in
@@ -129,7 +123,6 @@ struct AuthChoiceScreen: View {
 private struct AuthChoicePage: View {
     let onSignUp: () -> Void
     let onSignIn: () -> Void
-    var onSkip: (() -> Void)? = nil
     var onClose: (() -> Void)? = nil
 
     var body: some View {
@@ -137,7 +130,7 @@ private struct AuthChoicePage: View {
             progress: 1.0,
             canGoBack: onClose != nil,
             onBack: onClose,
-            onSkip: onSkip,
+            onSkip: nil,
             ctaTitle: "アカウントを作成",
             isCtaEnabled: true,
             onCta: onSignUp,
@@ -154,7 +147,7 @@ private struct AuthChoicePage: View {
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(subtitle)
+                        Text("アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。")
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(OnboardingPalette.subInk)
                             .multilineTextAlignment(.center)
@@ -171,12 +164,6 @@ private struct AuthChoicePage: View {
                 .padding(.bottom, 16)
             }
         }
-    }
-
-    private var subtitle: LocalizedStringKey {
-        onSkip != nil
-            ? "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。スキップして後から登録することもできます。"
-            : "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。"
     }
 }
 

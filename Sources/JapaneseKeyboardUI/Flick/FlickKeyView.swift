@@ -2,6 +2,17 @@ import JapaneseKeyboardCore
 import SwiftUI
 import UIKit
 
+private struct FlickKeyCapInsetEnvironmentKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var flickKeyCapInset: CGFloat {
+        get { self[FlickKeyCapInsetEnvironmentKey.self] }
+        set { self[FlickKeyCapInsetEnvironmentKey.self] = newValue }
+    }
+}
+
 /// One flickable key in the 10-key kana layout. Renders the center label,
 /// handles the flick gesture, shows the suggest popup on touch-down, and
 /// commits the selected character on touch-up.
@@ -18,6 +29,7 @@ struct FlickKanaKeyView: View {
 
     @State private var isPressed = false
     @State private var selectedDirection: FlickKanaTable.FlickDirection? = nil
+    @Environment(\.flickKeyCapInset) private var keyCapInset
 
     private let thresholds: (left: CGFloat, top: CGFloat, right: CGFloat, bottom: CGFloat) = (
         left: 24, top: 44, right: 64, bottom: 24
@@ -36,40 +48,43 @@ struct FlickKanaKeyView: View {
     }
 
     var body: some View {
-        keyLabel
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(keyBackground)
-            // Publish the pressed key + its frame so FlickKeyboardView can draw
-            // the flick cross in one top-level overlay (never clipped by other
-            // keys or the rows below).
-            .background(
-                GeometryReader { geo in
-                    Color.clear.preference(
-                        key: FlickPopupKey.self,
-                        value: isPressed
-                            ? FlickPopup(key: key, direction: selectedDirection, frame: geo.frame(in: .named(FlickPopupKey.space)))
-                            : nil
-                    )
-                }
-            )
-            .overlay {
-                FlickGesture(
-                    onTouchDown: {
-                        isPressed = true
-                        selectedDirection = nil
-                        onTriggerHaptic()
-                    },
-                    onTouchMove: { dx, dy, _ in
-                        selectedDirection = flickDirection(dx: dx, dy: dy)
-                    },
-                    onTouchUp: { dx, dy, _ in
-                        let direction = flickDirection(dx: dx, dy: dy)
-                        commit(direction)
-                        isPressed = false
-                        selectedDirection = nil
-                    }
+        ZStack {
+            keyBackground
+                .padding(keyCapInset)
+            keyLabel
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Publish the pressed key + its frame so FlickKeyboardView can draw
+        // the flick cross in one top-level overlay (never clipped by other
+        // keys or the rows below).
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: FlickPopupKey.self,
+                    value: isPressed
+                        ? FlickPopup(key: key, direction: selectedDirection, frame: geo.frame(in: .named(FlickPopupKey.space)))
+                        : nil
                 )
             }
+        )
+        .overlay {
+            FlickGesture(
+                onTouchDown: {
+                    isPressed = true
+                    selectedDirection = nil
+                    onTriggerHaptic()
+                },
+                onTouchMove: { dx, dy, _ in
+                    selectedDirection = flickDirection(dx: dx, dy: dy)
+                },
+                onTouchUp: { dx, dy, _ in
+                    let direction = flickDirection(dx: dx, dy: dy)
+                    commit(direction)
+                    isPressed = false
+                    selectedDirection = nil
+                }
+            )
+        }
     }
 
     private var keyLabel: some View {
@@ -137,6 +152,7 @@ struct FlickUtilityKeyView: View {
 
     @State private var isPressed = false
     @State private var repeatTimer: Timer?
+    @Environment(\.flickKeyCapInset) private var keyCapInset
 
     init<Label: View>(
         @ViewBuilder label: () -> Label,
@@ -151,36 +167,36 @@ struct FlickUtilityKeyView: View {
     }
 
     var body: some View {
-        label
-            .font(.system(size: 16, weight: .regular))
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isPressed ? FlickKeyPalette.functionKeyPressed : FlickKeyPalette.functionKey)
-                    // Subtle bottom-only shadow, like the native key cap.
-                    .shadow(color: .black.opacity(0.2), radius: 1, y: 1)
-            )
-            .overlay {
-                FlickGesture(
-                    onTouchDown: {
-                        isPressed = true
-                        onTriggerHaptic()
-                        if autoRepeat {
-                            action()
-                            startRepeat()
-                        }
-                    },
-                    onTouchMove: { _, _, _ in },
-                    onTouchUp: { _, _, _ in
-                        stopRepeat()
-                        if !autoRepeat {
-                            action()
-                        }
-                        isPressed = false
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isPressed ? FlickKeyPalette.functionKeyPressed : FlickKeyPalette.functionKey)
+                .shadow(color: .black.opacity(0.2), radius: 1, y: 1)
+                .padding(keyCapInset)
+            label
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            FlickGesture(
+                onTouchDown: {
+                    isPressed = true
+                    onTriggerHaptic()
+                    if autoRepeat {
+                        action()
+                        startRepeat()
                     }
-                )
-            }
+                },
+                onTouchMove: { _, _, _ in },
+                onTouchUp: { _, _, _ in
+                    stopRepeat()
+                    if !autoRepeat {
+                        action()
+                    }
+                    isPressed = false
+                }
+            )
+        }
     }
 
     // Native cadence: ~0.45 s hold before the first repeat, then ~0.09 s steps.

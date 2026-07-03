@@ -1,5 +1,6 @@
 import JapaneseKeyboardCore
 import SwiftUI
+import UIKit
 
 public struct CandidateBar: View {
     @ObservedObject var inputManager: InputManager
@@ -80,7 +81,7 @@ public struct CandidateBar: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 40, height: KeyboardChromeMetrics.toolbarHeight)
+                    .frame(width: 44, height: KeyboardChromeMetrics.toolbarHeight)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -115,12 +116,6 @@ public struct CandidateBar: View {
     }
 }
 
-/// A candidate cell that registers a tap without blocking horizontal scrolling.
-/// A `Button` / `.buttonStyle(.plain)` inside a `ScrollView` has a finicky
-/// press-state machine that drops the first tap, while a `DragGesture` (even via
-/// `.simultaneousGesture`) wins the touch immediately and kills scrolling. A
-/// plain tap gesture does neither: it fires only on a genuine press-and-release
-/// and leaves the scroll view's pan untouched.
 private struct CandidateButton: View {
     let candidate: Candidate
     let isSelected: Bool
@@ -139,6 +134,57 @@ private struct CandidateButton: View {
             .cornerRadius(6)
             .frame(height: KeyboardChromeMetrics.toolbarHeight)
             .contentShape(Rectangle())
-            .onTapGesture { onSelect() }
+            .overlay {
+                CandidateTapSurface(onTap: onSelect)
+            }
+    }
+}
+
+private struct CandidateTapSurface: UIViewRepresentable {
+    let onTap: () -> Void
+
+    func makeUIView(context: Context) -> CandidateTapSurfaceView {
+        CandidateTapSurfaceView(onTap: onTap)
+    }
+
+    func updateUIView(_ view: CandidateTapSurfaceView, context: Context) {
+        view.onTap = onTap
+    }
+}
+
+final class CandidateTapSurfaceView: UIView, UIGestureRecognizerDelegate {
+    var onTap: () -> Void
+
+    init(onTap: @escaping () -> Void) {
+        self.onTap = onTap
+        super.init(frame: .zero)
+        backgroundColor = .clear
+
+        let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        recognizer.cancelsTouchesInView = false
+        recognizer.delegate = self
+        addGestureRecognizer(recognizer)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        otherGestureRecognizer is UIPanGestureRecognizer
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        otherGestureRecognizer is UIPanGestureRecognizer
+    }
+
+    @objc private func handleTap() {
+        onTap()
     }
 }

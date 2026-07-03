@@ -1,4 +1,6 @@
 import KeyboardKit
+import KeyboardPreferences
+import UIKit
 import XCTest
 @testable import JapaneseKeyboardUI
 
@@ -6,6 +8,69 @@ final class JapaneseKeyboardUITests: XCTestCase {
     func testQwertyViewModuleResolves() {
         // Smoke test: ensure the module compiles and is importable.
         _ = QwertyKeyboardView.self
+    }
+
+    @MainActor
+    func testScrollPanTakesPriorityOverCandidateTap() throws {
+        let view = CandidateTapSurfaceView(onTap: {})
+        let tap = try XCTUnwrap(view.gestureRecognizers?.first)
+        let scrollView = UIScrollView()
+
+        XCTAssertTrue(
+            view.gestureRecognizer(
+                tap,
+                shouldBeRequiredToFailBy: scrollView.panGestureRecognizer
+            )
+        )
+        XCTAssertTrue(
+            view.gestureRecognizer(
+                tap,
+                shouldRecognizeSimultaneouslyWith: scrollView.panGestureRecognizer
+            )
+        )
+    }
+
+    @MainActor
+    func testStandardKeySizePresetPreservesQwertyGeometry() {
+        let context = KeyboardContext()
+        var layout = KeyboardLayout.standard(for: context)
+        let originalConfiguration = layout.deviceConfiguration
+
+        layout.applyKeyboardKeySizePreset(.standard)
+
+        XCTAssertEqual(layout.deviceConfiguration.rowHeight, originalConfiguration.rowHeight)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.top, originalConfiguration.buttonInsets.top)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.leading, originalConfiguration.buttonInsets.leading)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.bottom, originalConfiguration.buttonInsets.bottom)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.trailing, originalConfiguration.buttonInsets.trailing)
+    }
+
+    @MainActor
+    func testLargeKeySizePresetExpandsCapsWithoutChangingRows() {
+        let context = KeyboardContext()
+        var layout = KeyboardLayout.standard(for: context)
+        let originalConfiguration = layout.deviceConfiguration
+        let adjustment = CGFloat(KeyboardKeySizePreset.large.keyCapInsetAdjustment)
+
+        layout.applyKeyboardKeySizePreset(.large)
+
+        XCTAssertEqual(layout.deviceConfiguration.rowHeight, originalConfiguration.rowHeight)
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.top,
+            originalConfiguration.buttonInsets.top + adjustment
+        )
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.leading,
+            originalConfiguration.buttonInsets.leading + adjustment
+        )
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.bottom,
+            originalConfiguration.buttonInsets.bottom + adjustment
+        )
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.trailing,
+            originalConfiguration.buttonInsets.trailing + adjustment
+        )
     }
 
     // WholeInputCapture tests moved to JapaneseKeyboardAITests/WholeInputCaptureTests.swift

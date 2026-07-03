@@ -122,16 +122,13 @@ struct AIKeyboardToolbarView: View {
             if !isOverflow {
                 Spacer()
                     .frame(width: 8)
-                    .transition(.opacity)
 
                 Divider()
                     .frame(height: KeyboardChromeMetrics.toolbarDividerHeight)
                     .opacity(0.35)
-                    .transition(.opacity)
 
                 Spacer()
                     .frame(width: 8)
-                    .transition(.opacity)
 
                 CandidateBar(
                     inputManager: inputManager,
@@ -141,7 +138,6 @@ struct AIKeyboardToolbarView: View {
                     onSelect: onSelectCandidate,
                     onSelectPrediction: onSelectPrediction
                 )
-                .transition(.opacity)
             } else {
                 Spacer()
                     .frame(width: 6)
