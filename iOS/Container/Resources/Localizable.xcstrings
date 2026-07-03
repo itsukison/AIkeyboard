@@ -662,6 +662,22 @@
         }
       }
     },
+    "かな漢字変換モデル: zenz by Miwa-Keita (CC BY-SA 4.0)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kana-kanji conversion model: zenz by Miwa-Keita (CC BY-SA 4.0)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "假名汉字转换模型：zenz by Miwa-Keita（CC BY-SA 4.0）"
+          }
+        }
+      }
+    },
     "カスタムプロンプト" : {
       "localizations" : {
         "en" : {
