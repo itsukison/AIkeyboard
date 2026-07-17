@@ -30,6 +30,9 @@ packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios
     from: 3.59.3
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 12.15.0
 
 targets:
   KeigoButton:
@@ -43,6 +46,7 @@ targets:
         excludes:
           - Resources/Info.plist
       - path: iOS/Shared
+      - path: GoogleService-Info.plist
       - path: public/applogo.png
       - path: public/gradientwithglobe.png
       - path: public/homebg.png
@@ -73,6 +77,10 @@ targets:
         product: Supabase
       - package: PostHog
         product: PostHog
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseAnalyticsCore
 
   KeyboardExtension:
     type: app-extension

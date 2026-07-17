@@ -71,6 +71,14 @@ Token lifecycle:
 - `refinement` (optional): one of `morePolite` / `moreDetailed` /
   `moreConcise`. When set, the `text` is treated as a previous rewrite to
   be further refined, not the original.
+- `selection` (optional, default false): selection mode. When true, `text` is a
+  fragment the user highlighted inside a larger text; the function uses a
+  fragment-specific system prompt that rewrites only the fragment to fit where
+  it stands (no greetings/closings, no completing the surrounding sentence).
+- `selectionContextBefore` / `selectionContextAfter` (optional, selection mode
+  only): the on-screen text immediately around the fragment, sent as
+  `<context_before>` / `<context_after>` for rewrite quality. Same length cap as
+  `text`. **Never stored** — only their lengths are logged (see logging below).
 
 ## Response
 
@@ -120,19 +128,27 @@ that do not decode `eventId` keep working.
 Provider selection is server-side only. The iOS app still calls only the
 Supabase Edge Function.
 
-Default order:
+Three providers are supported: `azure`, `cerebras`, `groq`. `REWRITE_PROVIDER`
+picks the primary; the other two follow as fallback (in the order they appear in
+`ALL_PROVIDERS`) unless they have no key configured.
 
-1. Cerebras Chat Completions
-   (`https://api.cerebras.ai/v1/chat/completions`) with
-   `CEREBRAS_MODEL = gpt-oss-120b`.
-2. Groq Chat Completions
-   (`https://api.groq.com/openai/v1/chat/completions`) with
-   `GROQ_MODEL = openai/gpt-oss-120b`.
+- **Azure OpenAI** — deployment name in the URL path, `api-key` header (not
+  Bearer). `AZURE_OPENAI_DEPLOYMENT = gpt-4.1` by default. Only listed as a
+  candidate when both `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` are set.
+- **Cerebras** — `https://api.cerebras.ai/v1/chat/completions`,
+  `CEREBRAS_MODEL = gpt-oss-120b`.
+- **Groq** — `https://api.groq.com/openai/v1/chat/completions`,
+  `GROQ_MODEL = openai/gpt-oss-120b`.
 
-Both use `response_format = json_schema` (strict). Set
-`REWRITE_PROVIDER=groq` to prefer Groq, or
+All three use `response_format = json_schema` (strict). Set
+`REWRITE_PROVIDER=azure` (or `groq`) to change the primary, or
 `REWRITE_PROVIDER_FALLBACK=false` to disable fallback. Safety/content blocks
 do **not** fall back to another provider.
+
+Do **not** set `AZURE_REASONING_EFFORT` for `gpt-4.1` — it is not a reasoning
+model. Reasoning models (o-series, GPT-5 with reasoning) can exceed the timeout
+when generating multiple candidates and are not recommended on this interactive
+path.
 
 The prompt is built in `userPrompt()` and `systemInstructions()` inside
 `index.ts`. Refinement intents map to one-line tone instructions in
@@ -144,9 +160,16 @@ Set in Supabase Dashboard → Project Settings → Edge Functions → Secrets.
 
 | Key | Required | Default |
 |---|---|---|
+| `AZURE_OPENAI_API_KEY` | one provider required | — |
+| `AZURE_OPENAI_ENDPOINT` | with Azure | — (e.g. `https://keigobutton.openai.azure.com`) |
+| `AZURE_OPENAI_DEPLOYMENT` | no | `gpt-4.1` (the deployment name in the Foundry portal) |
+| `AZURE_OPENAI_API_VERSION` | no | `2025-04-01-preview` |
+| `AZURE_TIMEOUT_MS` | no | `12000` |
+| `AZURE_MAX_OUTPUT_TOKENS` | no | `600` (per candidate; total = value × candidateCount) |
+| `AZURE_REASONING_EFFORT` | no | unset. Leave unset for `gpt-4.1`. |
 | `CEREBRAS_API_KEY` | one provider required | — |
 | `GROQ_API_KEY` | one provider required | — |
-| `REWRITE_PROVIDER` | no | `cerebras` |
+| `REWRITE_PROVIDER` | no | `cerebras` (`azure` / `groq` to change primary) |
 | `REWRITE_PROVIDER_FALLBACK` | no | `true` |
 | `CEREBRAS_MODEL` | no | `gpt-oss-120b` |
 | `CEREBRAS_TIMEOUT_MS` | no | `8000` |
@@ -207,6 +230,12 @@ The migration creates an RLS-enabled usage table and grants access only to
   adds third-party-provision / dataset language and legal signs off.
 - The iOS keyboard sends text only when the user taps an AI command —
   never per keystroke.
+- **Selection context is never stored.** `selectionContextBefore` /
+  `selectionContextAfter` are used only to build the model prompt. The metadata
+  payload records `is_selection` and the context character lengths
+  (`selection_context_before_length` / `selection_context_after_length`), but
+  the context text itself is never written to any log or table, in any consent
+  scope.
 
 ## Event log and retention
 
@@ -217,7 +246,7 @@ Table: `public.ai_rewrite_events`
 | `id` | `uuid` | Returned as `eventId` in the response |
 | `user_id` | `uuid` | Supabase auth `sub` |
 | `created_at` | `timestamptz` | Defaults to `now()` |
-| `payload` | `jsonb` | Metadata only: `{ language, command_key, title, refinement, locale, app_version, candidate_count, provider, is_reply, *_length, latency_ms }`. Raw text keys are dropped (Phase 0). |
+| `payload` | `jsonb` | Metadata only: `{ language, command_key, title, refinement, locale, app_version, candidate_count, provider, is_reply, is_selection, selection_context_*_length, *_length, latency_ms }`. Raw text keys (including selection context) are dropped (Phase 0). |
 | `data_use_scope` | `text` | Scope in effect at capture time. Default `none`. |
 | `dataset_eligible` | `boolean` | Gates every export view. Default `false`. |
 | `consent_version` | `text` (nullable) | Consent version the row was captured under; `legacy_unconsented` for pre-Phase-0 rows. |
@@ -237,9 +266,10 @@ Legacy rows had their raw text pruned by migration
 The same POST endpoint accepts three body shapes, disambiguated by fields:
 rewrite (`prompt` + `text`), selection feedback (`eventId` + `selectedIndex`,
 PATCHes `selected_index`), and action events (`eventId` + `action`). Action
-events (`action` ∈ selected/inserted/copied/dismissed/regenerated, optional
-`selectedIndex`/`latencyMs`) append to `public.ai_rewrite_action_events` — the
-keyboard reports `regenerated` and `dismissed` today. regeneration_count is
+events (`action` ∈ selected/inserted/copied/dismissed/regenerated/replace_failed,
+optional `selectedIndex`/`latencyMs`) append to `public.ai_rewrite_action_events` —
+the keyboard reports `regenerated`, `dismissed`, and `replace_failed` (accept
+tapped but proxy-context validation failed) today. regeneration_count is
 derived by counting `regenerated` rows per event_id. Retention:
 `delete_ai_rewrite_action_events_older_than(30)`.
 

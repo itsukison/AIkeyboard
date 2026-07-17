@@ -42,7 +42,7 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
         if gesture == .press || gesture == .repeatPress {
             let controller = jpController
             MainActor.assumeIsolated {
-                controller?.triggerKeyHaptic()
+                controller?.triggerKeyboardKeyFeedback()
             }
         }
 

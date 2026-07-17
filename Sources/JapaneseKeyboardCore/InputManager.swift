@@ -15,6 +15,7 @@ public final class InputManager: ObservableObject {
             // candidates; auto-collapse when they clear (commit, backspace to
             // empty, etc.) so it can't linger over an empty keyboard.
             if candidates.isEmpty && isCandidateListExpanded {
+                NSLog("🔼 auto-collapse: candidates emptied while expanded")
                 isCandidateListExpanded = false
             }
         }
@@ -132,12 +133,15 @@ public final class InputManager: ObservableObject {
 
     /// Open the full-candidate grid (native ∧ expander). No-op with no candidates.
     public func expandCandidateList() {
+        // Temporary diagnostics for the unresponsive-expander investigation.
+        NSLog("%@", "🔽 expandCandidateList: candidates=\(candidates.count) expanded=\(isCandidateListExpanded)")
         guard !candidates.isEmpty, !isCandidateListExpanded else { return }
         isCandidateListExpanded = true
     }
 
     /// Close the full-candidate grid (native ∨ / selecting a candidate).
     public func collapseCandidateList() {
+        NSLog("%@", "🔼 collapseCandidateList: expanded=\(isCandidateListExpanded)")
         guard isCandidateListExpanded else { return }
         isCandidateListExpanded = false
     }

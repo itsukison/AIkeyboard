@@ -35,6 +35,14 @@ public struct RewriteRequest: Codable, Sendable {
     public let appVersion: String
     public let candidateCount: Int
     public let refinement: RefinementIntent?
+    public let analyticsAppInstanceId: String?
+    /// True when `text` is a fragment the user selected inside a larger text.
+    /// The backend rewrites the fragment so it fits where it stands.
+    public let selection: Bool
+    /// Window-truncated host text around the selection, sent for rewrite
+    /// quality only — the backend must never store it.
+    public let selectionContextBefore: String?
+    public let selectionContextAfter: String?
 
     public init(
         prompt: String,
@@ -45,7 +53,11 @@ public struct RewriteRequest: Codable, Sendable {
         locale: String,
         appVersion: String,
         candidateCount: Int = 3,
-        refinement: RefinementIntent? = nil
+        refinement: RefinementIntent? = nil,
+        analyticsAppInstanceId: String? = nil,
+        selection: Bool = false,
+        selectionContextBefore: String? = nil,
+        selectionContextAfter: String? = nil
     ) {
         self.prompt = prompt
         self.text = text
@@ -56,6 +68,10 @@ public struct RewriteRequest: Codable, Sendable {
         self.appVersion = appVersion
         self.candidateCount = candidateCount
         self.refinement = refinement
+        self.analyticsAppInstanceId = analyticsAppInstanceId
+        self.selection = selection
+        self.selectionContextBefore = selectionContextBefore
+        self.selectionContextAfter = selectionContextAfter
     }
 }
 
@@ -97,7 +113,18 @@ public struct RewriteResult: Codable, Equatable, Sendable {
     }
 }
 
+public enum CaptureMode: String, Codable, Sendable {
+    /// The window iOS exposes around the cursor; replaced via delete-then-insert.
+    case wholeInput
+    /// Only the user's active selection; replaced via a single `insertText`.
+    case selection
+    /// The whole document stitched by `FullDocumentReader`; replaced by the
+    /// async full-document engine.
+    case fullDocument
+}
+
 public struct WholeInputCapture: Equatable, Codable, Sendable {
+    public let mode: CaptureMode
     public let beforeCursor: String
     public let selectedText: String
     public let afterCursor: String
@@ -108,6 +135,7 @@ public struct WholeInputCapture: Equatable, Codable, Sendable {
     public let capturedAt: Date
 
     public init(
+        mode: CaptureMode,
         beforeCursor: String,
         selectedText: String,
         afterCursor: String,
@@ -117,6 +145,7 @@ public struct WholeInputCapture: Equatable, Codable, Sendable {
         documentIdentifierString: String?,
         capturedAt: Date
     ) {
+        self.mode = mode
         self.beforeCursor = beforeCursor
         self.selectedText = selectedText
         self.afterCursor = afterCursor
@@ -146,12 +175,73 @@ public struct WholeInputCapture: Equatable, Codable, Sendable {
             throw WholeInputCaptureError.tooLong
         }
         return WholeInputCapture(
+            mode: .wholeInput,
             beforeCursor: beforeCursor,
             selectedText: selectedText,
             afterCursor: afterCursor,
             targetText: target,
             moveToEndCharacterCount: afterCursor.count,
             deleteBackwardCharacterCount: target.count,
+            documentIdentifierString: documentIdentifierString,
+            capturedAt: capturedAt
+        )
+    }
+
+    /// Full-document capture: `beforeCursor`/`afterCursor` are the whole
+    /// document as stitched by `FullDocumentReader`, not the truncated proxy
+    /// windows. Replacement goes through the async full-document engine.
+    public static func makeFullDocument(
+        beforeCursor: String,
+        afterCursor: String,
+        documentIdentifierString: String?,
+        maxCharacters: Int,
+        capturedAt: Date = Date()
+    ) throws -> WholeInputCapture {
+        let target = beforeCursor + afterCursor
+        guard !target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw WholeInputCaptureError.empty
+        }
+        guard target.count <= maxCharacters else {
+            throw WholeInputCaptureError.tooLong
+        }
+        return WholeInputCapture(
+            mode: .fullDocument,
+            beforeCursor: beforeCursor,
+            selectedText: "",
+            afterCursor: afterCursor,
+            targetText: target,
+            moveToEndCharacterCount: afterCursor.count,
+            deleteBackwardCharacterCount: target.count,
+            documentIdentifierString: documentIdentifierString,
+            capturedAt: capturedAt
+        )
+    }
+
+    /// Selection-only capture: the target is the highlighted text alone, and
+    /// replacement is a single `insertText` (which natively replaces an active
+    /// selection), so no cursor moves or deletes are needed.
+    public static func makeSelection(
+        beforeCursor: String,
+        selectedText: String,
+        afterCursor: String,
+        documentIdentifierString: String?,
+        maxCharacters: Int,
+        capturedAt: Date = Date()
+    ) throws -> WholeInputCapture {
+        guard !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw WholeInputCaptureError.empty
+        }
+        guard selectedText.count <= maxCharacters else {
+            throw WholeInputCaptureError.tooLong
+        }
+        return WholeInputCapture(
+            mode: .selection,
+            beforeCursor: beforeCursor,
+            selectedText: selectedText,
+            afterCursor: afterCursor,
+            targetText: selectedText,
+            moveToEndCharacterCount: 0,
+            deleteBackwardCharacterCount: 0,
             documentIdentifierString: documentIdentifierString,
             capturedAt: capturedAt
         )

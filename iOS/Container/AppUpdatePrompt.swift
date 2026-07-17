@@ -1,3 +1,4 @@
+import KeyboardPreferences
 import SwiftUI
 import UIKit
 
@@ -38,7 +39,7 @@ enum AppUpdateChecker {
               let response = try? JSONDecoder().decode(LookupResponse.self, from: data),
               let result = response.results.first,
               let appStoreURL = URL(string: result.trackViewUrl),
-              isVersion(result.version, newerThan: installed)
+              AppUpdateNudge.isVersion(result.version, newerThan: installed)
         else { return nil }
 
         if let released = ISO8601DateFormatter().date(from: result.currentVersionReleaseDate),
@@ -47,19 +48,6 @@ enum AppUpdateChecker {
         }
 
         return UpdateInfo(latestVersion: result.version, appStoreURL: appStoreURL)
-    }
-
-    /// Numeric, component-wise compare ("1.0.10" is newer than "1.0.9"), padding
-    /// the shorter side with zeros so "1.1" beats "1.0.9".
-    static func isVersion(_ lhs: String, newerThan rhs: String) -> Bool {
-        let a = lhs.split(separator: ".").map { Int($0) ?? 0 }
-        let b = rhs.split(separator: ".").map { Int($0) ?? 0 }
-        for i in 0..<max(a.count, b.count) {
-            let l = i < a.count ? a[i] : 0
-            let r = i < b.count ? b[i] : 0
-            if l != r { return l > r }
-        }
-        return false
     }
 }
 

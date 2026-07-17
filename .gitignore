@@ -84,6 +84,9 @@ Temporary Items
 
 # Local config
 Config/Local.xcconfig
+# Firebase config — public repo; copy GoogleService-Info.example.plist and
+# fill in the real values from the Firebase console.
+GoogleService-Info.plist
 
 # Supabase
 supabase/.temp/

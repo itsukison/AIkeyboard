@@ -74,7 +74,11 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         urlRequest.timeoutInterval = 10
         urlRequest.httpBody = try? JSONEncoder().encode(
-            SelectionFeedback(eventId: eventId, selectedIndex: selectedIndex)
+            SelectionFeedback(
+                eventId: eventId,
+                selectedIndex: selectedIndex,
+                analyticsAppInstanceId: KeyboardSettingsStore.readAnalyticsAppInstanceId()
+            )
         )
 
         _ = try? await session.data(for: urlRequest)
@@ -101,7 +105,8 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
                 eventId: eventId,
                 action: action,
                 selectedIndex: selectedIndex,
-                latencyMs: latencyMs
+                latencyMs: latencyMs,
+                analyticsAppInstanceId: KeyboardSettingsStore.readAnalyticsAppInstanceId()
             )
         )
 
@@ -151,6 +156,7 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
 private struct SelectionFeedback: Encodable {
     let eventId: String
     let selectedIndex: Int
+    let analyticsAppInstanceId: String?
 }
 
 private struct ActionFeedback: Encodable {
@@ -158,6 +164,7 @@ private struct ActionFeedback: Encodable {
     let action: String
     let selectedIndex: Int?
     let latencyMs: Int?
+    let analyticsAppInstanceId: String?
 }
 
 private struct CloudRewriteErrorPayload: Decodable {

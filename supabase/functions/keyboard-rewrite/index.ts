@@ -25,6 +25,12 @@ type RewriteRequest = {
   appVersion?: string;
   candidateCount?: number;
   refinement?: RefinementIntent;
+  analyticsAppInstanceId?: string;
+  // Selection mode: `text` is a fragment the user highlighted inside a larger
+  // text. The context fields are prompt-only — never log or store them.
+  selection?: boolean;
+  selectionContextBefore?: string;
+  selectionContextAfter?: string;
 };
 
 type RewriteCandidate = {
@@ -37,7 +43,7 @@ type RewriteResult = {
   language: "ja" | "en" | "ko" | "zh" | "mixed";
 };
 
-type ProviderName = "cerebras" | "groq";
+type ProviderName = "azure" | "cerebras" | "groq";
 
 type ProviderResult = {
   provider: ProviderName;
@@ -103,6 +109,7 @@ const DEFAULT_CONSENT_VERSION = "2026-07-02";
 // never from the keyboard extension (memory ceiling + no-network-in-typing-path).
 const POSTHOG_PROJECT_TOKEN_DEFAULT = "phc_rkuAvbqxdVqqG5jZuySrJq8CH4NrYG97Z2B7vv7GXhJw";
 const POSTHOG_HOST_DEFAULT = "https://us.i.posthog.com";
+const GA_FIREBASE_APP_ID_DEFAULT = "1:6299557478:ios:07929a5061fe07dda997a7";
 
 const localUsage = new Map<string, UsageBucket>();
 
@@ -152,6 +159,12 @@ Deno.serve(async (req) => {
     return jsonError("text_too_long", "Text is too long.", 413);
   }
   if (request.replyTo && [...request.replyTo].length > maxChars) {
+    return jsonError("text_too_long", "Text is too long.", 413);
+  }
+  if (request.selectionContextBefore && [...request.selectionContextBefore].length > maxChars) {
+    return jsonError("text_too_long", "Text is too long.", 413);
+  }
+  if (request.selectionContextAfter && [...request.selectionContextAfter].length > maxChars) {
     return jsonError("text_too_long", "Text is too long.", 413);
   }
   if ([...request.prompt].length > MAX_PROMPT_CHARS) {
@@ -248,6 +261,10 @@ function parseRewriteRequest(body: unknown):
   const appVersion = data.appVersion;
   const refinementValue = data.refinement;
   const candidateCountValue = data.candidateCount;
+  const analyticsAppInstanceId = optionalAnalyticsAppInstanceId(data.analyticsAppInstanceId);
+  const selection = data.selection === true;
+  const selectionContextBefore = data.selectionContextBefore;
+  const selectionContextAfter = data.selectionContextAfter;
 
   if (typeof prompt !== "string" || prompt.trim().length === 0) {
     return { error: jsonError("invalid_request", "Prompt is required.", 400) };
@@ -285,11 +302,25 @@ function parseRewriteRequest(body: unknown):
       appVersion: typeof appVersion === "string" ? appVersion : "unknown",
       candidateCount,
       refinement,
+      analyticsAppInstanceId,
+      selection,
+      selectionContextBefore: selection && typeof selectionContextBefore === "string" && selectionContextBefore.length > 0
+        ? selectionContextBefore
+        : undefined,
+      selectionContextAfter: selection && typeof selectionContextAfter === "string" && selectionContextAfter.length > 0
+        ? selectionContextAfter
+        : undefined,
     },
   };
 }
 
-function isFeedbackRequest(body: unknown): body is { eventId: string; selectedIndex: number } {
+type FeedbackEvent = {
+  eventId: string;
+  selectedIndex: number;
+  analyticsAppInstanceId?: string;
+};
+
+function isFeedbackRequest(body: unknown): body is FeedbackEvent {
   if (!body || typeof body !== "object") return false;
   const data = body as Record<string, unknown>;
   return typeof data.eventId === "string" && typeof data.selectedIndex === "number";
@@ -300,7 +331,7 @@ function isFeedbackRequest(body: unknown): body is { eventId: string; selectedIn
 // only annotate their own events. Best-effort: the client does not block on it.
 async function handleFeedback(
   userId: string,
-  body: { eventId: string; selectedIndex: number },
+  body: FeedbackEvent,
 ): Promise<Response> {
   const eventId = body.eventId.trim();
   const selectedIndex = Math.floor(body.selectedIndex);
@@ -349,7 +380,12 @@ async function handleFeedback(
 
   // deno-lint-ignore no-explicit-any
   (globalThis as any).EdgeRuntime?.waitUntil(
-    captureFeedbackAnalytics(userId, eventId, selectedIndex),
+    captureFeedbackAnalytics(
+      userId,
+      eventId,
+      selectedIndex,
+      optionalAnalyticsAppInstanceId(body.analyticsAppInstanceId),
+    ),
   );
   return json({ ok: true });
 }
@@ -360,6 +396,7 @@ const ACTION_TYPES = new Set([
   "copied",
   "dismissed",
   "regenerated",
+  "replace_failed",
 ]);
 
 type ActionEvent = {
@@ -367,6 +404,7 @@ type ActionEvent = {
   action: string;
   selectedIndex?: number;
   latencyMs?: number;
+  analyticsAppInstanceId?: string;
 };
 
 function isActionEvent(body: unknown): body is ActionEvent {
@@ -439,14 +477,25 @@ async function handleActionEvent(
   }
 
   // deno-lint-ignore no-explicit-any
-  (globalThis as any).EdgeRuntime?.waitUntil(
+  (globalThis as any).EdgeRuntime?.waitUntil(Promise.all([
     capturePostHogEvent("ai_rewrite_action", userId, {
       event_id: eventId,
       action: body.action,
       selected_index: selectedIndex,
       latency_ms: latencyMs,
     }),
-  );
+    captureGoogleAnalyticsEvent(
+      "ai_rewrite_action",
+      userId,
+      optionalAnalyticsAppInstanceId(body.analyticsAppInstanceId),
+      {
+        event_id: eventId,
+        action: body.action,
+        selected_index: selectedIndex,
+        latency_ms: latencyMs,
+      },
+    ),
+  ]));
   return json({ ok: true });
 }
 
@@ -592,6 +641,15 @@ async function logRewriteEvent(
     provider: input.provider,
     is_reply: typeof input.request.replyTo === "string" &&
       input.request.replyTo.trim().length > 0,
+    // Selection mode: lengths only. The context text itself is prompt-only and
+    // must never be stored, in any consent branch — promised in the privacy doc.
+    is_selection: input.request.selection === true,
+    selection_context_before_length: input.request.selectionContextBefore
+      ? [...input.request.selectionContextBefore].length
+      : 0,
+    selection_context_after_length: input.request.selectionContextAfter
+      ? [...input.request.selectionContextAfter].length
+      : 0,
     input_length: [...input.request.text].length,
     prompt_length: [...input.request.prompt].length,
     output_length: input.result.candidates.reduce(
@@ -724,8 +782,8 @@ async function hashUserId(userId: string): Promise<string | null> {
     .join("");
 }
 
-// Mirrors each AI rewrite into PostHog as an `ai_rewrite` event so the product
-// dashboard can chart usage and count active users. Server-side by design — the
+// Mirrors each AI rewrite into product analytics so dashboards can chart usage
+// and count active users. Server-side by design — the
 // keyboard extension must never emit analytics. `distinct_id` is the Supabase
 // user id, which is the same id the container app calls PostHog `identify` with,
 // so these events unify onto the same person. Metadata only: no user text leaves
@@ -740,7 +798,7 @@ async function captureRewriteAnalytics(
     latencyMs: number;
   },
 ): Promise<void> {
-  await capturePostHogEvent("ai_rewrite", input.userId, {
+  const properties = {
     event_id: eventId,
     command_key: input.request.commandKey ?? null,
     title: input.request.title ?? null,
@@ -759,20 +817,39 @@ async function captureRewriteAnalytics(
       0,
     ),
     latency_ms: input.latencyMs,
-  });
+  };
+  await Promise.all([
+    capturePostHogEvent("ai_rewrite", input.userId, properties),
+    captureGoogleAnalyticsEvent(
+      "ai_rewrite",
+      input.userId,
+      input.request.analyticsAppInstanceId,
+      properties,
+    ),
+  ]);
 }
 
 // Records the accepted candidate as `ai_rewrite_accepted`, keyed by the
-// originating event_id, so PostHog can compute the rewrite acceptance rate.
+// originating event_id, so analytics can compute the rewrite acceptance rate.
 async function captureFeedbackAnalytics(
   userId: string,
   eventId: string,
   selectedIndex: number,
+  analyticsAppInstanceId?: string,
 ): Promise<void> {
-  await capturePostHogEvent("ai_rewrite_accepted", userId, {
+  const properties = {
     event_id: eventId,
     selected_index: selectedIndex,
-  });
+  };
+  await Promise.all([
+    capturePostHogEvent("ai_rewrite_accepted", userId, properties),
+    captureGoogleAnalyticsEvent(
+      "ai_rewrite_accepted",
+      userId,
+      analyticsAppInstanceId,
+      properties,
+    ),
+  ]);
 }
 
 async function capturePostHogEvent(
@@ -815,15 +892,107 @@ async function capturePostHogEvent(
   }
 }
 
+async function captureGoogleAnalyticsEvent(
+  event: string,
+  userId: string,
+  appInstanceId: string | undefined,
+  properties: Record<string, unknown>,
+): Promise<void> {
+  if (!appInstanceId || (Deno.env.get("GA_ANALYTICS_ENABLED") ?? "true") === "false") {
+    return;
+  }
+  const apiSecret = Deno.env.get("GA_MEASUREMENT_PROTOCOL_API_SECRET");
+  const firebaseAppId = Deno.env.get("GA_FIREBASE_APP_ID") ?? GA_FIREBASE_APP_ID_DEFAULT;
+  if (!apiSecret || !firebaseAppId) return;
+
+  const query = new URLSearchParams({
+    firebase_app_id: firebaseAppId,
+    api_secret: apiSecret,
+  });
+  try {
+    const response = await fetch(`https://www.google-analytics.com/mp/collect?${query}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app_instance_id: appInstanceId,
+        user_id: userId,
+        events: [{
+          name: event,
+          params: {
+            ...googleAnalyticsParameters(properties),
+            // Without engagement_time_msec, GA4 records the event but does
+            // not mark the user active, so retention/DAU miss keyboard-only
+            // users.
+            engagement_time_msec: 100,
+          },
+        }],
+      }),
+    });
+    if (!response.ok) {
+      console.error(JSON.stringify({
+        event: "google_analytics_capture_failed",
+        name: event,
+        httpStatus: response.status,
+        message: (await response.text()).slice(0, 400),
+      }));
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "google_analytics_capture_failed",
+      name: event,
+      message: error instanceof Error ? error.message : "unknown error",
+    }));
+  }
+}
+
+function googleAnalyticsParameters(
+  properties: Record<string, unknown>,
+): Record<string, string | number> {
+  const parameters: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    if (key === "title" || value === null || value === undefined) continue;
+    if (typeof value === "string") {
+      parameters[key] = [...value].slice(0, 100).join("");
+    } else if (typeof value === "number" && Number.isFinite(value)) {
+      parameters[key] = value;
+    } else if (typeof value === "boolean") {
+      parameters[key] = value ? 1 : 0;
+    }
+  }
+  return parameters;
+}
+
+function optionalAnalyticsAppInstanceId(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const identifier = value.trim();
+  return identifier.length > 0 && identifier.length <= 100 ? identifier : undefined;
+}
+
+const ALL_PROVIDERS: ProviderName[] = ["azure", "cerebras", "groq"];
+
+function providerHasKey(provider: ProviderName): boolean {
+  switch (provider) {
+    case "azure":
+      return !!Deno.env.get("AZURE_OPENAI_API_KEY") && !!Deno.env.get("AZURE_OPENAI_ENDPOINT");
+    case "cerebras":
+      return !!Deno.env.get("CEREBRAS_API_KEY");
+    case "groq":
+      return !!Deno.env.get("GROQ_API_KEY");
+  }
+}
+
 function configuredProviders(): ProviderName[] {
-  const primary = Deno.env.get("REWRITE_PROVIDER") === "groq" ? "groq" : "cerebras";
+  const requested = Deno.env.get("REWRITE_PROVIDER");
+  const primary: ProviderName = requested === "azure"
+    ? "azure"
+    : requested === "groq"
+    ? "groq"
+    : "cerebras";
   const fallbackEnabled = (Deno.env.get("REWRITE_PROVIDER_FALLBACK") ?? "true") !== "false";
-  const providers: ProviderName[] = primary === "cerebras" ? ["cerebras", "groq"] : ["groq", "cerebras"];
-  return providers.filter((provider, index) => {
+  const ordered: ProviderName[] = [primary, ...ALL_PROVIDERS.filter((p) => p !== primary)];
+  return ordered.filter((provider, index) => {
     if (index > 0 && !fallbackEnabled) return false;
-    return provider === "cerebras"
-      ? !!Deno.env.get("CEREBRAS_API_KEY")
-      : !!Deno.env.get("GROQ_API_KEY");
+    return providerHasKey(provider);
   });
 }
 
@@ -855,14 +1024,66 @@ async function rewriteWithProviders(
   throw lastError;
 }
 
+type ProviderConfig = {
+  apiKey: string | undefined;
+  model: string;
+  endpoint: string;
+  authHeaders: Record<string, string>;
+  timeoutMs: number;
+  baseTokens: number;
+  reasoningEffort: string | undefined;
+};
+
+// Azure OpenAI differs from the OpenAI-shaped Cerebras/Groq endpoints in two
+// ways: the deployment name lives in the URL path (not the request body) and
+// auth is the `api-key` header, not `Authorization: Bearer`. The api-version is
+// a secret so it can be bumped without a redeploy if a model needs a newer one.
+function resolveProviderConfig(provider: ProviderName): ProviderConfig {
+  if (provider === "azure") {
+    const base = (Deno.env.get("AZURE_OPENAI_ENDPOINT") ?? "").replace(/\/+$/, "");
+    const deployment = Deno.env.get("AZURE_OPENAI_DEPLOYMENT") ?? "gpt-4.1";
+    const apiVersion = Deno.env.get("AZURE_OPENAI_API_VERSION") ?? "2025-04-01-preview";
+    const apiKey = Deno.env.get("AZURE_OPENAI_API_KEY");
+    return {
+      apiKey,
+      model: deployment,
+      endpoint: `${base}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`,
+      authHeaders: { "api-key": apiKey ?? "" },
+      timeoutMs: envInt("AZURE_TIMEOUT_MS", 12000),
+      baseTokens: envInt("AZURE_MAX_OUTPUT_TOKENS", 600),
+      reasoningEffort: Deno.env.get("AZURE_REASONING_EFFORT") || undefined,
+    };
+  }
+  if (provider === "cerebras") {
+    const apiKey = Deno.env.get("CEREBRAS_API_KEY");
+    return {
+      apiKey,
+      model: Deno.env.get("CEREBRAS_MODEL") ?? "gpt-oss-120b",
+      endpoint: Deno.env.get("CEREBRAS_CHAT_COMPLETIONS_URL") ?? "https://api.cerebras.ai/v1/chat/completions",
+      authHeaders: { "Authorization": `Bearer ${apiKey ?? ""}` },
+      timeoutMs: envInt("CEREBRAS_TIMEOUT_MS", 8000),
+      baseTokens: envInt("CEREBRAS_MAX_OUTPUT_TOKENS", 600),
+      reasoningEffort: Deno.env.get("CEREBRAS_REASONING_EFFORT") || undefined,
+    };
+  }
+  const apiKey = Deno.env.get("GROQ_API_KEY");
+  return {
+    apiKey,
+    model: Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-120b",
+    endpoint: Deno.env.get("GROQ_CHAT_COMPLETIONS_URL") ?? "https://api.groq.com/openai/v1/chat/completions",
+    authHeaders: { "Authorization": `Bearer ${apiKey ?? ""}` },
+    timeoutMs: envInt("GROQ_TIMEOUT_MS", 8000),
+    baseTokens: envInt("GROQ_MAX_OUTPUT_TOKENS", 600),
+    reasoningEffort: Deno.env.get("GROQ_REASONING_EFFORT") || undefined,
+  };
+}
+
 async function rewriteWithProvider(
   provider: ProviderName,
   request: RewriteRequest,
 ): Promise<RewriteResult> {
-  const apiKey = provider === "cerebras"
-    ? Deno.env.get("CEREBRAS_API_KEY")
-    : Deno.env.get("GROQ_API_KEY");
-  if (!apiKey) {
+  const config = resolveProviderConfig(provider);
+  if (!config.apiKey) {
     throw new ProviderError(
       provider,
       "provider_error",
@@ -871,32 +1092,23 @@ async function rewriteWithProvider(
     );
   }
 
-  const model = provider === "cerebras"
-    ? Deno.env.get("CEREBRAS_MODEL") ?? "gpt-oss-120b"
-    : Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-120b";
   const candidateCount = request.candidateCount ?? DEFAULT_CANDIDATES;
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    provider === "cerebras" ? envInt("CEREBRAS_TIMEOUT_MS", 8000) : envInt("GROQ_TIMEOUT_MS", 8000),
-  );
+  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
-  const baseTokens = provider === "cerebras"
-    ? envInt("CEREBRAS_MAX_OUTPUT_TOKENS", 600)
-    : envInt("GROQ_MAX_OUTPUT_TOKENS", 600);
-  const maxCompletionTokens = baseTokens * candidateCount;
-  const reasoningEffort = provider === "cerebras"
-    ? Deno.env.get("CEREBRAS_REASONING_EFFORT")
-    : Deno.env.get("GROQ_REASONING_EFFORT");
+  const maxCompletionTokens = config.baseTokens * candidateCount;
+  const reasoningEffort = config.reasoningEffort;
 
   const isReply = typeof request.replyTo === "string" && request.replyTo.trim().length > 0;
   const body: Record<string, unknown> = {
-    model,
+    model: config.model,
     messages: [
       {
         role: "system",
         content: isReply
           ? systemInstructionsForReply(candidateCount)
+          : request.selection
+          ? systemInstructionsForSelection(candidateCount)
           : systemInstructions(candidateCount),
       },
       { role: "user", content: userPrompt(request) },
@@ -916,17 +1128,13 @@ async function rewriteWithProvider(
     body.reasoning_effort = reasoningEffort;
   }
 
-  const endpoint = provider === "cerebras"
-    ? Deno.env.get("CEREBRAS_CHAT_COMPLETIONS_URL") ?? "https://api.cerebras.ai/v1/chat/completions"
-    : Deno.env.get("GROQ_CHAT_COMPLETIONS_URL") ?? "https://api.groq.com/openai/v1/chat/completions";
-
   let response: Response;
   try {
-    response = await fetch(endpoint, {
+    response = await fetch(config.endpoint, {
       method: "POST",
       signal: controller.signal,
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        ...config.authHeaders,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -1070,6 +1278,30 @@ function systemInstructions(candidateCount: number): string {
   ].join("\n");
 }
 
+function systemInstructionsForSelection(candidateCount: number): string {
+  const candidateInstruction = candidateCount === 3
+    ? [
+      "Return exactly 3 candidate rewrites in this fixed order:",
+      "1. Standard: balanced and natural for the requested command.",
+      "2. Slightly softer: warmer and a little more casual, without slang.",
+      "3. Slightly more polite: one notch more courteous, without becoming stiff.",
+      "Keep the differences subtle unless the command or refinement explicitly asks for a stronger change.",
+      "Avoid near-duplicates.",
+    ].join("\n")
+    : `Return exactly ${candidateCount} distinct candidate rewrites that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`;
+
+  return [
+    "You are a Japanese mobile keyboard writing assistant.",
+    "The target text is a fragment the user selected inside a larger text. Apply the user-supplied command instruction to the fragment only.",
+    "Rewrite the fragment so it fits seamlessly where it stands: match its grammatical role, and continue naturally from <context_before> into <context_after> when they are provided. The fragment may start or end mid-sentence — keep it that way.",
+    "Never rewrite, repeat, or complete the surrounding context. Never add greetings, closings, or sentence endings that belong to the surrounding text.",
+    "Preserve meaning, names, numbers, URLs, dates, and emoji. Preserve line breaks unless the command explicitly asks to restructure or format the text.",
+    "Do not add explanations, markdown, quotes, commentary, or unsupported facts.",
+    candidateInstruction,
+    "Return strict JSON matching the schema.",
+  ].join("\n");
+}
+
 function systemInstructionsForReply(candidateCount: number): string {
   const candidateInstruction = candidateCount === 3
     ? [
@@ -1110,6 +1342,14 @@ function userPrompt(request: RewriteRequest): string {
   if (isReply) {
     lines.push("Received message to reply to:", "<reply_to>", request.replyTo as string, "</reply_to>");
     lines.push("User's draft/intent for the reply (may be empty):", "<target>", request.text, "</target>");
+  } else if (request.selection) {
+    if (request.selectionContextBefore) {
+      lines.push("Text immediately before the fragment (do not rewrite):", "<context_before>", request.selectionContextBefore, "</context_before>");
+    }
+    if (request.selectionContextAfter) {
+      lines.push("Text immediately after the fragment (do not rewrite):", "<context_after>", request.selectionContextAfter, "</context_after>");
+    }
+    lines.push("Target fragment (selected inside a larger text):", "<target>", request.text, "</target>");
   } else {
     lines.push("Target text:", "<target>", request.text, "</target>");
   }

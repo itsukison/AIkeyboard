@@ -61,6 +61,18 @@ final class KeyboardSettingsStoreTests: XCTestCase {
         XCTAssertTrue(KeyboardSettingsStore.readZenzaiEnabled(defaults: defaults))
     }
 
+    func testKeyClickSoundEnabledDefaultsToTrue() {
+        XCTAssertTrue(KeyboardSettingsStore.readKeyClickSoundEnabled(defaults: defaults))
+    }
+
+    func testKeyClickSoundEnabledRoundTrip() {
+        KeyboardSettingsStore.writeKeyClickSoundEnabled(false, defaults: defaults)
+        XCTAssertFalse(KeyboardSettingsStore.readKeyClickSoundEnabled(defaults: defaults))
+
+        KeyboardSettingsStore.writeKeyClickSoundEnabled(true, defaults: defaults)
+        XCTAssertTrue(KeyboardSettingsStore.readKeyClickSoundEnabled(defaults: defaults))
+    }
+
     func testZenzaiEnabledRoundTrip() {
         KeyboardSettingsStore.writeZenzaiEnabled(false, defaults: defaults)
         XCTAssertFalse(KeyboardSettingsStore.readZenzaiEnabled(defaults: defaults))
@@ -92,6 +104,32 @@ final class KeyboardSettingsStoreTests: XCTestCase {
 
     func testZenzaiAutoDisableDefaultsToFalse() {
         XCTAssertFalse(KeyboardSettingsStore.isZenzaiAutoDisabled(currentBuild: "12", defaults: defaults))
+    }
+
+    func testAnalyticsAppInstanceIdRoundTrip() {
+        XCTAssertNil(KeyboardSettingsStore.readAnalyticsAppInstanceId(defaults: defaults))
+
+        KeyboardSettingsStore.writeAnalyticsAppInstanceId("analytics-instance", defaults: defaults)
+
+        XCTAssertEqual(
+            KeyboardSettingsStore.readAnalyticsAppInstanceId(defaults: defaults),
+            "analytics-instance"
+        )
+    }
+
+    func testPendingOnboardingPromptEntriesRoundTripAndClear() {
+        let entries = UserPromptDefaults.seedEntries()
+
+        KeyboardSettingsStore.writePendingOnboardingPromptEntries(entries, defaults: defaults)
+
+        XCTAssertEqual(
+            KeyboardSettingsStore.readPendingOnboardingPromptEntries(defaults: defaults),
+            entries
+        )
+
+        KeyboardSettingsStore.clearPendingOnboardingPromptEntries(defaults: defaults)
+
+        XCTAssertNil(KeyboardSettingsStore.readPendingOnboardingPromptEntries(defaults: defaults))
     }
 
     func testKeySizeObserverReadsStoreOnInit() {

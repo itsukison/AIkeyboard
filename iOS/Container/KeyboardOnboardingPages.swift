@@ -1,3 +1,4 @@
+import KeyboardKit
 import KeyboardPreferences
 import SwiftUI
 import UIKit
@@ -66,6 +67,10 @@ struct KeyboardSetupPage: View {
     let onContinue: () -> Void
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
+    @State private var didOpenSettings = false
+    @State private var showNotEnabledHint = false
 
     var body: some View {
         OnboardingScaffold(
@@ -75,7 +80,7 @@ struct KeyboardSetupPage: View {
             onSkip: onSkip,
             ctaTitle: "設定を開く",
             isCtaEnabled: true,
-            onCta: openAndAdvance
+            onCta: openSettings
         ) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 24) {
@@ -100,6 +105,16 @@ struct KeyboardSetupPage: View {
                     SettingsMockCard()
                         .padding(.top, 8)
 
+                    if showNotEnabledHint {
+                        Text("まだ追加されていないようです。「設定を開く」→「キーボード」から「敬語ボタン」をオンにしてください。")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(OnboardingPalette.danger)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 8)
+                    }
+
                     Button("追加済みなので次へ") {
                         onContinue()
                     }
@@ -111,13 +126,25 @@ struct KeyboardSetupPage: View {
                 .padding(.bottom, 16)
             }
         }
+        .onChange(of: scenePhase) { phase in
+            // Only react after the user actually went to Settings, so an
+            // unrelated backgrounding (call, app switch) can't jump the page.
+            guard phase == .active, didOpenSettings else { return }
+            keyboardStatus.refresh()
+            if keyboardStatus.isKeyboardEnabled {
+                didOpenSettings = false
+                onContinue()
+            } else {
+                showNotEnabledHint = true
+            }
+        }
     }
 
-    private func openAndAdvance() {
+    private func openSettings() {
+        didOpenSettings = true
         if let url = URL(string: UIApplication.openSettingsURLString) {
             openURL(url)
         }
-        onContinue()
     }
 }
 
@@ -473,10 +500,29 @@ private struct KeyboardReplyMockCard: View {
 
 // MARK: - Prompts customization page
 
+private func onboardingOrderedPrompts(_ raw: [UserPrompt]) -> [UserPrompt] {
+    let mains = raw.filter { $0.slot == .main }.sorted { $0.sortOrder < $1.sortOrder }
+    let subs = raw.filter { $0.slot == .sub }.sorted { $0.sortOrder < $1.sortOrder }
+    return mains + subs
+}
+
+private func onboardingNormalizedPrompts(_ ordered: [UserPrompt]) -> [UserPrompt] {
+    var result = ordered
+    for index in result.indices {
+        result[index].slot = index == 0 ? .main : .sub
+        result[index].sortOrder = max(0, index - 1)
+        if index == 0 { result[index].isEnabled = true }
+    }
+    return result
+}
+
 struct KeyboardPromptsPage: View {
     let progress: Double
     let onBack: () -> Void
     let onContinue: () -> Void
+
+    @State private var entries: [UserPrompt] = OnboardingPromptSetup.load()
+    @State private var editorEntry: UserPrompt?
 
     var body: some View {
         OnboardingScaffold(
@@ -488,32 +534,314 @@ struct KeyboardPromptsPage: View {
             isCtaEnabled: true,
             onCta: onContinue
         ) {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 24) {
-                    VStack(spacing: 14) {
-                        Text("ボタンは自由に\nカスタマイズできる。")
-                            .font(.system(size: 30, weight: .medium))
-                            .foregroundStyle(OnboardingPalette.ink)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 16) {
+                VStack(spacing: 14) {
+                    Text("ボタンは自由に\nカスタマイズできる。")
+                        .font(.system(size: 30, weight: .medium))
+                        .foregroundStyle(OnboardingPalette.ink)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                        Text("「敬語」ボタンの変換のしかたを変えたり、よく使う言い換えを自分のボタンとして追加できます。設定の「プロンプト」からいつでも編集できます。")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(OnboardingPalette.subInk)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 4)
-                    }
-                    .padding(.top, 28)
-
-                    PromptsCustomizeMock()
-                        .padding(.top, 8)
+                    Text("すべてのボタンを編集できます。一番上がメインボタンになり、長押しで並び替えできます。")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(OnboardingPalette.subInk)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 4)
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 16)
+                .padding(.top, 24)
+
+                List {
+                    Section {
+                        ForEach(entries) { entry in
+                            OnboardingPromptRow(
+                                entry: entry,
+                                isMain: entry.id == entries.first?.id,
+                                onTap: { editorEntry = entry }
+                            )
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(AppColor.surface)
+                            .listRowSeparatorTint(AppColor.rule.opacity(0.35))
+                        }
+                        .onMove(perform: moveEntries)
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .scrollIndicators(.hidden)
+                .background(ReorderLiftTuner())
             }
+        }
+        .onAppear {
+            entries = OnboardingPromptSetup.load()
+        }
+        .sheet(item: $editorEntry) { entry in
+            OnboardingPromptEditorSheet(
+                entry: entry,
+                onSave: { updated in
+                    saveEntry(updated)
+                    editorEntry = nil
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(32)
+            .presentationBackground(OnboardingPalette.background)
+        }
+    }
+
+    private func moveEntries(from source: IndexSet, to destination: Int) {
+        var reordered = entries
+        reordered.move(fromOffsets: source, toOffset: destination)
+        let normalized = onboardingNormalizedPrompts(reordered)
+        entries = normalized
+        OnboardingPromptSetup.save(normalized)
+        AppAnalytics.capture("onboarding_prompt_reordered")
+    }
+
+    private func saveEntry(_ updated: UserPrompt) {
+        guard let index = entries.firstIndex(where: { $0.id == updated.id }) else { return }
+        entries[index] = updated
+        let normalized = onboardingNormalizedPrompts(entries)
+        entries = normalized
+        OnboardingPromptSetup.save(normalized)
+    }
+}
+
+/// Guest-local read/write for onboarding prompt edits. The keyboard reads the
+/// same App Group prompt cache immediately, and `UserSession.signUp` carries
+/// this pending set up to the new account before the server cache refresh.
+private enum OnboardingPromptSetup {
+    static func load() -> [UserPrompt] {
+        if let pending = KeyboardSettingsStore.readPendingOnboardingPromptEntries(), !pending.isEmpty {
+            return onboardingOrderedPrompts(pending)
+        }
+        let stored = UserPromptStore.readEntries()
+        if !stored.isEmpty {
+            return onboardingOrderedPrompts(stored)
+        }
+        let seeded = UserPromptDefaults.seedEntries()
+        UserPromptStore.writeEntries(seeded)
+        return onboardingOrderedPrompts(seeded)
+    }
+
+    static func save(_ entries: [UserPrompt]) {
+        let normalized = onboardingNormalizedPrompts(entries)
+        UserPromptStore.writeEntries(normalized)
+        if isDefaultPromptSet(normalized) {
+            KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
+            KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
+        } else {
+            KeyboardSettingsStore.writePendingOnboardingPromptEntries(normalized)
+            if let main = normalized.first {
+                KeyboardSettingsStore.writePendingOnboardingMainPrompt(title: main.title, prompt: main.prompt)
+            }
+            AppAnalytics.capture("onboarding_prompts_customized")
+        }
+    }
+
+    static func defaultEntry(for entry: UserPrompt) -> UserPrompt? {
+        guard
+            let key = entry.builtinKey,
+            let title = UserPromptDefaults.defaultTitle(for: key),
+            let prompt = UserPromptDefaults.defaultPrompt(for: key)
+        else { return nil }
+        var reset = entry
+        reset.title = title
+        reset.prompt = prompt
+        reset.updatedAt = Date()
+        return reset
+    }
+
+    private static func isDefaultPromptSet(_ entries: [UserPrompt]) -> Bool {
+        let current = onboardingNormalizedPrompts(onboardingOrderedPrompts(entries))
+        let defaults = onboardingNormalizedPrompts(onboardingOrderedPrompts(UserPromptDefaults.seedEntries()))
+        guard current.count == defaults.count else { return false }
+        return zip(current, defaults).allSatisfy { lhs, rhs in
+            lhs.slot == rhs.slot
+                && lhs.builtinKey == rhs.builtinKey
+                && lhs.title == rhs.title
+                && lhs.prompt == rhs.prompt
+                && lhs.isEnabled == rhs.isEnabled
+                && lhs.sortOrder == rhs.sortOrder
+        }
+    }
+}
+
+/// Prompt row rendered like the real Prompts screen, with a drag affordance.
+private struct OnboardingPromptRow: View {
+    let entry: UserPrompt
+    let isMain: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .center, spacing: BikeyMetrics.Spacing.s) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(verbatim: entry.title)
+                            .bikeyFont(17, weight: .medium, relativeTo: .body)
+                            .foregroundStyle(AppColor.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                        Text(isMain ? "メイン" : "追加")
+                            .bikeyFont(11, weight: .medium, relativeTo: .caption)
+                            .foregroundStyle(AppColor.purple)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(AppColor.purple.opacity(0.1), in: Capsule())
+                    }
+
+                    Text(verbatim: entry.prompt)
+                        .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                        .foregroundStyle(AppColor.muted)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(AppColor.softText)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m + 4)
+            .padding(.vertical, BikeyMetrics.Spacing.m - 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Compact prompt editor for onboarding: title + prompt, keep-default via
+/// デフォルトに戻す. Mirrors the in-app editor's shape without depending on it.
+private struct OnboardingPromptEditorSheet: View {
+    let entry: UserPrompt
+    let onSave: (UserPrompt) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var title: String
+    @State private var prompt: String
+
+    private let promptCharLimit = 1000
+
+    init(entry: UserPrompt, onSave: @escaping (UserPrompt) -> Void) {
+        self.entry = entry
+        self.onSave = onSave
+        _title = State(initialValue: entry.title)
+        _prompt = State(initialValue: entry.prompt)
+    }
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && prompt.count <= promptCharLimit
+    }
+
+    private var isDefault: Bool {
+        guard let defaultEntry = OnboardingPromptSetup.defaultEntry(for: entry) else { return false }
+        return title == defaultEntry.title && prompt == defaultEntry.prompt
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("キャンセル") { dismiss() }
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(OnboardingPalette.ink)
+                Spacer()
+                Button("これにする") {
+                    var updated = entry
+                    updated.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                    updated.prompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+                    updated.updatedAt = Date()
+                    onSave(updated)
+                }
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(canSave ? AppColor.purple : OnboardingPalette.subInk)
+                .disabled(!canSave)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(verbatim: "「\(entry.title)」ボタン")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(OnboardingPalette.ink)
+                        .padding(.top, 8)
+
+                    field(label: "ボタン名") {
+                        TextField("敬語", text: $title)
+                            .font(.system(size: 16, weight: .regular))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 52)
+                            .onChange(of: title) { newValue in
+                                if newValue.count > 24 { title = String(newValue.prefix(24)) }
+                            }
+                    }
+
+                    field(label: "書き換え方（AIへの指示）") {
+                        TextEditor(text: $prompt)
+                            .font(.system(size: 15, weight: .regular))
+                            .scrollContentBackground(.hidden)
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(minHeight: 180)
+                            .onChange(of: prompt) { newValue in
+                                if newValue.count > promptCharLimit {
+                                    prompt = String(newValue.prefix(promptCharLimit))
+                                }
+                            }
+                    }
+
+                    if !isDefault {
+                        Button {
+                            guard let defaultEntry = OnboardingPromptSetup.defaultEntry(for: entry) else { return }
+                            title = defaultEntry.title
+                            prompt = defaultEntry.prompt
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .font(.system(size: 14, weight: .regular))
+                                Text("デフォルトに戻す")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundStyle(OnboardingPalette.ink)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(OnboardingPalette.fieldFill, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .background(OnboardingPalette.background.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func field<Content: View>(label: String, @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(verbatim: label)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(OnboardingPalette.subInk)
+            content()
+                .background(OnboardingPalette.fieldFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(OnboardingPalette.fieldStroke.opacity(0.5), lineWidth: 0.6)
+                )
         }
     }
 }
@@ -2012,10 +2340,489 @@ struct ZenzaiFeatureSheet: View {
     }
 }
 
+// MARK: - Commercial data-use re-consent (existing users)
+//
+// Shown once to users who onboarded before the commercial opt-in checkbox
+// existed (1.0.9), so they never saw the question. Genuine opt-in: declining
+// (今回は見送る / 閉じる / drag-dismiss) records nothing server-side, and the
+// disclosure copy mirrors the onboarding checkbox word-for-word so both paths
+// stay on consent version 2026-07-02. New users answer in onboarding and
+// never see this — completeOnboarding marks it seen.
+
+struct CommercialConsentFeatureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onOptIn: () -> Void
+    let onDecline: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    onDecline()
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(AppColor.surface, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("ご協力のお願い")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("日本語AIの改善に、\n力を貸してください。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可いただけますか。同意は任意です。同意しなくても、すべての機能をこれまで通りご利用いただけます。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "eye.slash", text: "氏名・連絡先などは自動で匿名化")
+                        ReplyFeaturePoint(icon: "checkmark.shield", text: "同意は任意、設定からいつでも取り消し可能")
+                        ReplyFeaturePoint(icon: "sparkles", text: "将来的に変換精度の改善につながる可能性")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            VStack(spacing: 10) {
+                Button {
+                    onOptIn()
+                    dismiss()
+                } label: {
+                    Text("同意して協力する")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(AppColor.charcoalAction, in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onDecline()
+                    dismiss()
+                } label: {
+                    Text("今回は見送る")
+                        .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                        .foregroundStyle(AppColor.muted)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 34)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
+// MARK: - Selective rewrite announcement (existing users)
+//
+// Shown once when highlight-to-rewrite lands. The feature needs no setup, so
+// the CTA just dismisses. Mirrors the other feature sheets' scaffold; the mock
+// depicts selecting a phrase and rewriting only that part.
+
+struct SelectionRewriteFeatureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(AppColor.surface, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("新機能")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("気になる部分だけ、\nAIで書き直す。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("文章の一部を選択してAIボタンを押すと、選んだところだけを書き直します。前後の文章はそのまま、自然につながるように整えます。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    SelectionRewriteMock()
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "character.cursor.ibeam", text: "書き直したい部分を選択（ハイライト）")
+                        ReplyFeaturePoint(icon: "sparkles", text: "AIボタンを押すと、その部分だけを書き直し")
+                        ReplyFeaturePoint(icon: "text.alignleft", text: "選択しなければ、これまで通り全体を書き直し")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            Button {
+                dismiss()
+            } label: {
+                Text("使ってみる")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(AppColor.charcoalAction, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
+/// Depicts selecting a phrase inside a sentence and rewriting only that part:
+/// the phrase highlights, the AI pill presses, then just the selected words
+/// cross-fade to a polished form while the surrounding text stays put.
+private struct SelectionRewriteMock: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var selected = false
+    @State private var thinking = false
+    @State private var rewritten = false
+    @State private var pressPill = false
+
+    private let leading = "会議の件、"
+    private let original = "あとで返すね"
+    private let polished = "後ほどご返信します"
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 0) {
+                Text(leading)
+                    .foregroundStyle(AppColor.ink)
+                Text(rewritten ? polished : original)
+                    .foregroundStyle(AppColor.ink)
+                    .contentTransition(.opacity)
+                    .padding(.horizontal, selected ? 4 : 0)
+                    .padding(.vertical, selected ? 1 : 0)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(AppColor.purple.opacity(selected ? 0.20 : 0))
+                    )
+                Spacer(minLength: 0)
+            }
+            .bikeyFont(16, weight: .regular, relativeTo: .body)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(AppColor.rule.opacity(0.4), lineWidth: 1)
+            )
+
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .medium))
+                Text("敬語")
+                    .bikeyFont(14, weight: .medium, relativeTo: .footnote)
+            }
+            .foregroundStyle(thinking ? .white : AppColor.ink)
+            .padding(.horizontal, 18)
+            .frame(height: 40)
+            .background(Capsule().fill(thinking ? AppColor.charcoalAction : AppColor.surface))
+            .overlay(Capsule().strokeBorder(AppColor.rule.opacity(0.4), lineWidth: thinking ? 0 : 1))
+            .scaleEffect(pressPill ? 0.92 : 1.0)
+            .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(AppColor.surfaceElevated))
+        .task(id: reduceMotion) { await loop() }
+    }
+
+    @MainActor
+    private func loop() async {
+        guard !reduceMotion else {
+            selected = false
+            thinking = false
+            rewritten = true
+            return
+        }
+        while !Task.isCancelled {
+            withAnimation(.easeOut(duration: 0.3)) {
+                rewritten = false
+                selected = false
+                thinking = false
+                pressPill = false
+            }
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { selected = true }
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                pressPill = true
+                thinking = true
+            }
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { pressPill = false }
+            try? await Task.sleep(nanoseconds: 650_000_000)
+            withAnimation(.easeInOut(duration: 0.45)) {
+                rewritten = true
+                selected = false
+                thinking = false
+            }
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+        }
+    }
+}
+
+// MARK: - Prompt organization announcement (existing users)
+//
+// Shown once when drag-to-reorder + delete land. Existing users already saw
+// `PromptsFeatureSheet` (edit / add); this one announces the organizational
+// freedom. CTA jumps to the Prompts tab.
+
+struct PromptOrganizeFeatureSheet: View {
+    let onOpen: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("閉じる")
+                        .bikeyFont(15, weight: .medium, relativeTo: .body)
+                        .foregroundStyle(AppColor.ink)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .background(AppColor.surface, in: Capsule())
+                        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BikeyMetrics.Spacing.m)
+            .padding(.top, BikeyMetrics.Spacing.m)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("新機能")
+                            .bikeyFont(11, weight: .semibold, relativeTo: .caption2)
+                            .foregroundStyle(AppColor.purple)
+                            .tracking(0.6)
+                            .padding(.horizontal, 10)
+                            .frame(height: 24)
+                            .background(AppColor.paleLavender.opacity(0.85), in: Capsule())
+
+                        Text("ボタンは、\n好きな順番に。")
+                            .bikeyFont(24, weight: .medium, relativeTo: .title2)
+                            .foregroundStyle(AppColor.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("AIボタンをドラッグして並べ替えたり、使わないボタンを削除したり。自分の使い方に合わせて自由に整理できます。")
+                            .bikeyFont(14, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    PromptOrganizeMock()
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ReplyFeaturePoint(icon: "arrow.up.arrow.down", text: "ドラッグでボタンを並べ替え")
+                        ReplyFeaturePoint(icon: "trash", text: "使わないボタンは削除")
+                        ReplyFeaturePoint(icon: "pencil", text: "変換内容もいつでも編集")
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, BikeyMetrics.Spacing.l)
+                .padding(.top, BikeyMetrics.Spacing.l)
+                .padding(.bottom, BikeyMetrics.Spacing.l)
+            }
+
+            Button {
+                onOpen()
+                dismiss()
+            } label: {
+                Text("プロンプトを整理する")
+                    .bikeyFont(15, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(AppColor.charcoalAction, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Spacing.m)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
+/// Depicts drag-to-reorder: a row lifts with a shadow, slides above its
+/// neighbour, then settles — looping so the gesture reads at a glance.
+private struct PromptOrganizeMock: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private struct Item: Identifiable, Equatable {
+        let id: String
+        let title: String
+        let detail: String
+    }
+
+    private static let base: [Item] = [
+        .init(id: "keigo", title: "敬語", detail: "丁寧でやわらかい敬語に。"),
+        .init(id: "soft", title: "やさしく", detail: "もっとやわらかい言い方に。"),
+        .init(id: "short", title: "短く", detail: "要点だけ簡潔に。"),
+    ]
+    private static let reordered: [Item] = [base[0], base[2], base[1]]
+
+    @State private var items: [Item] = PromptOrganizeMock.base
+    @State private var lifted: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(items) { item in
+                row(item)
+                if item.id != items.last?.id {
+                    Rectangle()
+                        .fill(AppColor.rule.opacity(0.35))
+                        .frame(height: 0.5)
+                        .padding(.leading, BikeyMetrics.Spacing.m + 4)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
+        .task(id: reduceMotion) { await loop() }
+    }
+
+    private func row(_ item: Item) -> some View {
+        let isLifted = lifted == item.id
+        return HStack(spacing: BikeyMetrics.Spacing.s) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(verbatim: item.title)
+                    .bikeyFont(17, weight: .medium, relativeTo: .body)
+                    .foregroundStyle(AppColor.ink)
+                Text(verbatim: item.detail)
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(isLifted ? AppColor.purple : AppColor.softText)
+        }
+        .padding(.horizontal, BikeyMetrics.Spacing.m + 4)
+        .padding(.vertical, BikeyMetrics.Spacing.m - 2)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(isLifted ? AppColor.surfaceElevated : Color.clear)
+        )
+        .scaleEffect(isLifted ? 1.03 : 1.0)
+        .shadow(color: .black.opacity(isLifted ? 0.12 : 0), radius: 10, x: 0, y: 5)
+        .zIndex(isLifted ? 1 : 0)
+    }
+
+    @MainActor
+    private func loop() async {
+        guard !reduceMotion else {
+            items = PromptOrganizeMock.reordered
+            return
+        }
+        while !Task.isCancelled {
+            items = PromptOrganizeMock.base
+            lifted = nil
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { lifted = "short" }
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                items = PromptOrganizeMock.reordered
+            }
+            try? await Task.sleep(nanoseconds: 550_000_000)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { lifted = nil }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Setup page") {
     KeyboardSetupPage(progress: 0.66, onBack: {}, onSkip: nil, onContinue: {})
+}
+
+#Preview("Selection rewrite sheet") {
+    SelectionRewriteFeatureSheet()
+}
+
+#Preview("Prompt organize sheet") {
+    PromptOrganizeFeatureSheet(onOpen: {})
 }
 
 #Preview("Flick feature sheet") {

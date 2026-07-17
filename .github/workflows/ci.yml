@@ -35,6 +35,11 @@ jobs:
       - name: Create local config from example
         run: cp Config/Local.example.xcconfig Config/Local.xcconfig
 
+      # Same story for the gitignored GoogleService-Info.plist (public repo):
+      # project.yml lists it as a target source, so the build needs a stand-in.
+      - name: Create Firebase config from example
+        run: cp GoogleService-Info.example.plist GoogleService-Info.plist
+
       - name: Generate project
         run: xcodegen generate
 

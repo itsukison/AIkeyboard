@@ -39,7 +39,12 @@ public struct CandidateBar: View {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
-                        ForEach(Array(inputManager.candidates.enumerated()), id: \.element.id) { index, candidate in
+                        // Keyed by position, not Candidate.id: the id embeds the
+                        // kana reading, so every keystroke re-identified all rows
+                        // and tore down/recreated their UIKit tap surfaces — the
+                        // churn that cancels an in-flight toolbar touch. Position
+                        // keys update rows in place instead.
+                        ForEach(Array(inputManager.candidates.enumerated()), id: \.offset) { index, candidate in
                             CandidateButton(
                                 candidate: candidate,
                                 isSelected: index == inputManager.selectedCandidateIndex,
@@ -73,18 +78,22 @@ public struct CandidateBar: View {
                 .opacity(0.4)
 
             // Native ∧ expander: opens the full-candidate grid. Lives outside
-            // the scroll so it stays pinned at the trailing edge.
-            Button {
-                onTriggerHaptic()
-                inputManager.expandCandidateList()
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 44, height: KeyboardChromeMetrics.toolbarHeight)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            // the scroll so it stays pinned at the trailing edge. Fires via the
+            // same UIKit tap surface as the candidate cells: a SwiftUI Button
+            // here drops presses in the keyboard's hosted toolbar on iOS 26
+            // (same failure the cells had before CandidateTapSurface).
+            Image(systemName: "chevron.down")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 44, height: KeyboardChromeMetrics.toolbarHeight)
+                .contentShape(Rectangle())
+                .overlay {
+                    CandidateTapSurface(label: "chevron", onTap: {
+                        NSLog("🔽 chevron tap surface fired")
+                        onTriggerHaptic()
+                        inputManager.expandCandidateList()
+                    })
+                }
         }
         .frame(height: KeyboardChromeMetrics.toolbarHeight)
     }
@@ -92,7 +101,8 @@ public struct CandidateBar: View {
     private var predictionScroll: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 0) {
-                ForEach(Array(inputManager.predictionSuggestions.enumerated()), id: \.element.id) { index, candidate in
+                // Position-keyed for the same reason as the candidate rows above.
+                ForEach(Array(inputManager.predictionSuggestions.enumerated()), id: \.offset) { index, candidate in
                     CandidateButton(
                         candidate: candidate,
                         isSelected: false,
@@ -140,11 +150,12 @@ private struct CandidateButton: View {
     }
 }
 
-private struct CandidateTapSurface: UIViewRepresentable {
+struct CandidateTapSurface: UIViewRepresentable {
+    var label: String = "cell"
     let onTap: () -> Void
 
     func makeUIView(context: Context) -> CandidateTapSurfaceView {
-        CandidateTapSurfaceView(onTap: onTap)
+        CandidateTapSurfaceView(label: label, onTap: onTap)
     }
 
     func updateUIView(_ view: CandidateTapSurfaceView, context: Context) {
@@ -152,39 +163,78 @@ private struct CandidateTapSurface: UIViewRepresentable {
     }
 }
 
-final class CandidateTapSurfaceView: UIView, UIGestureRecognizerDelegate {
+final class CandidateTapSurfaceView: UIView {
     var onTap: () -> Void
+    private let label: String
+    private var touchStart: CGPoint?
 
-    init(onTap: @escaping () -> Void) {
+    /// Taps are recognized from raw touch events, not a UITapGestureRecognizer:
+    /// in the keyboard's hosted toolbar, recognizer arbitration (the same
+    /// iOS 26 behavior that drops SwiftUI Button presses there) can silently
+    /// fail the tap even though the touch was delivered to this view. Raw
+    /// touchesEnded only misses when UIKit cancels the touch outright — e.g.
+    /// the candidate scroll's pan claiming a swipe — which is exactly when a
+    /// tap must not fire. Movement beyond this slop reads as a swipe.
+    private static let maximumTapMovement: CGFloat = 12
+
+    init(label: String = "cell", onTap: @escaping () -> Void) {
+        self.label = label
         self.onTap = onTap
         super.init(frame: .zero)
         backgroundColor = .clear
-
-        let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        recognizer.cancelsTouchesInView = false
-        recognizer.delegate = self
-        addGestureRecognizer(recognizer)
+        isMultipleTouchEnabled = false
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-        otherGestureRecognizer is UIPanGestureRecognizer
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        guard let point = touches.first?.location(in: self) else { return }
+        touchSequenceBegan(at: point)
     }
 
-    func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-        otherGestureRecognizer is UIPanGestureRecognizer
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        guard let point = touches.first?.location(in: self) else { return }
+        touchSequenceEnded(at: point)
     }
 
-    @objc private func handleTap() {
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        touchSequenceCancelled()
+    }
+
+    // Temporary diagnostics for the unresponsive-expander investigation:
+    // view attach/detach around presses.
+    override func willMove(toWindow newWindow: UIWindow?) {
+        NSLog("%@", "🪟 [\(label)] \(newWindow == nil ? "DETACHED from window" : "attached to window")")
+        super.willMove(toWindow: newWindow)
+    }
+
+    // Internal (not private) so the touch-up decision is unit-testable —
+    // UITouch instances can't be constructed in tests.
+    func touchSequenceBegan(at point: CGPoint) {
+        touchStart = point
+        NSLog("%@", "🫳 [\(label)] touches began at \(point)")
+    }
+
+    func touchSequenceEnded(at point: CGPoint) {
+        defer { touchStart = nil }
+        guard let start = touchStart else {
+            NSLog("%@", "🫳 [\(label)] touches ended with no began")
+            return
+        }
+        let dx = point.x - start.x
+        let dy = point.y - start.y
+        NSLog("%@", String(format: "🫳 [\(label)] touches ended moved=(%.1f, %.1f)", dx, dy))
+        guard hypot(dx, dy) <= Self.maximumTapMovement else { return }
         onTap()
+    }
+
+    func touchSequenceCancelled() {
+        NSLog("%@", "🛑 [\(label)] touches CANCELLED")
+        touchStart = nil
     }
 }

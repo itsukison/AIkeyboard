@@ -10,24 +10,53 @@ final class JapaneseKeyboardUITests: XCTestCase {
         _ = QwertyKeyboardView.self
     }
 
+    /// The tap surface must not interfere with the candidate bar's scroll:
+    /// a delegate that gated the scroll view's pan on the tap's failure made
+    /// horizontal scrolling unresponsive, and recognizer arbitration in the
+    /// hosted toolbar silently dropped chevron taps on iOS 26. Taps are now
+    /// decided from raw touch events, so there is no recognizer to gate or
+    /// be gated — a swipe reaches the pan untouched, and the pan's takeover
+    /// surfaces here as touchesCancelled (which must not fire the tap).
     @MainActor
-    func testScrollPanTakesPriorityOverCandidateTap() throws {
+    func testCandidateTapSurfaceHasNoGestureRecognizers() {
         let view = CandidateTapSurfaceView(onTap: {})
-        let tap = try XCTUnwrap(view.gestureRecognizers?.first)
-        let scrollView = UIScrollView()
+        XCTAssertTrue(view.gestureRecognizers?.isEmpty ?? true)
+    }
 
-        XCTAssertTrue(
-            view.gestureRecognizer(
-                tap,
-                shouldBeRequiredToFailBy: scrollView.panGestureRecognizer
-            )
-        )
-        XCTAssertTrue(
-            view.gestureRecognizer(
-                tap,
-                shouldRecognizeSimultaneouslyWith: scrollView.panGestureRecognizer
-            )
-        )
+    @MainActor
+    func testCandidateTapSurfaceFiresOnStationaryTouchUp() {
+        var fired = 0
+        let view = CandidateTapSurfaceView(onTap: { fired += 1 })
+
+        view.touchSequenceBegan(at: CGPoint(x: 10, y: 10))
+        view.touchSequenceEnded(at: CGPoint(x: 14, y: 12))
+
+        XCTAssertEqual(fired, 1)
+    }
+
+    @MainActor
+    func testCandidateTapSurfaceIgnoresSwipes() {
+        var fired = 0
+        let view = CandidateTapSurfaceView(onTap: { fired += 1 })
+
+        view.touchSequenceBegan(at: CGPoint(x: 10, y: 10))
+        view.touchSequenceEnded(at: CGPoint(x: 60, y: 10))
+
+        XCTAssertEqual(fired, 0)
+    }
+
+    @MainActor
+    func testCandidateTapSurfaceIgnoresCancelledTouches() {
+        var fired = 0
+        let view = CandidateTapSurfaceView(onTap: { fired += 1 })
+
+        view.touchSequenceBegan(at: CGPoint(x: 10, y: 10))
+        view.touchSequenceCancelled()
+        // UIKit never sends touchesEnded after a cancel; even if it did, the
+        // cleared start point must keep the tap from firing.
+        view.touchSequenceEnded(at: CGPoint(x: 10, y: 10))
+
+        XCTAssertEqual(fired, 0)
     }
 
     @MainActor

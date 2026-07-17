@@ -1,3 +1,4 @@
+import KeyboardPreferences
 import StoreKit
 import SwiftUI
 import UIKit
@@ -62,6 +63,9 @@ struct RootContainerView: View {
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
     @AppStorage("aikJP.seenPromptsFeature") private var seenPromptsFeature = false
     @AppStorage("aikJP.seenZenzaiFeature") private var seenZenzaiFeature = false
+    @AppStorage("aikJP.seenSelectionFeature") private var seenSelectionFeature = false
+    @AppStorage("aikJP.seenPromptOrganizeFeature") private var seenPromptOrganizeFeature = false
+    @AppStorage("aikJP.seenCommercialConsentFeature") private var seenCommercialConsentFeature = false
     @AppStorage("aikJP.lastReviewPromptVersion") private var lastReviewPromptVersion = ""
     @AppStorage("aikJP.dismissedUpdateVersion") private var dismissedUpdateVersion = ""
     @AppStorage("aikJP.lastUpdateCheckAt") private var lastUpdateCheckAt: Double = 0
@@ -87,6 +91,9 @@ struct RootContainerView: View {
         case flick
         case prompts
         case zenzai
+        case selection
+        case promptOrganize
+        case commercialConsent
         var id: String { rawValue }
     }
 
@@ -118,6 +125,9 @@ struct RootContainerView: View {
             if phase == .active {
                 stats.refresh()
                 maybeRequestReview()
+                // Also re-check on foregrounding: the app can stay resident for
+                // days without a cold launch. The 24h throttle inside guards it.
+                Task { await maybeCheckForUpdate() }
             }
         }
         .onOpenURL { url in
@@ -128,6 +138,14 @@ struct RootContainerView: View {
             case "consent":
                 profileShowsAbout = true
                 overlay.present(.aiConsent)
+            case "update":
+                // Arriving from the keyboard's update pill: the user explicitly
+                // asked, so bypass the daily throttle and the あとで dismissal.
+                Task {
+                    guard let info = await AppUpdateChecker.check() else { return }
+                    updateInfo = info
+                }
+                return
             default:
                 break
             }
@@ -196,6 +214,9 @@ struct RootContainerView: View {
                         },
                         onLater: {
                             dismissedUpdateVersion = info.latestVersion
+                            // Shared dismissal: あとで also silences the keyboard's
+                            // update pill for this version.
+                            AppUpdateNudge.writeDismissedVersion(info.latestVersion)
                             updateInfo = nil
                         }
                     )
@@ -214,6 +235,13 @@ struct RootContainerView: View {
                 case .flick: FlickFeatureSheet()
                 case .prompts: PromptsFeatureSheet(onOpen: { selectedTab = .prompts })
                 case .zenzai: ZenzaiFeatureSheet()
+                case .selection: SelectionRewriteFeatureSheet()
+                case .promptOrganize: PromptOrganizeFeatureSheet(onOpen: { selectedTab = .prompts })
+                case .commercialConsent:
+                    CommercialConsentFeatureSheet(
+                        onOptIn: { recordCommercialConsentDecision(true) },
+                        onDecline: { recordCommercialConsentDecision(false) }
+                    )
                 }
             }
             .presentationDetents([.large])
@@ -238,8 +266,37 @@ struct RootContainerView: View {
             } else if !seenZenzaiFeature {
                 seenZenzaiFeature = true
                 whatsNewSheet = .zenzai
+            } else if !seenSelectionFeature {
+                seenSelectionFeature = true
+                whatsNewSheet = .selection
+            } else if !seenPromptOrganizeFeature {
+                seenPromptOrganizeFeature = true
+                whatsNewSheet = .promptOrganize
+            } else if !seenCommercialConsentFeature {
+                // Existing users who onboarded before the commercial opt-in
+                // checkbox existed; skip anyone who already opted in elsewhere.
+                seenCommercialConsentFeature = true
+                if !KeyboardSettingsStore.readAICommercialOptIn() {
+                    whatsNewSheet = .commercialConsent
+                }
             }
             await maybeCheckForUpdate()
+        }
+    }
+
+    /// Persists the re-consent sheet's answer. An opt-in is stashed locally
+    /// (synced on next sign-in, same as onboarding) and pushed to the server
+    /// immediately when signed in. Declining writes nothing server-side —
+    /// absence of a consent row already means no retention.
+    private func recordCommercialConsentDecision(_ optIn: Bool) {
+        AppAnalytics.capture("commercial_consent_decision", properties: [
+            "opt_in": optIn,
+            "source": "whats_new_sheet",
+        ])
+        guard optIn else { return }
+        KeyboardSettingsStore.writeAICommercialOptIn(true)
+        if case .signedIn(let profile) = session.state {
+            Task { try? await AIConsentRemoteStore.setCommercialOptIn(true, for: profile.id) }
         }
     }
 
@@ -251,8 +308,11 @@ struct RootContainerView: View {
         let now = Date().timeIntervalSince1970
         guard now - lastUpdateCheckAt > 24 * 60 * 60 else { return }
         lastUpdateCheckAt = now
-        guard let info = await AppUpdateChecker.check(),
-              info.latestVersion != dismissedUpdateVersion else { return }
+        guard let info = await AppUpdateChecker.check() else { return }
+        // Relay to the keyboard so its update pill can show; the pill self-clears
+        // once the installed version catches up (see AppUpdateNudge).
+        AppUpdateNudge.writeAvailableVersion(info.latestVersion)
+        guard info.latestVersion != dismissedUpdateVersion else { return }
         updateInfo = info
     }
 

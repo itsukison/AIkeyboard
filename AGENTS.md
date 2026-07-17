@@ -183,7 +183,10 @@ inside the extension. Key facts:
   `BUILDING.md` before touching this.
 - The weight `Sources/JapaneseKeyboardCore/Resources/zenz-xsmall.gguf` is
   committed (gitignore exception). If it's missing, conversion silently falls
-  back to classical — check the DEBUG `📕 ZENZAI` log in `prewarm()`.
+  back to classical — check the DEBUG `📕 ZENZAI` log in `prewarmZenzai()`.
+- Launch is classical-only: `prewarm()` loads just the dictionary; the zenz
+  weight + first decode are deferred to `prewarmZenzai()`, fired from
+  `viewDidAppear` so the model load never competes with the first frame.
 - One converter per process (`SharedConversionEngine` in
   `KeyboardViewController.swift`): iOS leaks input view controllers, and a
   per-controller llama context stacks dirty memory until jetsam kills the
@@ -276,6 +279,9 @@ From `CLAUDE.md`:
 - No speculative abstractions, no flexibility that wasn't requested, no
   error handling for impossible cases.
 - Match existing style even if you'd do it differently.
+- Keep the profile/settings main page compact. Keyboard-specific controls
+  belong in the keyboard detail settings page, not as extra top-level profile
+  rows.
 - Ask before destructive operations (deletes, force-pushes, dropping
   dependencies). The `fix/` scratch directory and
   `supabase/functions/_deprecated/` rollback folder are untracked — leave

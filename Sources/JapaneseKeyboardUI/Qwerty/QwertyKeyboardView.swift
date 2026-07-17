@@ -107,6 +107,7 @@ public struct QwertyKeyboardView: View {
                         isPressed: false
                     ).standardStyle()
                     style.backgroundColor = systemKey.backgroundColor
+                    style.foregroundColor = systemKey.foregroundColor
                 }
                 return style
             }

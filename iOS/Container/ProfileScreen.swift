@@ -1287,6 +1287,8 @@ struct DeleteAccountConfirmModal: View {
 private struct KeyboardSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: KeyboardPreferences.KeyboardStyle
+    @AppStorage(KeyboardSettingsStore.keyClickSoundEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var keyClickSoundEnabled = true
 
     // NOTE: The key-size slider + live keyboard preview are deferred. The
     // rendering plumbing (KeyboardKeySizeObserver, the views' keySizeObserver
@@ -1311,6 +1313,15 @@ private struct KeyboardSettingsView: View {
                     }
                 }
                 .padding(.top, BikeyMetrics.Spacing.s)
+
+                ProfileListCard(rows: [
+                    .init(
+                        icon: "speaker.wave.2",
+                        title: "キークリック音",
+                        toggle: $keyClickSoundEnabled
+                    )
+                ])
+                .padding(.top, BikeyMetrics.Spacing.l)
             }
             .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
             .padding(.top, BikeyMetrics.Spacing.l)

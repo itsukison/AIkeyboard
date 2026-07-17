@@ -34,6 +34,9 @@ public actor KanaKanjiAdapter {
     /// becomes the left-side context for the next prediction round. Cleared on
     /// the next conversion (typing supersedes the chain).
     private var chainedBase: (text: String, candidate: KanaKanjiConverterModule.Candidate)?
+    /// Whether the zenz weight has been loaded (by `prewarmZenzai()` or a real
+    /// conversion), so the deferred warm-up never runs twice.
+    private var zenzaiPrewarmed = false
 
     public init(supportDirectoryURL: URL? = nil, zenzaiUserEnabled: Bool = true) {
         let supportURL = supportDirectoryURL
@@ -46,7 +49,11 @@ public actor KanaKanjiAdapter {
         // Zenzai costs ~25 MB of transient dirty memory (KV + compute + first
         // decode) on top of the classical converter, and the extension's cap
         // shrinks under host-app memory pressure — classical-only conversion
-        // beats a jetsam kill at launch. inferenceLimit 1 for lowest latency.
+        // beats a jetsam kill at launch. inferenceLimit 2 matches azooKey's own
+        // xsmall tier: it's the LM's review-and-correct budget (limit 1 lets the
+        // model reject the classical draft but never re-decode a fix), and each
+        // extra iteration costs latency (reused KV/compute buffers, no added
+        // memory) — the latency gate below covers slow devices.
         // `zenzaiUserEnabled` is the user's opt-out toggle (App Group setting,
         // read by the caller — Core stays decoupled from KeyboardPreferences).
         let weightURL = Bundle.module.url(forResource: "zenz-xsmall", withExtension: "gguf")
@@ -55,7 +62,7 @@ public actor KanaKanjiAdapter {
         if let weightURL, zenzaiUserEnabled, Self.hasZenzaiHeadroom {
             zenzai = .on(
                 weight: weightURL,
-                inferenceLimit: 1,
+                inferenceLimit: 2,
                 personalizationMode: nil,
                 versionDependentMode: .v3(.init())
             )
@@ -117,6 +124,7 @@ public actor KanaKanjiAdapter {
         let conversionStart: ContinuousClock.Instant? = zenzaiEnabled ? .now : nil
         let results = converter.requestCandidates(composingText, options: options)
         if let conversionStart {
+            zenzaiPrewarmed = true
             recordZenzaiLatency(since: conversionStart)
         }
         lastConversion = results
@@ -140,7 +148,7 @@ public actor KanaKanjiAdapter {
         currentLeftContext = context
         options.zenzaiMode = .on(
             weight: weightURL,
-            inferenceLimit: 1,
+            inferenceLimit: 2,
             personalizationMode: nil,
             versionDependentMode: .v3(.init(
                 leftSideContext: context,
@@ -242,10 +250,36 @@ public actor KanaKanjiAdapter {
         converter.stopComposition()
     }
 
-    /// Runs one throwaway conversion so the first real keystroke doesn't pay
-    /// the lazy dictionary-load cost (charID, mm.binary, LOUDS shard I/O).
+    /// Runs one throwaway classical conversion so the first real keystroke
+    /// doesn't pay the lazy dictionary-load cost (charID, mm.binary, LOUDS
+    /// shard I/O). Deliberately does NOT touch the zenz weight: this runs at
+    /// keyboard launch, and llama's model load + first decode saturating
+    /// `min(8, cores-2)` threads there is exactly what delays the first frame.
+    /// Zenzai warms separately via `prewarmZenzai()` once the keyboard is on
+    /// screen.
     public func prewarm() {
-        _ = convert(kana: "あ")
+        var classicalOptions = options
+        classicalOptions.zenzaiMode = .off
+        var composingText = ComposingText()
+        composingText.insertAtCursorPosition("あ", inputStyle: .direct)
+        _ = converter.requestCandidates(composingText, options: classicalOptions)
+        #if DEBUG
+        NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) (weight load deferred to prewarmZenzai)")
+        #endif
+        converter.stopComposition()
+    }
+
+    /// Loads the zenz weight and runs one throwaway neural conversion so the
+    /// first real keystroke doesn't pay the model-load + first-decode cost.
+    /// Call after the keyboard's first frame is visible. No-op when Zenzai is
+    /// off or the model was already warmed — including by a real conversion,
+    /// so a fast typer's in-flight work is never stomped by this.
+    public func prewarmZenzai() {
+        guard zenzaiEnabled, !zenzaiPrewarmed else { return }
+        zenzaiPrewarmed = true
+        var composingText = ComposingText()
+        composingText.insertAtCursorPosition("あ", inputStyle: .direct)
+        _ = converter.requestCandidates(composingText, options: options)
         #if DEBUG
         NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) status=[\(converter.zenzStatus)]")
         #endif

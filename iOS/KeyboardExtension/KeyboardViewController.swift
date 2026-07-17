@@ -9,8 +9,10 @@ final class KeyboardViewController: KeyboardInputViewController {
     private var keyboardStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     var inputManager: InputManager = InputManager()
     private let keyboardHaptics = KeyboardHapticFeedback()
+    private let keyboardAudio = KeyboardAudioFeedback()
     private var manualKeyboardCase: Keyboard.KeyboardCase?
     private var hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+    private var keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
     /// Refreshed in `viewWillAppear` so key-size changes made in the container
     /// app apply to an already-alive keyboard process (App Group writes from
     /// another process never fire this process's KVO/@AppStorage).
@@ -45,6 +47,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         super.viewDidLoad()
         autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+        keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
         configureInputManager(force: true)
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
@@ -104,7 +107,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                             self?.commitPrediction(candidate)
                         },
                         onTriggerHaptic: { [weak self] in
-                            self?.triggerKeyHaptic()
+                            self?.triggerKeyboardKeyFeedback()
                         },
                         onBackspace: { [weak self] in
                             self?.handleBackspace()
@@ -238,17 +241,31 @@ final class KeyboardViewController: KeyboardInputViewController {
         super.viewWillAppear(animated)
         autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+        keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
         keySizeObserver.refresh()
         configureInputManager()
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
         aiKeyboardController.refreshPrompts()
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
+        aiKeyboardController.refreshUpdateNudgeOnAppear()
         KeyboardUsageDailyStore.recordKeyboardOpen()
         keyboardAppearedAt = Date()
         #if DEBUG
         MemoryProbe.startSampling()
         #endif
+    }
+
+    /// Zenzai's weight load + first decode saturate several cores for a second
+    /// or more on older devices; doing that during launch is what delayed the
+    /// first frame. Anchor it here instead — the keyboard is already rendered,
+    /// and `prewarmZenzai()` is a no-op on every appearance after the first
+    /// (or if a real conversion already loaded the model).
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        Task.detached(priority: .utility) {
+            await SharedConversionEngine.prewarmed.value.prewarmZenzai()
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -342,6 +359,12 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func triggerKeyHaptic() {
         keyboardHaptics.triggerKeyPress()
+    }
+
+    @MainActor
+    func triggerKeyboardKeyFeedback() {
+        keyboardHaptics.triggerKeyPress()
+        keyboardAudio.triggerInputClick()
     }
 
     @MainActor
@@ -514,19 +537,46 @@ final class KeyboardViewController: KeyboardInputViewController {
 
     private func configureJapaneseKeyboardBehavior() {
         manualKeyboardCase = nil
-        state.keyboardContext.autocapitalizationTypeOverride = .some(.none)
-        state.keyboardContext.settings.isAutocapitalizationEnabled = false
-        state.keyboardContext.keyboardCase = .lowercased
-        state.keyboardContext.keyboardType = .alphabetic
+        // Write each context property only when it actually changes: they are
+        // all @Published with no equality check, and this runs on every
+        // textDidChange/selectionDidChange — unconditional writes re-rendered
+        // the entire keyboard on every keystroke, cancelling in-flight toolbar
+        // touches (taps, scrolls, expand presses landed right in that churn).
+        let context = state.keyboardContext
+        if context.autocapitalizationTypeOverride != .some(.none) {
+            context.autocapitalizationTypeOverride = .some(.none)
+        }
+        if context.settings.isAutocapitalizationEnabled {
+            context.settings.isAutocapitalizationEnabled = false
+        }
+        if context.keyboardCase != .lowercased {
+            context.keyboardCase = .lowercased
+        }
+        if context.keyboardType != .alphabetic {
+            context.keyboardType = .alphabetic
+        }
         // iOS's keyboard haptic preference is private to UIKit and unreadable
         // from a keyboard extension, so users opt in through our setting. We
         // fire haptics in JapaneseActionHandler because custom-composed keys
         // return before KeyboardKit's standard feedback path. The preference
         // is runtime-gated on Full Access below; we never persist a downgrade
         // so haptics auto-resume if Full Access is toggled back on.
-        keyboardHaptics.setEnabled(hapticsEnabled && state.keyboardContext.hasFullAccess)
-        state.feedbackContext.settings.isHapticFeedbackEnabled = false
-        state.feedbackContext.hapticConfiguration = .disabled
+        keyboardHaptics.setEnabled(hapticsEnabled && context.hasFullAccess)
+        // KeyboardKit audio is independent of UIKit keyboard clicks; route
+        // key sounds through `playInputClick()` so iOS can apply its setting.
+        keyboardAudio.setEnabled(keyClickSoundEnabled)
+        if state.feedbackContext.settings.isHapticFeedbackEnabled {
+            state.feedbackContext.settings.isHapticFeedbackEnabled = false
+        }
+        if state.feedbackContext.hapticConfiguration != .disabled {
+            state.feedbackContext.hapticConfiguration = .disabled
+        }
+        if state.feedbackContext.settings.isAudioFeedbackEnabled {
+            state.feedbackContext.settings.isAudioFeedbackEnabled = false
+        }
+        if state.feedbackContext.audioConfiguration != .disabled {
+            state.feedbackContext.audioConfiguration = .disabled
+        }
     }
 
     /// One-time default seeding: the first time the keyboard loads with Full
@@ -558,6 +608,12 @@ final class KeyboardViewController: KeyboardInputViewController {
         guard lastSyncedFullAccessStatus != hasFullAccess else { return }
         lastSyncedFullAccessStatus = hasFullAccess
         KeyboardSettingsStore.writeLastKnownFullAccessEnabled(hasFullAccess)
+    }
+}
+
+extension KeyboardViewController: UIInputViewAudioFeedback {
+    var enableInputClicksWhenVisible: Bool {
+        keyClickSoundEnabled
     }
 }
 
@@ -626,6 +682,20 @@ private final class KeyboardHapticFeedback {
         guard isEnabled else { return }
         selectionGenerator.selectionChanged()
         selectionGenerator.prepare()
+    }
+}
+
+@MainActor
+private final class KeyboardAudioFeedback {
+    private var isEnabled = true
+
+    func setEnabled(_ enabled: Bool) {
+        isEnabled = enabled
+    }
+
+    func triggerInputClick() {
+        guard isEnabled else { return }
+        UIDevice.current.playInputClick()
     }
 }
 

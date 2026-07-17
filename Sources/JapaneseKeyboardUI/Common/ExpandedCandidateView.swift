@@ -35,25 +35,29 @@ public struct ExpandedCandidateView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color.keyboardBackground)
+            .onAppear { NSLog("🟩 expanded grid appeared") }
+            .onDisappear { NSLog("🟥 expanded grid disappeared") }
         }
     }
 
     private var controlRail: some View {
         VStack(spacing: 0) {
-            Button {
-                onTriggerHaptic()
-                inputManager.collapseCandidateList()
-            } label: {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(
-                        width: Self.controlRailWidth,
-                        height: KeyboardChromeMetrics.toolbarHeight
-                    )
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            // UIKit tap surface, not a SwiftUI Button — same dropped-press
+            // failure as the bar's ∨ expander (see CandidateTapSurface).
+            Image(systemName: "chevron.up")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(
+                    width: Self.controlRailWidth,
+                    height: KeyboardChromeMetrics.toolbarHeight
+                )
+                .contentShape(Rectangle())
+                .overlay {
+                    CandidateTapSurface(label: "collapse-rail", onTap: {
+                        onTriggerHaptic()
+                        inputManager.collapseCandidateList()
+                    })
+                }
             Spacer(minLength: 0)
         }
         .frame(width: Self.controlRailWidth)
