@@ -78,9 +78,15 @@ Temporary Items
 
 # AI / Large Models
 *.gguf
+# The bundled Zenzai weight ships with the app and must survive a clean
+# checkout — a missing gguf silently disables neural conversion.
+!Sources/JapaneseKeyboardCore/Resources/zenz-xsmall.gguf
 
 # Local config
 Config/Local.xcconfig
+# Firebase config — public repo; copy GoogleService-Info.example.plist and
+# fill in the real values from the Firebase console.
+GoogleService-Info.plist
 
 # Supabase
 supabase/.temp/

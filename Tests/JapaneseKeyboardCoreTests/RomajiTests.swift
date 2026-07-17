@@ -29,7 +29,14 @@ final class RomajiTests: XCTestCase {
         XCTAssertEqual(Romaji.toKana("kya"), "きゃ")
         XCTAssertEqual(Romaji.toKana("sha"), "しゃ")
         XCTAssertEqual(Romaji.toKana("cho"), "ちょ")
+        XCTAssertEqual(Romaji.toKana("cya"), "ちゃ")
+        XCTAssertEqual(Romaji.toKana("cyu"), "ちゅ")
+        XCTAssertEqual(Romaji.toKana("cyo"), "ちょ")
         XCTAssertEqual(Romaji.toKana("kyo"), "きょ")
+    }
+
+    func testCyaVariantWord() {
+        XCTAssertEqual(Romaji.toKana("cyannto"), "ちゃんと")
     }
 
     func testSmallChars() {
@@ -108,6 +115,8 @@ final class RomajiTests: XCTestCase {
         XCTAssertEqual(Romaji.toLiveKana("k"), "k")
         XCTAssertEqual(Romaji.toLiveKana("ky"), "ky")
         XCTAssertEqual(Romaji.toLiveKana("kya"), "きゃ")
+        XCTAssertEqual(Romaji.toLiveKana("cy"), "cy")
+        XCTAssertEqual(Romaji.toLiveKana("cya"), "ちゃ")
         XCTAssertEqual(Romaji.toLiveKana("kk"), "っk")
         XCTAssertEqual(Romaji.toLiveKana("kko"), "っこ")
     }

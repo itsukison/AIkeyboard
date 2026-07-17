@@ -64,9 +64,9 @@ a Japanese error message and stop.
 
 Add your team via Xcode signing. The Bundle IDs are:
 
-- Container: `co.gastroduce-japan.bikey.japanese`
-- Extension: `co.gastroduce-japan.bikey.japanese.keyboard`
-- App Group: `group.co.gastroduce-japan.bikey.japanese`
+- Container: `com.core7.keigobutton`
+- Extension: `com.core7.keigobutton.keyboard`
+- App Group: `group.com.core7.keigobutton`
 
 You need a paid developer account to enable App Groups + custom keyboard
 extensions on a real device.

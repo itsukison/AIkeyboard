@@ -60,6 +60,18 @@ struct AboutScreen: View {
                     .foregroundStyle(AppColor.muted)
                     .padding(.top, BikeyMetrics.Spacing.xl)
 
+                // CC BY-SA 4.0 attribution for the bundled conversion model.
+                Button {
+                    activeURL = IdentifiedURL(url: URL(string: "https://huggingface.co/Miwa-Keita/zenz-v3.1-xsmall-gguf")!)
+                } label: {
+                    Text("かな漢字変換モデル: zenz by Miwa-Keita (CC BY-SA 4.0)")
+                        .bikeyFont(11, weight: .regular, relativeTo: .caption)
+                        .foregroundStyle(AppColor.muted.opacity(0.8))
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+
                 Spacer(minLength: BikeyMetrics.Spacing.xl)
             }
             .frame(maxWidth: .infinity)

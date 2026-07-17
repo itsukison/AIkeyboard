@@ -85,4 +85,12 @@ final class KanaKanjiAdapterTests: XCTestCase {
         let results = await Self.adapter.predictNextWords(after: "存在しない候補")
         XCTAssertTrue(results.isEmpty)
     }
+
+    // A commit with no rich azooKey candidate (raw-kana commit, tapped
+    // corpus-prior suggestion) falls back to the bigram prior keyed on the
+    // committed surface, so the bar stays populated and chains survive.
+    func testFallbackPredictionForUnmatchedCommit() async {
+        let results = await Self.adapter.predictNextWords(after: "はい")
+        XCTAssertFalse(results.isEmpty, "Expected bigram-prior fallback for はい")
+    }
 }

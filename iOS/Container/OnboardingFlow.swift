@@ -1,5 +1,4 @@
 import KeyboardPreferences
-import PostHog
 import SwiftUI
 import UIKit
 
@@ -17,6 +16,10 @@ struct OnboardingFlow: View {
     @AppStorage("aikJP.seenReplyFeature") private var seenReplyFeature = false
     @AppStorage("aikJP.seenFlickFeature") private var seenFlickFeature = false
     @AppStorage("aikJP.seenPromptsFeature") private var seenPromptsFeature = false
+    @AppStorage("aikJP.seenZenzaiFeature") private var seenZenzaiFeature = false
+    @AppStorage("aikJP.seenSelectionFeature") private var seenSelectionFeature = false
+    @AppStorage("aikJP.seenPromptOrganizeFeature") private var seenPromptOrganizeFeature = false
+    @AppStorage("aikJP.seenCommercialConsentFeature") private var seenCommercialConsentFeature = false
 
     private let totalPages = 8
 
@@ -30,7 +33,7 @@ struct OnboardingFlow: View {
                     selectedStyle: $selectedStyle,
                     onContinue: {
                         KeyboardSettingsStore.writeKeyboardStyle(selectedStyle)
-                        PostHogSDK.shared.capture("onboarding_input_style_selected", properties: [
+                        AppAnalytics.capture("onboarding_input_style_selected", properties: [
                             "style": selectedStyle.rawValue,
                         ])
                         advance()
@@ -76,7 +79,7 @@ struct OnboardingFlow: View {
                     onContinue: { source in
                         if let source {
                             OnboardingSourceStore.write(source)
-                            PostHogSDK.shared.capture("onboarding_source_selected", properties: [
+                            AppAnalytics.capture("onboarding_source_selected", properties: [
                                 "source": source.rawValue,
                             ])
                         }
@@ -87,8 +90,8 @@ struct OnboardingFlow: View {
                 KeyboardConsentPage(
                     progress: progress(for: 7),
                     onBack: { goBack() },
-                    onAgree: { completeOnboarding(consentGranted: true) },
-                    onDecline: { completeOnboarding(consentGranted: false) }
+                    onAgree: { commercialOptIn in completeOnboarding(consentGranted: true, commercialOptIn: commercialOptIn) },
+                    onDecline: { completeOnboarding(consentGranted: false, commercialOptIn: false) }
                 )
             default:
                 legacyPostAuthBody
@@ -155,15 +158,22 @@ struct OnboardingFlow: View {
         }
     }
 
-    private func completeOnboarding(consentGranted: Bool) {
+    private func completeOnboarding(consentGranted: Bool, commercialOptIn: Bool) {
         seenReplyFeature = true
         seenFlickFeature = true
         seenPromptsFeature = true
+        seenZenzaiFeature = true
+        seenSelectionFeature = true
+        seenPromptOrganizeFeature = true
+        seenCommercialConsentFeature = true
         KeyboardSettingsStore.writeAIConsentGranted(consentGranted)
-        PostHogSDK.shared.capture("ai_consent_decision", properties: [
+        // Stash the optional commercial opt-in; synced to Supabase on sign-in.
+        KeyboardSettingsStore.writeAICommercialOptIn(commercialOptIn)
+        AppAnalytics.capture("ai_consent_decision", properties: [
             "granted": consentGranted,
+            "commercial_opt_in": commercialOptIn,
         ])
-        PostHogSDK.shared.capture("onboarding_completed")
+        AppAnalytics.capture("onboarding_completed")
         onFinish()
     }
 

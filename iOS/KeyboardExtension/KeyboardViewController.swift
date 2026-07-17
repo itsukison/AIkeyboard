@@ -9,8 +9,14 @@ final class KeyboardViewController: KeyboardInputViewController {
     private var keyboardStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     var inputManager: InputManager = InputManager()
     private let keyboardHaptics = KeyboardHapticFeedback()
+    private let keyboardAudio = KeyboardAudioFeedback()
     private var manualKeyboardCase: Keyboard.KeyboardCase?
     private var hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+    private var keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
+    /// Refreshed in `viewWillAppear` so key-size changes made in the container
+    /// app apply to an already-alive keyboard process (App Group writes from
+    /// another process never fire this process's KVO/@AppStorage).
+    private let keySizeObserver = KeyboardKeySizeObserver()
     private var lastSyncedFullAccessStatus: Bool?
     /// When the keyboard last became visible, used to tally active seconds on
     /// disappear. In-memory only — never persisted.
@@ -21,6 +27,9 @@ final class KeyboardViewController: KeyboardInputViewController {
     /// The previous committed word, so the next commit can be recorded as a
     /// next-word (予測変換) transition in `NextWordPreferenceStore`.
     private var lastCommittedWord: String?
+    /// Pending re-check that the host document still contains the marked text
+    /// (see `scheduleStaleCompositionCheck`).
+    private var staleCompositionCheck: Task<Void, Never>?
     private lazy var aiKeyboardController = AIKeyboardController(
         controller: self,
         inputManager: inputManager
@@ -38,6 +47,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         super.viewDidLoad()
         autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+        keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
         configureInputManager(force: true)
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
@@ -89,6 +99,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                 return AnyView(
                     FlickKeyboardView(
                         inputManager: manager,
+                        keySizeObserver: self.keySizeObserver,
                         onSelectCandidate: { [weak self] candidate in
                             self?.commitCandidate(candidate)
                         },
@@ -96,7 +107,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                             self?.commitPrediction(candidate)
                         },
                         onTriggerHaptic: { [weak self] in
-                            self?.triggerKeyHaptic()
+                            self?.triggerKeyboardKeyFeedback()
                         },
                         onBackspace: { [weak self] in
                             self?.handleBackspace()
@@ -164,6 +175,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                         services: controller.services,
                         keyboardContext: controller.state.keyboardContext,
                         inputManager: manager,
+                        keySizeObserver: self.keySizeObserver,
                         onSelectCandidate: { [weak self] candidate in
                             self?.commitCandidate(candidate)
                         },
@@ -229,16 +241,31 @@ final class KeyboardViewController: KeyboardInputViewController {
         super.viewWillAppear(animated)
         autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
+        keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
+        keySizeObserver.refresh()
         configureInputManager()
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
         aiKeyboardController.refreshPrompts()
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
+        aiKeyboardController.refreshUpdateNudgeOnAppear()
         KeyboardUsageDailyStore.recordKeyboardOpen()
         keyboardAppearedAt = Date()
         #if DEBUG
         MemoryProbe.startSampling()
         #endif
+    }
+
+    /// Zenzai's weight load + first decode saturate several cores for a second
+    /// or more on older devices; doing that during launch is what delayed the
+    /// first frame. Anchor it here instead — the keyboard is already rendered,
+    /// and `prewarmZenzai()` is a no-op on every appearance after the first
+    /// (or if a real conversion already loaded the model).
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        Task.detached(priority: .utility) {
+            await SharedConversionEngine.prewarmed.value.prewarmZenzai()
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -273,6 +300,37 @@ final class KeyboardViewController: KeyboardInputViewController {
         aiKeyboardController.documentDidChange()
         aiKeyboardController.refreshReplyAvailability()
         markTypedActivityIfNeeded()
+        scheduleStaleCompositionCheck()
+    }
+
+    /// A host app can rewrite its document without any key event reaching the
+    /// extension — most commonly a chat app's send button clearing the field.
+    /// iOS tears down the marked text on the host side, but the composing
+    /// buffer here would keep going and leak the stale text into the next
+    /// input. While composing, the document context must end with our marked
+    /// text; when it doesn't, re-check once after a short delay (proxy edits
+    /// apply asynchronously, so a just-issued setMarkedText may not be visible
+    /// yet) and drop the buffer if the composition is still gone from the host.
+    private func scheduleStaleCompositionCheck() {
+        guard inputManager.isComposing else { return }
+        let marked = inputManager.markedText
+        guard !marked.isEmpty, isCompositionMissingFromHost(marked) else { return }
+        staleCompositionCheck?.cancel()
+        staleCompositionCheck = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard !Task.isCancelled, let self else { return }
+            // Typing in the meantime changed the marked text; the newest
+            // textDidChange has re-evaluated against the current state.
+            guard self.inputManager.isComposing, self.inputManager.markedText == marked else { return }
+            if self.isCompositionMissingFromHost(marked) {
+                self.inputManager.abandonComposition()
+            }
+        }
+    }
+
+    private func isCompositionMissingFromHost(_ marked: String) -> Bool {
+        let before = textDocumentProxy.documentContextBeforeInput ?? ""
+        return !before.hasSuffix(marked)
     }
 
     /// Marks the user active for today at most once per day; the in-memory guard
@@ -301,6 +359,12 @@ final class KeyboardViewController: KeyboardInputViewController {
     @MainActor
     func triggerKeyHaptic() {
         keyboardHaptics.triggerKeyPress()
+    }
+
+    @MainActor
+    func triggerKeyboardKeyFeedback() {
+        keyboardHaptics.triggerKeyPress()
+        keyboardAudio.triggerInputClick()
     }
 
     @MainActor
@@ -449,10 +513,14 @@ final class KeyboardViewController: KeyboardInputViewController {
         }
     }
 
+    /// Inserting while marked text is active replaces it atomically (UIKit
+    /// contract; azooKey commits the same way, insert-first). Clearing first
+    /// via setMarkedText("")/unmarkText made the commit depend on host quirks:
+    /// a host that mishandles the empty update commits the old preview on
+    /// unmarkText and the insert then duplicates it. The trailing clear still
+    /// happens — the caller's `reset()` notifies an empty marked text.
     @MainActor
     private func finalizeMarkedText(replacement: String) {
-        textDocumentProxy.setMarkedText("", selectedRange: NSRange(location: 0, length: 0))
-        textDocumentProxy.unmarkText()
         textDocumentProxy.insertText(replacement)
     }
 
@@ -469,19 +537,46 @@ final class KeyboardViewController: KeyboardInputViewController {
 
     private func configureJapaneseKeyboardBehavior() {
         manualKeyboardCase = nil
-        state.keyboardContext.autocapitalizationTypeOverride = .some(.none)
-        state.keyboardContext.settings.isAutocapitalizationEnabled = false
-        state.keyboardContext.keyboardCase = .lowercased
-        state.keyboardContext.keyboardType = .alphabetic
+        // Write each context property only when it actually changes: they are
+        // all @Published with no equality check, and this runs on every
+        // textDidChange/selectionDidChange — unconditional writes re-rendered
+        // the entire keyboard on every keystroke, cancelling in-flight toolbar
+        // touches (taps, scrolls, expand presses landed right in that churn).
+        let context = state.keyboardContext
+        if context.autocapitalizationTypeOverride != .some(.none) {
+            context.autocapitalizationTypeOverride = .some(.none)
+        }
+        if context.settings.isAutocapitalizationEnabled {
+            context.settings.isAutocapitalizationEnabled = false
+        }
+        if context.keyboardCase != .lowercased {
+            context.keyboardCase = .lowercased
+        }
+        if context.keyboardType != .alphabetic {
+            context.keyboardType = .alphabetic
+        }
         // iOS's keyboard haptic preference is private to UIKit and unreadable
         // from a keyboard extension, so users opt in through our setting. We
         // fire haptics in JapaneseActionHandler because custom-composed keys
         // return before KeyboardKit's standard feedback path. The preference
         // is runtime-gated on Full Access below; we never persist a downgrade
         // so haptics auto-resume if Full Access is toggled back on.
-        keyboardHaptics.setEnabled(hapticsEnabled && state.keyboardContext.hasFullAccess)
-        state.feedbackContext.settings.isHapticFeedbackEnabled = false
-        state.feedbackContext.hapticConfiguration = .disabled
+        keyboardHaptics.setEnabled(hapticsEnabled && context.hasFullAccess)
+        // KeyboardKit audio is independent of UIKit keyboard clicks; route
+        // key sounds through `playInputClick()` so iOS can apply its setting.
+        keyboardAudio.setEnabled(keyClickSoundEnabled)
+        if state.feedbackContext.settings.isHapticFeedbackEnabled {
+            state.feedbackContext.settings.isHapticFeedbackEnabled = false
+        }
+        if state.feedbackContext.hapticConfiguration != .disabled {
+            state.feedbackContext.hapticConfiguration = .disabled
+        }
+        if state.feedbackContext.settings.isAudioFeedbackEnabled {
+            state.feedbackContext.settings.isAudioFeedbackEnabled = false
+        }
+        if state.feedbackContext.audioConfiguration != .disabled {
+            state.feedbackContext.audioConfiguration = .disabled
+        }
     }
 
     /// One-time default seeding: the first time the keyboard loads with Full
@@ -516,6 +611,12 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 }
 
+extension KeyboardViewController: UIInputViewAudioFeedback {
+    var enableInputClicksWhenVisible: Bool {
+        keyClickSoundEnabled
+    }
+}
+
 /// Process-lifetime conversion engine. iOS creates a fresh input view
 /// controller on every keyboard presentation while the extension process
 /// persists (and leaked controller instances are a known iOS issue), so the
@@ -529,7 +630,14 @@ private enum SharedConversionEngine {
     static let prewarmed = Task.detached(priority: .userInitiated) {
         let adapter = KanaKanjiAdapter(
             supportDirectoryURL: AppGroup.sharedContainerURL?
-                .appendingPathComponent("conversion-learning", isDirectory: true)
+                .appendingPathComponent("conversion-learning", isDirectory: true),
+            // User opt-out AND the latency gate's persisted verdict (auto-off
+            // when this device proved too slow; re-probes on a new build).
+            // Read once here because the adapter (and its llama context) is
+            // process-lifetime; changes apply when iOS next recycles the
+            // extension process.
+            zenzaiUserEnabled: KeyboardSettingsStore.readZenzaiEnabled()
+                && !KeyboardSettingsStore.isZenzaiAutoDisabled()
         )
         await adapter.prewarm()
         return adapter
@@ -574,6 +682,20 @@ private final class KeyboardHapticFeedback {
         guard isEnabled else { return }
         selectionGenerator.selectionChanged()
         selectionGenerator.prepare()
+    }
+}
+
+@MainActor
+private final class KeyboardAudioFeedback {
+    private var isEnabled = true
+
+    func setEnabled(_ enabled: Bool) {
+        isEnabled = enabled
+    }
+
+    func triggerInputClick() {
+        guard isEnabled else { return }
+        UIDevice.current.playInputClick()
     }
 }
 

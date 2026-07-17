@@ -28,6 +28,9 @@ public struct FlickKeyboardView: View {
 
     @State private var page: Page = .kana
     @State private var uppercaseLetters = false
+    // Injected (not @AppStorage): the host refreshes it on appearance because
+    // iOS never notifies this process of the container app's App Group writes.
+    @ObservedObject private var keySizeObserver: KeyboardKeySizeObserver
 
     // Key/row height, tuned to match native.
     private let rowHeight: CGFloat = 48
@@ -40,8 +43,13 @@ public struct FlickKeyboardView: View {
         case kana, number, abc
     }
 
+    private var keyCapInset: CGFloat {
+        CGFloat(keySizeObserver.preset.keyCapInsetAdjustment)
+    }
+
     public init(
         inputManager: InputManager,
+        keySizeObserver: KeyboardKeySizeObserver,
         onSelectCandidate: @escaping (Candidate) -> Void,
         onSelectPrediction: @escaping (Candidate) -> Void = { _ in },
         onTriggerHaptic: @escaping () -> Void = {},
@@ -56,6 +64,7 @@ public struct FlickKeyboardView: View {
         overlayContent: AnyView? = nil
     ) {
         self.inputManager = inputManager
+        self.keySizeObserver = keySizeObserver
         self.onSelectCandidate = onSelectCandidate
         self.onSelectPrediction = onSelectPrediction
         self.onTriggerHaptic = onTriggerHaptic
@@ -100,6 +109,7 @@ public struct FlickKeyboardView: View {
                 .allowsHitTesting(false)
             }
         }
+        .environment(\.flickKeyCapInset, keyCapInset)
     }
 
     @ViewBuilder

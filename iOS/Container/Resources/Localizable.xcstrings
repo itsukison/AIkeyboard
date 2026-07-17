@@ -36,6 +36,9 @@
         }
       }
     },
+    "【任意】日本語AIの改善に協力する" : {
+
+    },
     "%@回書き直し" : {
       "localizations" : {
         "en" : {
@@ -151,6 +154,22 @@
         }
       }
     },
+    "AIによるかな漢字変換を搭載しました。文脈を読んで、より自然な変換候補を提案します。すべて端末内で動作し、入力内容が送信されることはありません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kana-kanji conversion is now powered by AI. It reads the context and suggests more natural candidates. Everything runs on your device — nothing you type is ever sent anywhere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搭载了 AI 假名汉字转换。根据上下文提供更自然的候选词。全部在设备内运行，输入内容绝不会被发送。"
+          }
+        }
+      }
+    },
     "AIに送る前に\n確認してください" : {
       "localizations" : {
         "en" : {
@@ -183,6 +202,9 @@
         }
       }
     },
+    "AIボタンをドラッグして並べ替えたり、使わないボタンを削除したり。自分の使い方に合わせて自由に整理できます。" : {
+
+    },
     "AIボタンを押した文章だけ書き直します" : {
       "localizations" : {
         "en" : {
@@ -198,6 +220,9 @@
           }
         }
       }
+    },
+    "AIボタンを押すと、その部分だけを書き直し" : {
+
     },
     "AIボタンを押すと、今の文章に合う自然な候補をすぐ選べます。" : {
       "localizations" : {
@@ -451,6 +476,7 @@
       }
     },
     "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。スキップして後から登録することもできます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -658,6 +684,9 @@
         }
       }
     },
+    "カスタムプロンプトは削除され、初期の4つのボタン（敬語・自然に・メール・英訳）に戻ります。" : {
+
+    },
     "カスタムプロンプトを保存・同期" : {
       "localizations" : {
         "en" : {
@@ -673,6 +702,41 @@
           }
         }
       }
+    },
+    "かな漢字変換モデル: zenz by Miwa-Keita (CC BY-SA 4.0)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kana-kanji conversion model: zenz by Miwa-Keita (CC BY-SA 4.0)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "假名汉字转换模型：zenz by Miwa-Keita（CC BY-SA 4.0）"
+          }
+        }
+      }
+    },
+    "キークリック音" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key click sound"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按键音"
+          }
+        }
+      }
+    },
+    "キーボード" : {
+
     },
     "キーボードを試す" : {
       "localizations" : {
@@ -691,6 +755,7 @@
       }
     },
     "キーボード入力方式" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -705,6 +770,9 @@
           }
         }
       }
+    },
+    "キーボード設定" : {
+
     },
     "キャンセル" : {
       "localizations" : {
@@ -785,6 +853,12 @@
           }
         }
       }
+    },
+    "これにする" : {
+
+    },
+    "ご協力のお願い" : {
+
     },
     "ご意見・ご要望、不具合のご報告をお送りください。" : {
 
@@ -907,6 +981,22 @@
         }
       }
     },
+    "さっそく使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start using it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即使用"
+          }
+        }
+      }
+    },
     "サポート" : {
       "localizations" : {
         "en" : {
@@ -954,6 +1044,12 @@
           }
         }
       }
+    },
+    "すべてのボタンを最初の状態に戻しますか？" : {
+
+    },
+    "すべてのボタンを編集できます。一番上がメインボタンになり、長押しで並び替えできます。" : {
+
     },
     "その他" : {
       "localizations" : {
@@ -1099,6 +1195,12 @@
           }
         }
       }
+    },
+    "デフォルトに戻す" : {
+
+    },
+    "ドラッグでボタンを並べ替え" : {
+
     },
     "バグ報告" : {
 
@@ -1375,6 +1477,9 @@
         }
       }
     },
+    "プロンプトを整理する" : {
+
+    },
     "プロンプトを編集・追加するには" : {
       "localizations" : {
         "en" : {
@@ -1439,6 +1544,9 @@
         }
       }
     },
+    "ボタンは、\n好きな順番に。" : {
+
+    },
     "ボタンは、\n自分仕様にできる。" : {
       "localizations" : {
         "en" : {
@@ -1470,6 +1578,9 @@
           }
         }
       }
+    },
+    "まだ追加されていないようです。「設定を開く」→「キーボード」から「敬語ボタン」をオンにしてください。" : {
+
     },
     "メール" : {
       "localizations" : {
@@ -1503,7 +1614,11 @@
         }
       }
     },
+    "メイン" : {
+
+    },
     "メインボタン" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1552,6 +1667,7 @@
       }
     },
     "よく使うプロンプトを追加すると、キーボードの「…」から呼び出せます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1598,6 +1714,9 @@
           }
         }
       }
+    },
+    "リセットできませんでした。" : {
+
     },
     "ローマ字" : {
       "localizations" : {
@@ -1663,6 +1782,9 @@
         }
       }
     },
+    "上から順にキーボードのボタンになります。一番上がメインボタンです。長押しして並び替えできます。" : {
+
+    },
     "上司・取引先向けの自然な文面に" : {
       "localizations" : {
         "en" : {
@@ -1678,6 +1800,9 @@
           }
         }
       }
+    },
+    "並び替えを保存できませんでした。" : {
+
     },
     "了解です" : {
 
@@ -1746,6 +1871,9 @@
         }
       }
     },
+    "今回は見送る" : {
+
+    },
     "他のアプリでメッセージをコピー" : {
       "localizations" : {
         "en" : {
@@ -1793,6 +1921,9 @@
           }
         }
       }
+    },
+    "使わないボタンは削除" : {
+
     },
     "使用した機能の種類（敬語・メール・翻訳など）" : {
       "localizations" : {
@@ -1938,6 +2069,18 @@
         }
       }
     },
+    "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可いただけますか。同意は任意です。同意しなくても、すべての機能をこれまで通りご利用いただけます。" : {
+
+    },
+    "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけ、品質向上により将来的に変換精度の改善につながる可能性があります。" : {
+
+    },
+    "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけます。" : {
+
+    },
+    "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。任意です。" : {
+
+    },
     "入力したテキスト" : {
       "localizations" : {
         "en" : {
@@ -1986,7 +2129,11 @@
         }
       }
     },
+    "入力方式" : {
+
+    },
     "入力方式はいつでも変更できます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2022,6 +2169,12 @@
 
     },
     "内容を入力してください" : {
+
+    },
+    "最初の4つに戻す" : {
+
+    },
+    "最初の4つのボタンに戻す" : {
 
     },
     "処理に関する技術情報（文字数・処理日時など）" : {
@@ -2120,6 +2273,9 @@
         }
       }
     },
+    "同意して協力する" : {
+
+    },
     "同意して有効にする" : {
       "localizations" : {
         "en" : {
@@ -2135,6 +2291,9 @@
           }
         }
       }
+    },
+    "同意は任意、設定からいつでも取り消し可能" : {
+
     },
     "名前" : {
       "extractionState" : "stale",
@@ -2169,6 +2328,25 @@
         }
       }
     },
+    "変換が、\nもっと賢く。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversion,\nnow smarter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转换，\n更加智能。"
+          }
+        }
+      }
+    },
+    "変換内容もいつでも編集" : {
+
+    },
     "始める" : {
       "localizations" : {
         "en" : {
@@ -2200,6 +2378,9 @@
           }
         }
       }
+    },
+    "将来的に変換精度の改善につながる可能性" : {
+
     },
     "戻る" : {
       "localizations" : {
@@ -2237,6 +2418,7 @@
       }
     },
     "敬語プロンプトが読み込まれていません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2415,6 +2597,25 @@
         }
       }
     },
+    "文脈を理解して変換候補を提案" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggests candidates based on context"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "理解上下文并提供候选词"
+          }
+        }
+      }
+    },
+    "文章の一部を選択してAIボタンを押すと、選んだところだけを書き直します。前後の文章はそのまま、自然につながるように整えます。" : {
+
+    },
     "新しいバージョンが利用可能です。最新版にアップデートすると、最新の機能と改善をご利用いただけます。" : {
       "localizations" : {
         "en" : {
@@ -2446,6 +2647,15 @@
           }
         }
       }
+    },
+    "日本語AIの改善に、\n力を貸してください。" : {
+
+    },
+    "日本語AIの改善に協力する" : {
+
+    },
+    "日本語AIの改善のためのデータ利用に同意する（任意）" : {
+
     },
     "日連続" : {
       "localizations" : {
@@ -2488,6 +2698,9 @@
         }
       }
     },
+    "書き直したい部分を選択（ハイライト）" : {
+
+    },
     "有効にする" : {
       "localizations" : {
         "en" : {
@@ -2522,6 +2735,12 @@
           }
         }
       }
+    },
+    "氏名・連絡先などは自動で匿名化" : {
+
+    },
+    "気になる部分だけ、\nAIで書き直す。" : {
+
     },
     "片手でも、\nフリックで入力。" : {
       "localizations" : {
@@ -2609,6 +2828,22 @@
     "種類" : {
 
     },
+    "端末に合わせて自動で最適化" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically tuned to your device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根据设备自动优化"
+          }
+        }
+      }
+    },
     "端末の設定に従う" : {
       "localizations" : {
         "en" : {
@@ -2621,6 +2856,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟随设备设置"
+          }
+        }
+      }
+    },
+    "端末内で完結、オフラインでも動作" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fully on-device, works offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全在设备内完成，离线也可使用"
           }
         }
       }
@@ -2801,6 +3052,9 @@
         }
       }
     },
+    "追加" : {
+
+    },
     "追加したボタンはキーボードの「…」から呼び出し" : {
       "localizations" : {
         "en" : {
@@ -2834,6 +3088,7 @@
       }
     },
     "追加ボタン" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2952,6 +3207,7 @@
       }
     },
     "送信先：第三者のAIサービス（Cerebras・Groq）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2998,6 +3254,9 @@
           }
         }
       }
+    },
+    "選択しなければ、これまで通り全体を書き直し" : {
+
     },
     "閉じる" : {
       "localizations" : {

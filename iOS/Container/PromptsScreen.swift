@@ -1,15 +1,34 @@
 import KeyboardPreferences
-import PostHog
 import SwiftUI
 import UIKit
 
+private func orderedForDisplay(_ raw: [UserPrompt]) -> [UserPrompt] {
+    let mains = raw.filter { $0.slot == .main }.sorted { $0.sortOrder < $1.sortOrder }
+    let subs = raw.filter { $0.slot == .sub }.sorted { $0.sortOrder < $1.sortOrder }
+    return mains + subs
+}
+
+/// List position is the source of truth: the top row is the main button
+/// (must stay enabled), everything below is a sub button in toolbar order.
+private func normalizedOrdering(_ ordered: [UserPrompt]) -> [UserPrompt] {
+    var result = ordered
+    for index in result.indices {
+        result[index].slot = index == 0 ? .main : .sub
+        result[index].sortOrder = max(0, index - 1)
+        if index == 0 { result[index].isEnabled = true }
+    }
+    return result
+}
+
 struct PromptsScreen: View {
     @EnvironmentObject private var session: UserSession
-    @State private var entries: [UserPrompt] = UserPromptStore.readEntries()
+    @State private var entries: [UserPrompt] = orderedForDisplay(UserPromptStore.readEntries())
     @State private var editorPayload: PromptEditorPayload?
     @State private var isSyncing = false
     @State private var errorMessage: LocalizedStringKey?
     @State private var showAuth = false
+    @State private var showResetConfirm = false
+    @State private var orderingPushTask: Task<Void, Never>?
 
     private var isGuest: Bool { session.profile == nil }
 
@@ -21,26 +40,18 @@ struct PromptsScreen: View {
         }
     }
 
-    private var mainEntry: UserPrompt? {
-        entries.first(where: { $0.slot == .main })
-    }
-
-    private var subEntries: [UserPrompt] {
-        entries.filter { $0.slot == .sub }.sorted { $0.sortOrder < $1.sortOrder }
-    }
-
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 AppColor.background.ignoresSafeArea()
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                List {
+                    Section {
                         PromptsHeader()
-                            .padding(.top, BikeyMetrics.Spacing.s)
 
                         if isGuest {
                             GuestPromptsCTA { showAuth = true }
+                                .padding(.top, BikeyMetrics.Spacing.s)
                         }
 
                         if let errorMessage {
@@ -49,18 +60,41 @@ struct PromptsScreen: View {
                                 systemName: "exclamationmark.circle",
                                 tint: AppColor.purple
                             )
+                            .padding(.top, BikeyMetrics.Spacing.s)
                         }
 
-                        sectionTitle("メインボタン")
-                        mainCard
-
-                        sectionTitle("追加ボタン")
-                        subCard
-
-                        Spacer(minLength: BikeyMetrics.Sizing.tabBarHeight + 100)
+                        Text("上から順にキーボードのボタンになります。一番上がメインボタンです。長押しして並び替えできます。")
+                            .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .padding(.top, BikeyMetrics.Spacing.s)
+                            .background(ReorderLiftTuner())
                     }
-                    .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
+                    .listRowInsets(plainRowInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+
+                    Section {
+                        ForEach(entries) { entry in
+                            promptCard(entry)
+                        }
+                        .onMove(perform: moveEntries)
+                    }
+
+                    Section {
+                        if !isGuest {
+                            resetAllButton
+                        }
+
+                        Color.clear
+                            .frame(height: BikeyMetrics.Sizing.tabBarHeight + 40)
+                    }
+                    .listRowInsets(plainRowInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .scrollIndicators(.hidden)
 
                 if !isGuest {
                     PromptsFloatingActionButton {
@@ -80,7 +114,7 @@ struct PromptsScreen: View {
                     onReset: { resetPayload in
                         await resetPrompt(resetPayload)
                     },
-                    onDelete: payload.entry?.builtinKey == nil ? { entry in
+                    onDelete: payload.entry != nil && entries.count > 1 ? { entry in
                         await deletePrompt(entry: entry)
                     } : nil
                 )
@@ -89,83 +123,104 @@ struct PromptsScreen: View {
                 await refreshEntries()
             }
             .onChange(of: session.profile) { _ in
-                entries = UserPromptStore.readEntries()
+                entries = orderedForDisplay(UserPromptStore.readEntries())
+            }
+            .confirmationDialog(
+                "すべてのボタンを最初の状態に戻しますか？",
+                isPresented: $showResetConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("最初の4つに戻す", role: .destructive) {
+                    Task { await resetAllPrompts() }
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("カスタムプロンプトは削除され、初期の4つのボタン（敬語・自然に・メール・英訳）に戻ります。")
             }
             .guestAuthCover(isPresented: $showAuth)
         }
     }
 
-    @ViewBuilder
-    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .bikeyFont(13, weight: .medium, relativeTo: .footnote)
-            .foregroundStyle(AppColor.muted)
-            .padding(.leading, 4)
+    // The inset-grouped layout already provides a ~20pt screen margin;
+    // +4 lines these rows up with screenHorizontalInset (24).
+    private var plainRowInsets: EdgeInsets {
+        EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4)
     }
 
     @ViewBuilder
-    private var mainCard: some View {
-        VStack(spacing: 0) {
-            if let mainEntry {
-                PromptRow(entry: mainEntry) {
-                    openEditor(mainEntry)
+    private func promptCard(_ entry: UserPrompt) -> some View {
+        PromptRow(entry: entry, isMain: entry.id == entries.first?.id) {
+            openEditor(entry)
+        }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(AppColor.surface)
+        .listRowSeparatorTint(AppColor.rule.opacity(0.35))
+        .moveDisabled(isGuest)
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {}
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if !isGuest, entries.count > 1 {
+                Button(role: .destructive) {
+                    Task { _ = await deletePrompt(entry: entry) }
+                } label: {
+                    Label("削除", systemImage: "trash")
                 }
-            } else {
-                Text("敬語プロンプトが読み込まれていません")
-                    .bikeyFont(14, weight: .regular, relativeTo: .body)
-                    .foregroundStyle(AppColor.muted)
-                    .padding(BikeyMetrics.Spacing.m)
             }
         }
-        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
     }
 
-    @ViewBuilder
-    private var subCard: some View {
-        if subEntries.isEmpty {
-            VStack(spacing: BikeyMetrics.Spacing.s) {
-                Text("よく使うプロンプトを追加すると、キーボードの「…」から呼び出せます。")
-                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
-                    .foregroundStyle(AppColor.muted)
-                    .multilineTextAlignment(.center)
-                    .padding(BikeyMetrics.Spacing.m)
+    private var resetAllButton: some View {
+        Button { showResetConfirm = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 14, weight: .regular))
+                Text("最初の4つのボタンに戻す")
+                    .bikeyFont(14, weight: .medium, relativeTo: .body)
             }
-            .frame(maxWidth: .infinity)
-            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
-        } else {
-            VStack(spacing: 0) {
-                ForEach(Array(subEntries.enumerated()), id: \.element.id) { index, entry in
-                    PromptRow(entry: entry) {
-                        openEditor(entry)
-                    }
+            .foregroundStyle(AppColor.muted)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(AppColor.surface, in: Capsule())
+            .overlay(
+                Capsule().stroke(AppColor.rule.opacity(0.4), lineWidth: 0.6)
+            )
+        }
+        .buttonStyle(.plain)
+    }
 
-                    if index < subEntries.count - 1 {
-                        Rectangle()
-                            .fill(AppColor.rule.opacity(0.35))
-                            .frame(height: 0.5)
-                            .padding(.leading, BikeyMetrics.Spacing.m + 4)
-                    }
-                }
+    private func moveEntries(from source: IndexSet, to destination: Int) {
+        guard !isGuest else { return }
+        var reordered = entries
+        reordered.move(fromOffsets: source, toOffset: destination)
+        applyOrdering(normalizedOrdering(reordered))
+        AppAnalytics.capture("prompt_reordered")
+    }
+
+    private func applyOrdering(_ ordered: [UserPrompt]) {
+        entries = ordered
+        UserPromptStore.writeEntries(ordered)
+        guard let profile = session.profile else { return }
+        orderingPushTask?.cancel()
+        orderingPushTask = Task {
+            do {
+                try await UserPromptRemoteStore.updateOrdering(ordered, userId: profile.id)
+                if !Task.isCancelled { errorMessage = nil }
+            } catch {
+                if !Task.isCancelled { errorMessage = "並び替えを保存できませんでした。" }
             }
-            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .shadow(color: .black.opacity(0.04), radius: 14, x: 0, y: 6)
         }
     }
 
     private func nextSortOrder() -> Int {
-        (subEntries.map(\.sortOrder).max() ?? -1) + 1
+        (entries.filter { $0.slot == .sub }.map(\.sortOrder).max() ?? -1) + 1
     }
 
     private func refreshEntries() async {
-        entries = UserPromptStore.readEntries()
+        entries = orderedForDisplay(UserPromptStore.readEntries())
         guard session.profile != nil else { return }
         isSyncing = true
         defer { isSyncing = false }
         do {
             try await session.refreshUserPromptsCache()
-            entries = UserPromptStore.readEntries()
+            entries = orderedForDisplay(UserPromptStore.readEntries())
             errorMessage = nil
         } catch {
             errorMessage = "プロンプトを同期できませんでした。"
@@ -200,7 +255,7 @@ struct PromptsScreen: View {
                     sortOrder: entry.sortOrder,
                     userId: profile.id
                 )
-                PostHogSDK.shared.capture("prompt_updated", properties: [
+                AppAnalytics.capture("prompt_updated", properties: [
                     "is_builtin": entry.builtinKey != nil,
                 ])
             } else {
@@ -210,10 +265,10 @@ struct PromptsScreen: View {
                     sortOrder: nextSortOrder(),
                     userId: profile.id
                 )
-                PostHogSDK.shared.capture("prompt_created")
+                AppAnalytics.capture("prompt_created")
             }
             try await session.refreshUserPromptsCache()
-            entries = UserPromptStore.readEntries()
+            entries = orderedForDisplay(UserPromptStore.readEntries())
             editorPayload = nil
             errorMessage = nil
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -238,19 +293,44 @@ struct PromptsScreen: View {
         guard let profile = session.profile else { return "サインインが必要です。" }
         isSyncing = true
         defer { isSyncing = false }
+        let remaining = normalizedOrdering(entries.filter { $0.id != entry.id })
+        withAnimation(.easeOut(duration: 0.22)) {
+            entries = remaining
+        }
         do {
             try await UserPromptRemoteStore.deletePrompt(id: entry.id, userId: profile.id)
-            PostHogSDK.shared.capture("prompt_deleted")
+            try await UserPromptRemoteStore.updateOrdering(remaining, userId: profile.id)
+            AppAnalytics.capture("prompt_deleted")
             try await session.refreshUserPromptsCache()
-            entries = UserPromptStore.readEntries()
+            entries = orderedForDisplay(UserPromptStore.readEntries())
             editorPayload = nil
             errorMessage = nil
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             return nil
         } catch {
+            try? await session.refreshUserPromptsCache()
+            entries = orderedForDisplay(UserPromptStore.readEntries())
             let message: LocalizedStringKey = "削除できませんでした。"
             errorMessage = message
             return message
+        }
+    }
+
+    private func resetAllPrompts() async {
+        guard let profile = session.profile else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+        do {
+            try await UserPromptRemoteStore.resetToDefaults(userId: profile.id)
+            AppAnalytics.capture("prompts_reset_to_defaults")
+            try await session.refreshUserPromptsCache()
+            withAnimation(.easeOut(duration: 0.22)) {
+                entries = orderedForDisplay(UserPromptStore.readEntries())
+            }
+            errorMessage = nil
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        } catch {
+            errorMessage = "リセットできませんでした。"
         }
     }
 }
@@ -324,6 +404,7 @@ private struct PromptsHeader: View {
 
 private struct PromptRow: View {
     let entry: UserPrompt
+    let isMain: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -336,6 +417,14 @@ private struct PromptRow: View {
                             .foregroundStyle(entry.isEnabled ? AppColor.ink : AppColor.softText)
                             .lineLimit(1)
                             .minimumScaleFactor(0.78)
+                        if isMain {
+                            Text("メイン")
+                                .bikeyFont(11, weight: .medium, relativeTo: .caption)
+                                .foregroundStyle(AppColor.purple)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(AppColor.purple.opacity(0.1), in: Capsule())
+                        }
                         if !entry.isEnabled {
                             Text("オフ")
                                 .bikeyFont(11, weight: .regular, relativeTo: .caption)
@@ -758,5 +847,225 @@ private extension View {
                 .presentationCornerRadius(32)
                 .presentationBackground(AppColor.background)
         }
+    }
+}
+
+// MARK: - Reorder lift tuning
+
+/// SwiftUI's List gives no control over the reorder lift: the long-press
+/// delay is ~0.5s and the lifted cell is snapshotted with square corners.
+/// This reaches into the backing UICollectionView to shorten the lift delay
+/// and round the drag/drop previews. Only public API is touched, and every
+/// hook is conditional — if a future iOS changes the hierarchy, the list
+/// silently falls back to stock behavior.
+struct ReorderLiftTuner: UIViewRepresentable {
+    func makeUIView(context: Context) -> TunerView { TunerView() }
+    func updateUIView(_ uiView: TunerView, context: Context) { uiView.scheduleTune() }
+
+    final class TunerView: UIView {
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            isUserInteractionEnabled = false
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            scheduleTune()
+        }
+
+        func scheduleTune() {
+            DispatchQueue.main.async { [weak self] in self?.tune() }
+        }
+
+        private func tune() {
+            guard let collectionView = enclosingCollectionView() else { return }
+
+            for case let longPress as UILongPressGestureRecognizer in collectionView.gestureRecognizers ?? [] {
+                if longPress.minimumPressDuration > 0.2 {
+                    longPress.minimumPressDuration = 0.2
+                }
+            }
+
+            let proxies: ReorderProxyPair
+            if let existing = ReorderProxyPair.store.object(forKey: collectionView) {
+                proxies = existing
+            } else {
+                guard
+                    let drag = collectionView.dragDelegate,
+                    let drop = collectionView.dropDelegate,
+                    let delegate = collectionView.delegate
+                else { return }
+                proxies = ReorderProxyPair(
+                    drag: DragDelegateProxy(wrapping: drag),
+                    drop: DropDelegateProxy(wrapping: drop),
+                    list: ListDelegateProxy(wrapping: delegate)
+                )
+                ReorderProxyPair.store.setObject(proxies, forKey: collectionView)
+            }
+            if collectionView.dragDelegate !== proxies.drag {
+                collectionView.dragDelegate = proxies.drag
+            }
+            if collectionView.dropDelegate !== proxies.drop {
+                collectionView.dropDelegate = proxies.drop
+            }
+            if collectionView.delegate !== proxies.list {
+                collectionView.delegate = proxies.list
+            }
+
+            for indexPath in collectionView.indexPathsForVisibleItems {
+                if let cell = collectionView.cellForItem(at: indexPath) {
+                    ListDelegateProxy.applyStaticSurface(to: cell, at: indexPath)
+                }
+            }
+        }
+
+        private func enclosingCollectionView() -> UICollectionView? {
+            var view = superview
+            while let current = view {
+                if let collectionView = current as? UICollectionView { return collectionView }
+                view = current.superview
+            }
+            return nil
+        }
+    }
+}
+
+/// Retained per collection view (weak key), so the proxies outlive the
+/// tuner's own cell — the collection view only holds its delegates weakly.
+private final class ReorderProxyPair: NSObject {
+    @MainActor static let store = NSMapTable<UICollectionView, ReorderProxyPair>.weakToStrongObjects()
+
+    let drag: DragDelegateProxy
+    let drop: DropDelegateProxy
+    let list: ListDelegateProxy
+
+    init(drag: DragDelegateProxy, drop: DropDelegateProxy, list: ListDelegateProxy) {
+        self.drag = drag
+        self.drop = drop
+        self.list = list
+    }
+}
+
+/// Wraps SwiftUI's collection view delegate to give prompt-row cells a static
+/// surface-colored background. SwiftUI's listRowBackground slides together with
+/// the row content during swipe, so when the close animation overshoots to the
+/// right the canvas color would flash in the gap on the left; the static layer
+/// underneath makes that overshoot invisible.
+private final class ListDelegateProxy: NSObject, UICollectionViewDelegate {
+    /// Section 1 of the List is the prompt rows (0 = header, 2 = footer).
+    private static let promptsSectionIndex = 1
+
+    private let original: any UICollectionViewDelegate
+
+    init(wrapping original: any UICollectionViewDelegate) {
+        self.original = original
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || original.responds(to: aSelector)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        original.responds(to: aSelector) ? original : super.forwardingTarget(for: aSelector)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        willDisplay cell: UICollectionViewCell,
+        forItemAt indexPath: IndexPath
+    ) {
+        original.collectionView?(collectionView, willDisplay: cell, forItemAt: indexPath)
+        Self.applyStaticSurface(to: cell, at: indexPath)
+    }
+
+    static func applyStaticSurface(to cell: UICollectionViewCell, at indexPath: IndexPath) {
+        guard indexPath.section == promptsSectionIndex else { return }
+        var configuration = UIBackgroundConfiguration.listGroupedCell()
+        configuration.backgroundColor = UIColor(AppColor.surface)
+        cell.backgroundConfiguration = configuration
+    }
+}
+
+private func roundedPreviewParameters(
+    _ parameters: UIDragPreviewParameters?,
+    collectionView: UICollectionView,
+    indexPath: IndexPath
+) -> UIDragPreviewParameters? {
+    let result = parameters ?? UIDragPreviewParameters()
+    if let cell = collectionView.cellForItem(at: indexPath) {
+        result.visiblePath = UIBezierPath(roundedRect: cell.bounds, cornerRadius: 12)
+    }
+    result.backgroundColor = .clear
+    return result
+}
+
+private final class DragDelegateProxy: NSObject, UICollectionViewDragDelegate {
+    private let original: any UICollectionViewDragDelegate
+
+    init(wrapping original: any UICollectionViewDragDelegate) {
+        self.original = original
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || original.responds(to: aSelector)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        original.responds(to: aSelector) ? original : super.forwardingTarget(for: aSelector)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        itemsForBeginning session: UIDragSession,
+        at indexPath: IndexPath
+    ) -> [UIDragItem] {
+        original.collectionView(collectionView, itemsForBeginning: session, at: indexPath)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        dragPreviewParametersForItemAt indexPath: IndexPath
+    ) -> UIDragPreviewParameters? {
+        roundedPreviewParameters(
+            original.collectionView?(collectionView, dragPreviewParametersForItemAt: indexPath),
+            collectionView: collectionView,
+            indexPath: indexPath
+        )
+    }
+}
+
+private final class DropDelegateProxy: NSObject, UICollectionViewDropDelegate {
+    private let original: any UICollectionViewDropDelegate
+
+    init(wrapping original: any UICollectionViewDropDelegate) {
+        self.original = original
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || original.responds(to: aSelector)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        original.responds(to: aSelector) ? original : super.forwardingTarget(for: aSelector)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        performDropWith coordinator: UICollectionViewDropCoordinator
+    ) {
+        original.collectionView(collectionView, performDropWith: coordinator)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        dropPreviewParametersForItemAt indexPath: IndexPath
+    ) -> UIDragPreviewParameters? {
+        roundedPreviewParameters(
+            original.collectionView?(collectionView, dropPreviewParametersForItemAt: indexPath),
+            collectionView: collectionView,
+            indexPath: indexPath
+        )
     }
 }

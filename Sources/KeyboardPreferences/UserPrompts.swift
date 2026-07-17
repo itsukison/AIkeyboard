@@ -7,7 +7,7 @@ public struct UserPrompt: Codable, Equatable, Identifiable, Sendable {
     }
 
     public let id: UUID
-    public let slot: Slot
+    public var slot: Slot
     public let builtinKey: String?
     public var title: String
     public var prompt: String

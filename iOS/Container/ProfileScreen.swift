@@ -10,24 +10,31 @@ struct ProfileScreen: View {
     @ObservedObject private var stats = ConversionStats.shared
     @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
     @State private var showPersonalInfo = false
-    @State private var showKeyboardStyle = false
+    @State private var showKeyboardSettings = false
     @State private var keyboardStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     @State private var promptCount: Int = UserPromptStore.readEntries().count
     @Binding var showAbout: Bool
     @State private var showAuth = false
     @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
     private var hapticsEnabled = false
+    #if DEBUG
+    // Verification hook for the Zenzai latency gate: inflates the keyboard's
+    // latency samples so the gate trips without real slowness. Turning it OFF
+    // also clears the gate's persisted verdict so the test can be repeated.
+    @AppStorage("debug.zenzaiForceSlowSample", store: KeyboardSettingsStore.sharedDefaults)
+    private var debugZenzaiForceSlow = false
+    #endif
 
     init(showAbout: Binding<Bool> = .constant(false)) {
         _showAbout = showAbout
     }
 
-    private var keyboardStyleDisplayName: LocalizedStringKey {
-        switch keyboardStyle {
-        case .japaneseFlick: return "フリック"
-        case .japaneseRomaji: return "ローマ字"
-        case .standard: return "ローマ字"
-        }
+    private var keyboardSettingsDisplayName: LocalizedStringKey {
+        LocalizedStringKey(keyboardStyleDisplayName)
+    }
+
+    private var keyboardStyleDisplayName: String {
+        keyboardStyle == .japaneseFlick ? "フリック" : "ローマ字"
     }
 
     private var accountRows: [ProfileRowModel] {
@@ -73,26 +80,7 @@ struct ProfileScreen: View {
                     ProfileSectionTitle("その他")
                         .padding(.top, BikeyMetrics.Spacing.l + 2)
 
-                    ProfileListCard(
-                        rows: [
-                            .init(
-                                icon: "keyboard",
-                                title: "キーボード入力方式",
-                                trailing: keyboardStyleDisplayName,
-                                action: { showKeyboardStyle = true }
-                            ),
-                            .init(
-                                icon: "hand.tap",
-                                title: "触覚フィードバック",
-                                toggle: hapticsBinding
-                            ),
-                            .init(
-                                icon: "info.circle",
-                                title: "敬語ボタンについて",
-                                action: { showAbout = true }
-                            )
-                        ]
-                    )
+                    ProfileListCard(rows: otherRows)
                     .padding(.top, BikeyMetrics.Spacing.s)
 
                     Spacer(minLength: 84)
@@ -103,8 +91,8 @@ struct ProfileScreen: View {
             .navigationDestination(isPresented: $showPersonalInfo) {
                 PersonalInformationView(profile: session.profile)
             }
-            .navigationDestination(isPresented: $showKeyboardStyle) {
-                KeyboardStylePickerView(selection: $keyboardStyle)
+            .navigationDestination(isPresented: $showKeyboardSettings) {
+                KeyboardSettingsView(selection: $keyboardStyle)
             }
             .navigationDestination(isPresented: $showAbout) {
                 AboutScreen()
@@ -126,6 +114,54 @@ struct ProfileScreen: View {
             .guestAuthCover(isPresented: $showAuth)
         }
     }
+
+    private var otherRows: [ProfileRowModel] {
+        var rows: [ProfileRowModel] = [
+            .init(
+                icon: "keyboard",
+                title: "キーボード",
+                trailing: keyboardSettingsDisplayName,
+                action: { showKeyboardSettings = true }
+            ),
+            .init(
+                icon: "hand.tap",
+                title: "触覚フィードバック",
+                toggle: hapticsBinding
+            ),
+            .init(
+                icon: "info.circle",
+                title: "敬語ボタンについて",
+                action: { showAbout = true }
+            )
+        ]
+        #if DEBUG
+        rows.append(.init(
+            icon: "tortoise",
+            title: "DEBUG: 変換を遅く見せる",
+            toggle: debugZenzaiForceSlowBinding
+        ))
+        #endif
+        return rows
+    }
+
+    #if DEBUG
+    private var debugZenzaiForceSlowBinding: Binding<Bool> {
+        Binding(
+            get: { debugZenzaiForceSlow },
+            set: { enabled in
+                debugZenzaiForceSlow = enabled
+                if !enabled {
+                    // Reset the gate's persisted verdict so the force-trip
+                    // test can be run again without reinstalling.
+                    KeyboardSettingsStore.sharedDefaults?
+                        .removeObject(forKey: KeyboardSettingsStore.zenzaiAutoDisabledBuildKey)
+                    KeyboardSettingsStore.sharedDefaults?
+                        .removeObject(forKey: KeyboardSettingsStore.zenzaiAutoDisablePendingReportKey)
+                }
+            }
+        )
+    }
+    #endif
 
     private var hapticsBinding: Binding<Bool> {
         Binding(
@@ -685,11 +721,15 @@ struct ShimmerRowBackground: View {
 struct AIConsentInfoModal: View {
     let onClose: () -> Void
 
+    @EnvironmentObject private var session: UserSession
     @AppStorage(KeyboardSettingsStore.aiConsentGrantedKey, store: KeyboardSettingsStore.sharedDefaults)
     private var consentGranted = false
 
     @State private var showPrivacy = false
     @State private var agreedToPolicy = false
+    // Commercial data-use is opt-in (default off); this lets the user turn it on
+    // or withdraw it. Reflects the server record on appear.
+    @State private var commercialOptIn = false
 
     var body: some View {
         ZStack {
@@ -721,6 +761,16 @@ struct AIConsentInfoModal: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .sheet(isPresented: $showPrivacy) {
             SafariView(url: LegalLinks.privacy)
+        }
+        .task {
+            guard let userId = session.profile?.id else { return }
+            let consent = try? await AIConsentRemoteStore.fetch(for: userId)
+            commercialOptIn = AIConsentRemoteStore.isCommercialOptIn(consent)
+        }
+        .onChange(of: commercialOptIn) { newValue in
+            guard consentGranted else { return }
+            guard let userId = session.profile?.id else { return }
+            Task { try? await AIConsentRemoteStore.setCommercialOptIn(newValue, for: userId) }
         }
     }
 
@@ -758,6 +808,26 @@ struct AIConsentInfoModal: View {
     private var consentAction: some View {
         if consentGranted {
             VStack(spacing: 10) {
+                Toggle(isOn: $commercialOptIn) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("日本語AIの改善に協力する")
+                            .bikeyFont(15, weight: .regular, relativeTo: .body)
+                            .foregroundStyle(AppColor.ink)
+                        Text("入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。任意です。")
+                            .bikeyFont(12, weight: .regular, relativeTo: .footnote)
+                            .foregroundStyle(AppColor.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .tint(AppColor.purple)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(AppColor.rule.opacity(0.5), lineWidth: 0.8)
+                )
+
                 Button {
                     consentGranted = false
                     agreedToPolicy = false
@@ -790,6 +860,8 @@ struct AIConsentInfoModal: View {
             .frame(maxWidth: .infinity)
         } else {
             VStack(spacing: 12) {
+                ProfileCommercialConsentCheckbox(isOn: $commercialOptIn)
+
                 ProfileConsentAgreementCheckbox(
                     isOn: $agreedToPolicy,
                     onOpenPrivacy: { showPrivacy = true }
@@ -797,6 +869,16 @@ struct AIConsentInfoModal: View {
 
                 Button {
                     consentGranted = true
+                    if let userId = session.profile?.id {
+                        Task {
+                            try? await AIConsentRemoteStore.setCommercialOptIn(
+                                commercialOptIn,
+                                for: userId
+                            )
+                        }
+                    } else {
+                        KeyboardSettingsStore.writeAICommercialOptIn(commercialOptIn)
+                    }
                     onClose()
                 } label: {
                     Text("同意して有効にする")
@@ -935,12 +1017,11 @@ private struct AIConsentDataRow: View {
     }
 }
 
-private struct ProfileConsentAgreementCheckbox: View {
+private struct ProfileCommercialConsentCheckbox: View {
     @Binding var isOn: Bool
-    let onOpenPrivacy: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             Button {
                 isOn.toggle()
             } label: {
@@ -959,7 +1040,53 @@ private struct ProfileConsentAgreementCheckbox: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 30, height: 30)
+                .frame(width: 44, height: 44, alignment: .top)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("日本語AIの改善のためのデータ利用に同意する（任意）")
+            .accessibilityAddTraits(isOn ? [.isSelected] : [])
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("【任意】日本語AIの改善に協力する")
+                    .bikeyFont(13, weight: .medium, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.ink)
+                Text("入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけます。")
+                    .bikeyFont(11, weight: .regular, relativeTo: .caption)
+                    .foregroundStyle(AppColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, BikeyMetrics.Spacing.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ProfileConsentAgreementCheckbox: View {
+    @Binding var isOn: Bool
+    let onOpenPrivacy: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Button {
+                isOn.toggle()
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isOn ? AppColor.charcoalAction : AppColor.surface)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .strokeBorder(isOn ? Color.clear : AppColor.rule.opacity(0.72), lineWidth: 1.5)
+                        )
+
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 44, height: 44, alignment: .top)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -977,7 +1104,7 @@ private struct ProfileConsentAgreementCheckbox: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, BikeyMetrics.Spacing.s)
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -1157,13 +1284,22 @@ struct DeleteAccountConfirmModal: View {
     }
 }
 
-private struct KeyboardStylePickerView: View {
+private struct KeyboardSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: KeyboardPreferences.KeyboardStyle
+    @AppStorage(KeyboardSettingsStore.keyClickSoundEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var keyClickSoundEnabled = true
+
+    // NOTE: The key-size slider + live keyboard preview are deferred. The
+    // rendering plumbing (KeyboardKeySizeObserver, the views' keySizeObserver
+    // param, the store read/write) stays in place, dormant at .standard. The
+    // parked UI lives under deferred/keysize/ — see that folder to re-enable.
 
     var body: some View {
         ScrollView {
-            VStack(spacing: BikeyMetrics.Spacing.l) {
+            VStack(alignment: .leading, spacing: 0) {
+                ProfileSectionTitle("入力方式")
+
                 HStack(spacing: BikeyMetrics.Spacing.m) {
                     ForEach(InputStyleOption.selectable, id: \.self) { style in
                         InputStyleSelectionCard(
@@ -1176,16 +1312,23 @@ private struct KeyboardStylePickerView: View {
                         )
                     }
                 }
+                .padding(.top, BikeyMetrics.Spacing.s)
 
-                Text("入力方式はいつでも変更できます。")
-                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
-                    .foregroundStyle(AppColor.muted)
+                ProfileListCard(rows: [
+                    .init(
+                        icon: "speaker.wave.2",
+                        title: "キークリック音",
+                        toggle: $keyClickSoundEnabled
+                    )
+                ])
+                .padding(.top, BikeyMetrics.Spacing.l)
             }
             .padding(.horizontal, BikeyMetrics.Sizing.screenHorizontalInset)
             .padding(.top, BikeyMetrics.Spacing.l)
+            .padding(.bottom, BikeyMetrics.Sizing.tabBarHeight + BikeyMetrics.Spacing.l)
         }
         .background(AppColor.canvas.ignoresSafeArea())
-        .navigationTitle("キーボード入力方式")
+        .navigationTitle("キーボード設定")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {

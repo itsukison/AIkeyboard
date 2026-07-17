@@ -64,6 +64,13 @@ struct AIKeyboardToolbarView: View {
 
     private var signedOutBar: some View {
         HStack(spacing: 0) {
+            if aiController.updateAvailable {
+                updatePill()
+
+                Spacer()
+                    .frame(width: 6)
+            }
+
             pillLink(label: "ログイン", url: AIKeyboardController.loginURL)
             .accessibilityLabel("ログインまたは登録")
 
@@ -91,6 +98,15 @@ struct AIKeyboardToolbarView: View {
 
     private func signedInMainBar(isOverflow: Bool) -> some View {
         HStack(spacing: 0) {
+            if !isOverflow && aiController.updateAvailable {
+                updatePill()
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+
+                Spacer()
+                    .frame(width: 6)
+                    .transition(.opacity)
+            }
+
             if !isOverflow && aiController.replyAvailable {
                 replyPill()
                     .transition(.move(edge: .leading).combined(with: .opacity))
@@ -122,16 +138,13 @@ struct AIKeyboardToolbarView: View {
             if !isOverflow {
                 Spacer()
                     .frame(width: 8)
-                    .transition(.opacity)
 
                 Divider()
                     .frame(height: KeyboardChromeMetrics.toolbarDividerHeight)
                     .opacity(0.35)
-                    .transition(.opacity)
 
                 Spacer()
                     .frame(width: 8)
-                    .transition(.opacity)
 
                 CandidateBar(
                     inputManager: inputManager,
@@ -141,7 +154,6 @@ struct AIKeyboardToolbarView: View {
                     onSelect: onSelectCandidate,
                     onSelectPrediction: onSelectPrediction
                 )
-                .transition(.opacity)
             } else {
                 Spacer()
                     .frame(width: 6)
@@ -190,6 +202,31 @@ struct AIKeyboardToolbarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("コピーしたメッセージに返信")
+    }
+
+    /// Update nudge (accent download icon + アップデート label, same construction
+    /// as `replyPill`). Opens the container, which forces the App Store check
+    /// and presents its update modal; dismissal there hides this pill too.
+    private func updatePill() -> some View {
+        Link(destination: AIKeyboardController.updateURL) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("アップデート")
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(KeyboardPalette.accent)
+            .padding(.horizontal, 11)
+            .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
+            .background(
+                KeyboardPalette.pillBackground,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded { onTriggerHaptic() })
+        .accessibilityLabel("アプリの新しいバージョンがあります")
     }
 
     private func commandPill(prompt: UserPrompt) -> some View {

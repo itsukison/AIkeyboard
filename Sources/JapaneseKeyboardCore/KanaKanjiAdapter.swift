@@ -1,5 +1,6 @@
 import Foundation
 import KanaKanjiConverterModuleWithDefaultDictionary
+import KeyboardPreferences
 
 public actor KanaKanjiAdapter {
     private let converter: KanaKanjiConverter
@@ -10,10 +11,15 @@ public actor KanaKanjiAdapter {
     /// `Candidate` only carries text + reading, which isn't enough context for
     /// `requestPostCompositionPredictionCandidates`.
     private var lastConversion: ConversionResult?
-    /// Whether Zenzai was enabled at init (weight bundled and enough jetsam
-    /// headroom). Kept for a DEBUG confirmation log in `prewarm()`.
-    private let zenzaiEnabled: Bool
+    /// Whether Zenzai is currently active (weight bundled, user-enabled,
+    /// enough jetsam headroom at init, and the latency gate hasn't tripped).
+    private var zenzaiEnabled: Bool
     private let zenzaiWeightURL: URL?
+    /// Trips when the rolling median conversion latency shows this device is
+    /// too slow for neural conversion — the speed counterpart of the memory
+    /// headroom gate. Once tripped, the decision persists via
+    /// `KeyboardSettingsStore.recordZenzaiAutoDisabled` until the next build.
+    private var latencyGate = ZenzaiLatencyGate()
     /// Left context currently baked into `options.zenzaiMode`, so a repeated
     /// convert call with the same context skips the mode rebuild.
     private var currentLeftContext: String?
@@ -28,8 +34,11 @@ public actor KanaKanjiAdapter {
     /// becomes the left-side context for the next prediction round. Cleared on
     /// the next conversion (typing supersedes the chain).
     private var chainedBase: (text: String, candidate: KanaKanjiConverterModule.Candidate)?
+    /// Whether the zenz weight has been loaded (by `prewarmZenzai()` or a real
+    /// conversion), so the deferred warm-up never runs twice.
+    private var zenzaiPrewarmed = false
 
-    public init(supportDirectoryURL: URL? = nil) {
+    public init(supportDirectoryURL: URL? = nil, zenzaiUserEnabled: Bool = true) {
         let supportURL = supportDirectoryURL
             ?? FileManager.default.temporaryDirectory.appendingPathComponent("KeigoButton", isDirectory: true)
         try? FileManager.default.createDirectory(at: supportURL, withIntermediateDirectories: true)
@@ -40,14 +49,20 @@ public actor KanaKanjiAdapter {
         // Zenzai costs ~25 MB of transient dirty memory (KV + compute + first
         // decode) on top of the classical converter, and the extension's cap
         // shrinks under host-app memory pressure — classical-only conversion
-        // beats a jetsam kill at launch. inferenceLimit 1 for lowest latency.
+        // beats a jetsam kill at launch. inferenceLimit 2 matches azooKey's own
+        // xsmall tier: it's the LM's review-and-correct budget (limit 1 lets the
+        // model reject the classical draft but never re-decode a fix), and each
+        // extra iteration costs latency (reused KV/compute buffers, no added
+        // memory) — the latency gate below covers slow devices.
+        // `zenzaiUserEnabled` is the user's opt-out toggle (App Group setting,
+        // read by the caller — Core stays decoupled from KeyboardPreferences).
         let weightURL = Bundle.module.url(forResource: "zenz-xsmall", withExtension: "gguf")
         self.zenzaiWeightURL = weightURL
         let zenzai: ConvertRequestOptions.ZenzaiMode
-        if let weightURL, Self.hasZenzaiHeadroom {
+        if let weightURL, zenzaiUserEnabled, Self.hasZenzaiHeadroom {
             zenzai = .on(
                 weight: weightURL,
-                inferenceLimit: 1,
+                inferenceLimit: 2,
                 personalizationMode: nil,
                 versionDependentMode: .v3(.init())
             )
@@ -106,7 +121,12 @@ public actor KanaKanjiAdapter {
         composingText.insertAtCursorPosition(kana, inputStyle: .direct)
 
         options.N_best = maxCandidates
+        let conversionStart: ContinuousClock.Instant? = zenzaiEnabled ? .now : nil
         let results = converter.requestCandidates(composingText, options: options)
+        if let conversionStart {
+            zenzaiPrewarmed = true
+            recordZenzaiLatency(since: conversionStart)
+        }
         lastConversion = results
 
         let texts = Array(results.mainResults.prefix(maxCandidates).map(\.text))
@@ -128,7 +148,7 @@ public actor KanaKanjiAdapter {
         currentLeftContext = context
         options.zenzaiMode = .on(
             weight: weightURL,
-            inferenceLimit: 1,
+            inferenceLimit: 2,
             personalizationMode: nil,
             versionDependentMode: .v3(.init(
                 leftSideContext: context,
@@ -138,40 +158,52 @@ public actor KanaKanjiAdapter {
     }
 
     /// Next-word (予測変換) suggestions to show after the user commits a word,
-    /// while nothing is being composed. `committedText` must match a candidate
-    /// from the most recent `convert(...)` or the chained base built by
-    /// `recordPredictionCommit`; otherwise (e.g. a raw-kana commit) we have no
-    /// rich left-side context and return nothing rather than guess.
+    /// while nothing is being composed. Prefers the rich azooKey candidate for
+    /// `committedText` (from the most recent `convert(...)` or the chained base
+    /// built by `recordPredictionCommit`); without one (raw-kana commit, tapped
+    /// corpus-prior suggestion) it falls back to the bigram prior keyed on the
+    /// committed surface itself — usually a single morpheme (です, と, はい) —
+    /// so the bar stays populated and prediction chains don't die.
     public func predictNextWords(after committedText: String, maxCandidates: Int = 10) -> [Candidate] {
-        let leftSideCandidate: KanaKanjiConverterModule.Candidate
+        let leftSideCandidate: KanaKanjiConverterModule.Candidate?
         if let match = lastConversion?.mainResults.first(where: { $0.text == committedText }) {
             leftSideCandidate = match
         } else if let chained = chainedBase, chained.text == committedText {
             leftSideCandidate = chained.candidate
         } else {
-            return []
+            leftSideCandidate = nil
         }
-        // Corpus prior keyed on the committed chunk's trailing morpheme(s)
-        // (Japanese is head-final). Trigram (last two morphemes) goes first for
-        // sharper context, backing off to the bigram table; both rank ahead of
-        // azooKey's zero-hint guesses, which surface rare junk (ラー油).
-        let morphemes = leftSideCandidate.data
-        let bigramTexts = morphemes.last
-            .map { NextWordPrior.shared?.suggestions(after: $0.word) ?? [] } ?? []
-        let lastTwo = Array(morphemes.suffix(2))
-        let trigramTexts = lastTwo.count == 2
-            ? (NextWordPrior.sharedTrigram?.suggestions(after: lastTwo[0].word, lastTwo[1].word) ?? [])
-            : []
-        let priorTexts = trigramTexts + bigramTexts
-        let predictions = converter.requestPostCompositionPredictionCandidates(
-            leftSideCandidate: leftSideCandidate,
-            options: options
-        )
+        let orderedTexts: [String]
+        let predictions: [PostCompositionPredictionCandidate]
+        if let leftSideCandidate {
+            // Corpus prior keyed on the committed chunk's trailing morpheme(s)
+            // (Japanese is head-final). Trigram (last two morphemes) first —
+            // sharpest context. azooKey's predictions next: with learning on
+            // they carry the user's own patterns and keep the join-chain alive,
+            // so they outrank the generic bigram tail.
+            let morphemes = leftSideCandidate.data
+            let bigramTexts = morphemes.last
+                .map { NextWordPrior.shared?.suggestions(after: $0.word) ?? [] } ?? []
+            let lastTwo = Array(morphemes.suffix(2))
+            let trigramTexts = lastTwo.count == 2
+                ? (NextWordPrior.sharedTrigram?.suggestions(after: lastTwo[0].word, lastTwo[1].word) ?? [])
+                : []
+            predictions = converter.requestPostCompositionPredictionCandidates(
+                leftSideCandidate: leftSideCandidate,
+                options: options
+            )
+            orderedTexts = trigramTexts + predictions.map(\.text) + bigramTexts
+        } else {
+            predictions = []
+            orderedTexts = NextWordPrior.shared?.suggestions(after: committedText) ?? []
+        }
+        // Also cleared (not just set) so a tap after a fallback round can't
+        // learn/join against a stale base from an earlier conversion.
         lastPredictionBase = leftSideCandidate
         lastPredictions = predictions
         var seen = Set<String>()
         var result: [Candidate] = []
-        for text in priorTexts + predictions.map(\.text) {
+        for text in orderedTexts {
             guard !text.isEmpty, seen.insert(text).inserted else { continue }
             result.append(Candidate(text: text, reading: ""))
             if result.count == maxCandidates { break }
@@ -218,14 +250,70 @@ public actor KanaKanjiAdapter {
         converter.stopComposition()
     }
 
-    /// Runs one throwaway conversion so the first real keystroke doesn't pay
-    /// the lazy dictionary-load cost (charID, mm.binary, LOUDS shard I/O).
+    /// Runs one throwaway classical conversion so the first real keystroke
+    /// doesn't pay the lazy dictionary-load cost (charID, mm.binary, LOUDS
+    /// shard I/O). Deliberately does NOT touch the zenz weight: this runs at
+    /// keyboard launch, and llama's model load + first decode saturating
+    /// `min(8, cores-2)` threads there is exactly what delays the first frame.
+    /// Zenzai warms separately via `prewarmZenzai()` once the keyboard is on
+    /// screen.
     public func prewarm() {
-        _ = convert(kana: "あ")
+        var classicalOptions = options
+        classicalOptions.zenzaiMode = .off
+        var composingText = ComposingText()
+        composingText.insertAtCursorPosition("あ", inputStyle: .direct)
+        _ = converter.requestCandidates(composingText, options: classicalOptions)
+        #if DEBUG
+        NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) (weight load deferred to prewarmZenzai)")
+        #endif
+        converter.stopComposition()
+    }
+
+    /// Loads the zenz weight and runs one throwaway neural conversion so the
+    /// first real keystroke doesn't pay the model-load + first-decode cost.
+    /// Call after the keyboard's first frame is visible. No-op when Zenzai is
+    /// off or the model was already warmed — including by a real conversion,
+    /// so a fast typer's in-flight work is never stomped by this.
+    public func prewarmZenzai() {
+        guard zenzaiEnabled, !zenzaiPrewarmed else { return }
+        zenzaiPrewarmed = true
+        var composingText = ComposingText()
+        composingText.insertAtCursorPosition("あ", inputStyle: .direct)
+        _ = converter.requestCandidates(composingText, options: options)
         #if DEBUG
         NSLog("%@", "📕 ZENZAI enabled=\(zenzaiEnabled) status=[\(converter.zenzStatus)]")
         #endif
         converter.stopComposition()
+    }
+
+    /// Feeds the latency gate with one conversion's duration; when it trips,
+    /// the rest of the process runs classical conversion and the decision is
+    /// persisted (until the next app build re-probes). Samples taken under
+    /// CPU throttling are withheld — a device in Low Power Mode or running
+    /// hot is slow on purpose, which says nothing about its real speed.
+    private func recordZenzaiLatency(since start: ContinuousClock.Instant) {
+        let info = ProcessInfo.processInfo
+        guard !info.isLowPowerModeEnabled, info.thermalState == .nominal else { return }
+        let duration = start.duration(to: .now)
+        var milliseconds = Double(duration.components.seconds) * 1000
+            + Double(duration.components.attoseconds) / 1e15
+        #if DEBUG
+        // On-device verification hook: inflating the *sample* (not sleeping)
+        // trips the gate without degrading typing. Set from the container's
+        // DEBUG-only row; never compiled into Release.
+        if KeyboardSettingsStore.sharedDefaults?.bool(forKey: "debug.zenzaiForceSlowSample") == true {
+            milliseconds += 300
+        }
+        NSLog("%@", String(format: "📉 ZENZAI conversion %.1f ms", milliseconds))
+        #endif
+        if latencyGate.record(latencyMilliseconds: milliseconds) {
+            zenzaiEnabled = false
+            options.zenzaiMode = .off
+            KeyboardSettingsStore.recordZenzaiAutoDisabled()
+            #if DEBUG
+            NSLog("%@", "📉 ZENZAI latency gate TRIPPED — classical conversion for the rest of this process")
+            #endif
+        }
     }
 
     /// Zenzai needs ~25 MB of dirty-memory headroom on top of the classical

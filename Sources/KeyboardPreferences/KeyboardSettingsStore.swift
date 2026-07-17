@@ -10,6 +10,24 @@ public enum KeyboardStyle: String, Codable, Sendable, CaseIterable {
     }
 }
 
+public enum KeyboardKeySizePreset: String, Codable, Sendable, CaseIterable {
+    case small
+    case slightlySmall
+    case standard
+    case slightlyLarge
+    case large
+
+    public var keyCapInsetAdjustment: Double {
+        switch self {
+        case .small: return 4.0
+        case .slightlySmall: return 2.0
+        case .standard: return 0
+        case .slightlyLarge: return -2.0
+        case .large: return -4.0
+        }
+    }
+}
+
 /// Which language the keyboard inputs in. `.japanese` (the default) drives the
 /// existing romaji/kana → kana-kanji pipeline unchanged. Other languages are
 /// opt-in parallel modes that must never alter the Japanese path (see CLAUDE.md
@@ -23,14 +41,24 @@ public enum KeyboardLanguage: String, Codable, Sendable, CaseIterable {
 public enum KeyboardSettingsStore {
     public static let appGroupIdentifier = AppGroup.identifier
     public static let keyboardStyleKey = "keyboardStyle"
+    public static let keyboardKeySizePresetKey = "keyboardKeySizePreset"
     public static let keyboardLanguageKey = "keyboardLanguage"
     public static let userPromptEntriesKey = "userPromptEntries"
     public static let conversionPreferenceEntriesKey = "conversionPreferenceEntries"
     public static let nextWordPreferenceEntriesKey = "nextWordPreferenceEntries"
     public static let hapticsEnabledKey = "hapticsEnabled"
+    public static let keyClickSoundEnabledKey = "keyClickSoundEnabled"
+    public static let zenzaiEnabledKey = "zenzaiEnabled"
+    public static let zenzaiAutoDisabledBuildKey = "zenzaiAutoDisabledBuild"
+    public static let zenzaiAutoDisablePendingReportKey = "zenzaiAutoDisablePendingReport"
     public static let cloudAIEnabledKey = "cloudAIEnabled"
     public static let aiConsentGrantedKey = "aiConsentGranted"
+    public static let aiCommercialOptInKey = "aiCommercialOptIn"
+    public static let pendingOnboardingMainPromptTitleKey = "pendingOnboardingMainPromptTitle"
+    public static let pendingOnboardingMainPromptBodyKey = "pendingOnboardingMainPromptBody"
+    public static let pendingOnboardingPromptEntriesKey = "pendingOnboardingPromptEntries"
     public static let anonymousDeviceIdKey = "anonymousDeviceId"
+    public static let analyticsAppInstanceIdKey = "analyticsAppInstanceId"
     public static let lastKnownFullAccessEnabledKey = "lastKnownFullAccessEnabled"
     public static let lastSeenPasteboardChangeCountKey = "lastSeenPasteboardChangeCount"
 
@@ -54,6 +82,22 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(style.rawValue, forKey: keyboardStyleKey)
+    }
+
+    public static func readKeyboardKeySizePreset(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> KeyboardKeySizePreset {
+        guard let raw = defaults?.string(forKey: keyboardKeySizePresetKey) else {
+            return .standard
+        }
+        return KeyboardKeySizePreset(rawValue: raw) ?? .standard
+    }
+
+    public static func writeKeyboardKeySizePreset(
+        _ preset: KeyboardKeySizePreset,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(preset.rawValue, forKey: keyboardKeySizePresetKey)
     }
 
     /// Defaults to `.japanese` when unset, so every existing user — and anyone
@@ -87,6 +131,87 @@ public enum KeyboardSettingsStore {
         defaults?.set(enabled, forKey: hapticsEnabledKey)
     }
 
+    public static func readKeyClickSoundEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        if let value = defaults?.object(forKey: keyClickSoundEnabledKey) as? Bool {
+            return value
+        }
+        return true
+    }
+
+    public static func writeKeyClickSoundEnabled(
+        _ enabled: Bool,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(enabled, forKey: keyClickSoundEnabledKey)
+    }
+
+    /// Zenzai (on-device neural conversion). Defaults to `true`; the keyboard
+    /// still falls back to classical conversion automatically when jetsam
+    /// headroom is short, independent of this setting. Read once per extension
+    /// process at converter creation, so a flip takes effect the next time iOS
+    /// relaunches the keyboard process.
+    public static func readZenzaiEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        if let value = defaults?.object(forKey: zenzaiEnabledKey) as? Bool {
+            return value
+        }
+        return true
+    }
+
+    public static func writeZenzaiEnabled(
+        _ enabled: Bool,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(enabled, forKey: zenzaiEnabledKey)
+    }
+
+    /// Called by the conversion engine when the latency gate trips: Zenzai is
+    /// too slow on this device. Records the build so the decision persists
+    /// across keyboard processes, plus a pending-report flag the container
+    /// forwards to analytics (the extension can't emit analytics itself).
+    public static func recordZenzaiAutoDisabled(
+        build: String = currentBuild,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(build, forKey: zenzaiAutoDisabledBuildKey)
+        defaults?.set(true, forKey: zenzaiAutoDisablePendingReportKey)
+    }
+
+    /// Whether the latency gate previously disabled Zenzai on this device.
+    /// The decision is scoped to the app build that made it: a new build
+    /// clears the flag and probes again, so a device isn't punished forever
+    /// for one slow week (and OS/app updates get a fresh chance).
+    public static func isZenzaiAutoDisabled(
+        currentBuild: String = currentBuild,
+        defaults: UserDefaults? = sharedDefaults
+    ) -> Bool {
+        guard let stored = defaults?.string(forKey: zenzaiAutoDisabledBuildKey) else {
+            return false
+        }
+        if stored != currentBuild {
+            defaults?.removeObject(forKey: zenzaiAutoDisabledBuildKey)
+            return false
+        }
+        return true
+    }
+
+    /// Read-and-clear for the container's analytics bridge: returns `true`
+    /// exactly once per gate trip.
+    public static func takeZenzaiAutoDisablePendingReport(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> Bool {
+        guard defaults?.bool(forKey: zenzaiAutoDisablePendingReportKey) == true else {
+            return false
+        }
+        defaults?.removeObject(forKey: zenzaiAutoDisablePendingReportKey)
+        return true
+    }
+
+    /// Public only because default argument values must match their
+    /// function's access level; callers should not need it directly.
+    public static var currentBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+    }
+
     public static func readCloudAIEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
         if let value = defaults?.object(forKey: cloudAIEnabledKey) as? Bool {
             return value
@@ -99,6 +224,19 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(enabled, forKey: cloudAIEnabledKey)
+    }
+
+    public static func readAnalyticsAppInstanceId(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> String? {
+        defaults?.string(forKey: analyticsAppInstanceIdKey)
+    }
+
+    public static func writeAnalyticsAppInstanceId(
+        _ identifier: String?,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(identifier, forKey: analyticsAppInstanceIdKey)
     }
 
     /// Whether the user has explicitly agreed to send text to the third-party
@@ -114,6 +252,73 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(granted, forKey: aiConsentGrantedKey)
+    }
+
+    /// Pending commercial data-use opt-in captured during onboarding (before
+    /// sign-in). The authoritative record lives server-side in `user_ai_consent`;
+    /// this local flag is synced up on sign-in. Defaults false (opt-in).
+    public static func readAICommercialOptIn(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        defaults?.bool(forKey: aiCommercialOptInKey) ?? false
+    }
+
+    public static func writeAICommercialOptIn(
+        _ optIn: Bool,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(optIn, forKey: aiCommercialOptInKey)
+    }
+
+    /// Main-button (敬語) customization the user made during onboarding, before
+    /// they had an account. Pushed to the freshly-created account's server row on
+    /// sign-up; discarded on sign-in to an existing account (server wins).
+    public static func readPendingOnboardingMainPrompt(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> (title: String, prompt: String)? {
+        guard
+            let title = defaults?.string(forKey: pendingOnboardingMainPromptTitleKey),
+            let prompt = defaults?.string(forKey: pendingOnboardingMainPromptBodyKey),
+            !title.isEmpty, !prompt.isEmpty
+        else { return nil }
+        return (title, prompt)
+    }
+
+    public static func writePendingOnboardingMainPrompt(
+        title: String,
+        prompt: String,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(title, forKey: pendingOnboardingMainPromptTitleKey)
+        defaults?.set(prompt, forKey: pendingOnboardingMainPromptBodyKey)
+    }
+
+    public static func clearPendingOnboardingMainPrompt(
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.removeObject(forKey: pendingOnboardingMainPromptTitleKey)
+        defaults?.removeObject(forKey: pendingOnboardingMainPromptBodyKey)
+    }
+
+    public static func readPendingOnboardingPromptEntries(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> [UserPrompt]? {
+        guard let data = defaults?.data(forKey: pendingOnboardingPromptEntriesKey) else {
+            return nil
+        }
+        return try? JSONDecoder().decode([UserPrompt].self, from: data)
+    }
+
+    public static func writePendingOnboardingPromptEntries(
+        _ entries: [UserPrompt],
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        guard let data = try? JSONEncoder().encode(entries) else { return }
+        defaults?.set(data, forKey: pendingOnboardingPromptEntriesKey)
+    }
+
+    public static func clearPendingOnboardingPromptEntries(
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.removeObject(forKey: pendingOnboardingPromptEntriesKey)
     }
 
     public static func anonymousDeviceId(defaults: UserDefaults? = sharedDefaults) -> String {

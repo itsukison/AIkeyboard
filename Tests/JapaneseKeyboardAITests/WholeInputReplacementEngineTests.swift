@@ -142,57 +142,76 @@ final class WholeInputReplacementEngineTests: XCTestCase {
         XCTAssertEqual(proxy.before, "OK")
         XCTAssertEqual(proxy.after, "")
     }
-}
 
-@MainActor
-private final class FakeProxy: TextDocumentProxying {
-    var before: String
-    var selected: String
-    var after: String
+    func testSelectionReplacePreservesSurroundingText() throws {
+        let proxy = FakeProxy(before: "今日は", selected: "とても", after: "晴れです")
+        let capture = try InputCapture.captureSelection(from: proxy)
 
-    var adjustCalls = 0
-    var adjustOffsetTotal = 0
-    var deleteCalls = 0
+        XCTAssertEqual(capture.targetText, "とても")
 
-    init(before: String, selected: String, after: String) {
-        self.before = before
-        self.selected = selected
-        self.after = after
+        try WholeInputReplacementEngine.replace(
+            capture: capture,
+            with: "非常に",
+            proxy: proxy
+        )
+
+        XCTAssertEqual(proxy.before, "今日は非常に")
+        XCTAssertEqual(proxy.after, "晴れです")
+        XCTAssertEqual(proxy.selected, "")
+        XCTAssertEqual(proxy.adjustCalls, 0)
+        XCTAssertEqual(proxy.deleteCalls, 0)
+        XCTAssertEqual(proxy.insertCalls, 1)
     }
 
-    var documentContextBeforeInput: String? { before }
-    var documentContextAfterInput: String? { after }
-    var selectedText: String? { selected.isEmpty ? nil : selected }
-    var documentIdentifier: UUID? { nil }
+    func testSelectionReplaceAbortsWhenBeforeChanged() throws {
+        let proxy = FakeProxy(before: "今日は", selected: "とても", after: "晴れです")
+        let capture = try InputCapture.captureSelection(from: proxy)
+        proxy.before = "昨日は"
 
-    func adjustTextPosition(byCharacterOffset offset: Int) {
-        adjustCalls += 1
-        adjustOffsetTotal += offset
-        // Model: positive offset moves cursor right, pulling text from `after` into `before`.
-        if offset > 0 {
-            let n = min(offset, after.count)
-            let idx = after.index(after.startIndex, offsetBy: n)
-            before += String(after[..<idx])
-            after = String(after[idx...])
-        }
-        // Selection is preserved as-is per UITextDocumentProxy semantics for adjustTextPosition.
+        assertSelectionReplaceAborts(capture: capture, proxy: proxy)
+        XCTAssertEqual(proxy.selected, "とても")
     }
 
-    func deleteBackward() {
-        deleteCalls += 1
-        // If selection exists, first delete clears the selection without touching before/after.
-        if !selected.isEmpty {
-            selected = ""
-            return
-        }
-        guard !before.isEmpty else { return }
-        before.removeLast()
+    func testSelectionReplaceAbortsWhenAfterChanged() throws {
+        let proxy = FakeProxy(before: "今日は", selected: "とても", after: "晴れです")
+        let capture = try InputCapture.captureSelection(from: proxy)
+        proxy.after = "雨です"
+
+        assertSelectionReplaceAborts(capture: capture, proxy: proxy)
     }
 
-    func insertText(_ text: String) {
-        if !selected.isEmpty {
-            selected = ""
+    func testSelectionReplaceAbortsWhenSelectionChanged() throws {
+        let proxy = FakeProxy(before: "今日は", selected: "とても", after: "晴れです")
+        let capture = try InputCapture.captureSelection(from: proxy)
+        proxy.selected = "すごく"
+
+        assertSelectionReplaceAborts(capture: capture, proxy: proxy)
+    }
+
+    func testSelectionReplaceAbortsWhenSelectionCleared() throws {
+        let proxy = FakeProxy(before: "今日は", selected: "とても", after: "晴れです")
+        let capture = try InputCapture.captureSelection(from: proxy)
+        // A cleared selection must abort: insertText would insert at the cursor
+        // instead of replacing the selection.
+        proxy.selected = ""
+
+        assertSelectionReplaceAborts(capture: capture, proxy: proxy)
+        XCTAssertEqual(proxy.before, "今日は")
+        XCTAssertEqual(proxy.after, "晴れです")
+    }
+
+    private func assertSelectionReplaceAborts(capture: WholeInputCapture, proxy: FakeProxy) {
+        XCTAssertThrowsError(
+            try WholeInputReplacementEngine.replace(
+                capture: capture,
+                with: "非常に",
+                proxy: proxy
+            )
+        ) { error in
+            XCTAssertEqual(error as? ReplacementError, .contextChanged)
         }
-        before += text
+        XCTAssertEqual(proxy.insertCalls, 0)
+        XCTAssertEqual(proxy.deleteCalls, 0)
+        XCTAssertEqual(proxy.adjustCalls, 0)
     }
 }

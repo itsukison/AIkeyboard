@@ -10,24 +10,33 @@ struct CandidateCard: View {
     let isSelected: Bool
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 16))
-            .foregroundStyle(KeyboardPalette.ink)
-            .lineLimit(6)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(width: CandidateCardMetrics.size.width, height: CandidateCardMetrics.size.height, alignment: .topLeading)
-            .background(
-                KeyboardPalette.cardBackground,
-                in: RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous)
-                    .strokeBorder(isSelected ? KeyboardPalette.accent.opacity(0.7) : Color.clear, lineWidth: 2)
-            )
-            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
-            .contentShape(RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous))
+        // A tall rewrite would otherwise be truncated. The text scrolls
+        // vertically inside the fixed-size card; the axis is orthogonal to the
+        // horizontal carousel, so drags partition cleanly (vertical → read,
+        // horizontal → switch card). `.basedOnSize` keeps short cards static —
+        // no bounce — so only overflowing candidates become scrollable, and the
+        // carousel's tap-to-replace (a tap never fires mid-drag) is unaffected.
+        ScrollView(.vertical, showsIndicators: true) {
+            Text(text)
+                .font(.system(size: 16))
+                .foregroundStyle(KeyboardPalette.ink)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: CandidateCardMetrics.size.width, height: CandidateCardMetrics.size.height)
+        .background(
+            KeyboardPalette.cardBackground,
+            in: RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous)
+                .strokeBorder(isSelected ? KeyboardPalette.accent.opacity(0.7) : Color.clear, lineWidth: 2)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
+        .contentShape(RoundedRectangle(cornerRadius: CandidateCardMetrics.cornerRadius, style: .continuous))
     }
 }
 

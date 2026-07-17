@@ -1,4 +1,3 @@
-import PostHog
 import SwiftUI
 import UIKit
 
@@ -69,7 +68,7 @@ struct HomeScreen: View {
         }
         .onChange(of: showDemo) { isShowing in
             if isShowing {
-                PostHogSDK.shared.capture("demo_opened")
+                AppAnalytics.capture("demo_opened")
             }
         }
         .onAppear {

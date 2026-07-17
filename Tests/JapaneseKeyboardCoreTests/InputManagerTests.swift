@@ -97,6 +97,30 @@ final class InputManagerTests: XCTestCase {
         XCTAssertEqual(notified, ["k", "こ"])
     }
 
+    // External document change (e.g. a chat app's send button clearing the
+    // field): the composition is dropped silently — no marked-text emission
+    // into the host's fresh document — and the next composition notifies
+    // from a clean slate.
+    func testAbandonCompositionResetsSilentlyAndNextCompositionNotifies() {
+        let im = InputManager()
+        var notified: [String] = []
+        im.onMarkedTextDidChange = { notified.append($0) }
+        for ch in "kyou" {
+            im.appendRomaji(ch)
+        }
+        XCTAssertTrue(im.isComposing)
+        let notifiedBeforeAbandon = notified
+
+        im.abandonComposition()
+        XCTAssertFalse(im.isComposing)
+        XCTAssertEqual(im.displayKana, "")
+        XCTAssertEqual(im.candidates.count, 0)
+        XCTAssertEqual(notified, notifiedBeforeAbandon)
+
+        im.appendRomaji("a")
+        XCTAssertEqual(notified.last, "あ")
+    }
+
     // Space (次候補): selects the first candidate, then advances.
     func testSelectNextCandidateCycles() async {
         let im = makeManagerWithAdapter()

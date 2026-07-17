@@ -11,6 +11,7 @@ final class AIKeyboardController: ObservableObject {
     static let loginURL = URL(string: "keigobutton://login")!
     static let fullAccessURL = URL(string: "keigobutton://fullaccess")!
     static let consentURL = URL(string: "keigobutton://consent")!
+    static let updateURL = URL(string: "keigobutton://update")!
 
     @Published private(set) var state: AIKeyboardState = .hidden
     @Published private(set) var mainPrompt: UserPrompt? = UserPromptStore.mainPrompt()
@@ -18,6 +19,9 @@ final class AIKeyboardController: ObservableObject {
     /// True when the clipboard holds a freshly copied message the user can reply
     /// to. Detected from pasteboard metadata only (no content read, no banner).
     @Published private(set) var replyAvailable: Bool = false
+    /// True when the container's App Store check relayed a newer version via the
+    /// App Group (the extension itself never checks the network for this).
+    @Published private(set) var updateAvailable: Bool = false
 
     private weak var controller: KeyboardViewController?
     private let fallbackInputManager: InputManager
@@ -25,10 +29,24 @@ final class AIKeyboardController: ObservableObject {
         controller?.inputManager ?? fallbackInputManager
     }
     private var rewriteTask: Task<Void, Never>?
+    /// The in-flight full-document replacement. Deliberately not cancelled by
+    /// `close()`: cancelling between the move-to-end hops and the delete loop
+    /// would leave the document half-replaced.
+    private var replaceTask: Task<Void, Never>?
+    /// True while the full-document reader/replacer is programmatically moving
+    /// the cursor. Those moves fire `selectionDidChange` → `documentDidChange`,
+    /// and the host can transiently report a different/absent `documentIdentifier`
+    /// mid-move — which would otherwise `close()` and cancel our own walk. We
+    /// suppress the auto-close for the duration of the self-induced movement;
+    /// the toolbar's explicit close still calls `close()` directly.
+    private var isMovingCursorInternally = false
     /// Maps the combined candidate list back to the rewrite event that produced
     /// each segment (start index → event id), so an accepted candidate is
     /// reported to the right event. Reset when a fresh generation begins.
     private var generationSegments: [(eventId: String, start: Int)] = []
+    /// When the current result was first shown, for action latency (how long the
+    /// user considered the candidates before regenerating or dismissing).
+    private var resultShownAt: Date?
     /// The copied message for the active reply session. Set on `runReply`, reused
     /// by `regenerate`, cleared by `runFresh` and `close`.
     private var replyContext: String?
@@ -63,9 +81,14 @@ final class AIKeyboardController: ObservableObject {
     }
 
     func close() {
+        if case .result = state {
+            reportAction("dismissed")
+        }
         rewriteTask?.cancel()
         rewriteTask = nil
+        isMovingCursorInternally = false
         replyContext = nil
+        resultShownAt = nil
         state = .hidden
     }
 
@@ -76,6 +99,11 @@ final class AIKeyboardController: ObservableObject {
         replyAvailable = false
         promoteReplyIfFreshCopy()
         startClipboardMonitoring()
+    }
+
+    /// Re-reads the container-relayed update nudge on keyboard appearance.
+    func refreshUpdateNudgeOnAppear() {
+        updateAvailable = AppUpdateNudge.shouldShowNudge(currentVersion: Self.appVersion)
     }
 
     private func startClipboardMonitoring() {
@@ -191,6 +219,7 @@ final class AIKeyboardController: ObservableObject {
 
     func regenerate() {
         guard case .result(let prompt, let capture, let candidates, _) = state else { return }
+        reportAction("regenerated")
         fire(prompt: prompt, capture: capture, inputText: capture.targetText, refinement: nil, existing: candidates, replyTo: replyContext)
     }
 
@@ -208,6 +237,37 @@ final class AIKeyboardController: ObservableObject {
         guard case .result(_, let capture, let candidates, let selectedIndex) = state else { return }
         guard candidates.indices.contains(selectedIndex) else { return }
         let replacement = candidates[selectedIndex].replacement
+
+        if capture.mode == .fullDocument {
+            guard replaceTask == nil else { return }
+            inputManager.reset()
+            // The chunked move-to-end and delete loop move the cursor and edit
+            // text, firing documentDidChange; suppress the auto-close so it
+            // doesn't tear down the replacement mid-flight.
+            isMovingCursorInternally = true
+            replaceTask = Task { [weak self] in
+                do {
+                    try await WholeInputReplacementEngine.replaceFullDocument(
+                        capture: capture,
+                        with: replacement,
+                        proxy: controller.textDocumentProxy.ai
+                    )
+                    guard let self else { return }
+                    self.isMovingCursorInternally = false
+                    KeyboardUsageStatsStore.recordAcceptedRewrite()
+                    self.submitSelectionFeedback(for: selectedIndex)
+                    self.replaceTask = nil
+                    self.state = .hidden
+                } catch {
+                    self?.isMovingCursorInternally = false
+                    self?.replaceTask = nil
+                    self?.reportAction("replace_failed")
+                    self?.state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")
+                }
+            }
+            return
+        }
+
         do {
             inputManager.reset()
             try WholeInputReplacementEngine.replace(
@@ -219,6 +279,7 @@ final class AIKeyboardController: ObservableObject {
             submitSelectionFeedback(for: selectedIndex)
             state = .hidden
         } catch {
+            reportAction("replace_failed")
             state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")
         }
     }
@@ -235,7 +296,22 @@ final class AIKeyboardController: ObservableObject {
         }
     }
 
+    /// Reports a lifecycle action (regenerated / dismissed) on the current
+    /// result to its latest rewrite event. Fire-and-forget.
+    private func reportAction(_ action: String) {
+        guard let eventId = generationSegments.last?.eventId else { return }
+        let latencyMs = resultShownAt.map { Int(Date().timeIntervalSince($0) * 1000) }
+        let service = CloudRewriteService(configuration: CloudRewriteConfiguration(appVersion: Self.appVersion))
+        Task.detached {
+            await service.submitAction(eventId: eventId, action: action, latencyMs: latencyMs)
+        }
+    }
+
     func documentDidChange() {
+        // Ignore selection/text changes we cause ourselves while walking or
+        // replacing the full document — otherwise our own cursor moves cancel
+        // the very task performing them.
+        guard !isMovingCursorInternally else { return }
         guard let controller else { return }
         let current = String(describing: controller.textDocumentProxy.documentIdentifier)
         switch state {
@@ -251,13 +327,39 @@ final class AIKeyboardController: ObservableObject {
     private func runFresh(prompt: UserPrompt) {
         guard let controller else { return }
         replyContext = nil
-        if inputManager.isComposing {
+
+        // Selection mode: rewrite only the highlighted text. Checked before the
+        // composing flush — flushing would `insertText` into the selection and
+        // destroy it. A selection during active composition is not a real state,
+        // so composing keeps the whole-input path.
+        if !inputManager.isComposing,
+           let selected = controller.textDocumentProxy.ai.selectedText,
+           !selected.isEmpty {
+            let capture: WholeInputCapture
+            do {
+                capture = try InputCapture.captureSelection(from: controller.textDocumentProxy.ai)
+            } catch WholeInputCaptureError.tooLong {
+                state = .error(prompt: prompt, message: "入力が長すぎます")
+                return
+            } catch {
+                state = .error(prompt: prompt, message: "入力してからAIを使えます")
+                return
+            }
+            fire(prompt: prompt, capture: capture, inputText: capture.targetText, refinement: nil, existing: [])
+            return
+        }
+
+        let didFlush = inputManager.isComposing
+        if didFlush {
             controller.flushBufferToHost()
         }
 
-        let capture: WholeInputCapture
+        // Cheap window capture first: validates the field is non-empty / not
+        // over the cap before the (slower) full-document walk. This is also the
+        // fallback if the walk can't reliably stitch the document.
+        let windowCapture: WholeInputCapture
         do {
-            capture = try InputCapture.capture(from: controller.textDocumentProxy.ai)
+            windowCapture = try InputCapture.capture(from: controller.textDocumentProxy.ai)
         } catch WholeInputCaptureError.tooLong {
             state = .error(prompt: prompt, message: "入力が長すぎます")
             return
@@ -265,7 +367,85 @@ final class AIKeyboardController: ObservableObject {
             state = .error(prompt: prompt, message: "入力してからAIを使えます")
             return
         }
-        fire(prompt: prompt, capture: capture, inputText: capture.targetText, refinement: nil, existing: [])
+
+        // Gate before walking so a ~2s walk is never spent on a user who will
+        // just hit a consent / sign-in wall.
+        guard passGates(prompt: prompt) else { return }
+
+        // Show the generating UI immediately; the walk runs inside rewriteTask
+        // so `close()` cancels it and the reader restores the cursor.
+        rewriteTask?.cancel()
+        generationSegments = []
+        state = .generating(prompt: prompt, capture: windowCapture, refinement: nil, existing: [])
+
+        rewriteTask = Task { [weak self] in
+            // The flush lands on the host asynchronously; let it settle before
+            // walking or the first window read is stale.
+            if didFlush {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+            }
+            guard !Task.isCancelled, let self, let controller = self.controller else { return }
+            // Our own cursor moves must not trip documentDidChange → close().
+            self.isMovingCursorInternally = true
+            let result = await FullDocumentReader(proxy: controller.textDocumentProxy.ai).read()
+            self.isMovingCursorInternally = false
+            guard !Task.isCancelled else { return }
+
+            let capture: WholeInputCapture
+            switch result {
+            case .tooLong:
+                self.rewriteTask = nil
+                self.state = .error(prompt: prompt, message: "入力が長すぎます")
+                return
+            case .failed:
+                // Anomaly: fall back to the window capture (today's behavior).
+                capture = windowCapture
+            case .snapshot(let before, let after):
+                let full = try? WholeInputCapture.makeFullDocument(
+                    beforeCursor: before,
+                    afterCursor: after,
+                    documentIdentifierString: windowCapture.documentIdentifierString,
+                    maxCharacters: InputCapture.maxCharacters
+                )
+                // Only genuinely-longer results become .fullDocument; a walk
+                // that only saw the window keeps the strict sync replace path.
+                if let full, full.targetText != windowCapture.targetText {
+                    capture = full
+                } else {
+                    capture = windowCapture
+                }
+            }
+
+            // fire() cancels rewriteTask; clear it first so it doesn't cancel
+            // the very network task fire is about to start.
+            self.rewriteTask = nil
+            self.fire(prompt: prompt, capture: capture, inputText: capture.targetText, refinement: nil, existing: [])
+        }
+    }
+
+    /// The consent / cloud-toggle / full-access / sign-in gates. Sets the
+    /// matching state and returns false on the first failure. Called before the
+    /// full-document walk so a slow walk is never wasted on a gated user, and
+    /// again (idempotently) from `fire`.
+    private func passGates(prompt: UserPrompt) -> Bool {
+        guard let controller else { return false }
+        guard KeyboardSettingsStore.readAIConsentGranted() else {
+            state = .consentRequired(prompt: prompt)
+            return false
+        }
+        guard KeyboardSettingsStore.readCloudAIEnabled() else {
+            state = .error(prompt: prompt, message: "Cloud AIを設定でオンにしてください")
+            return false
+        }
+        guard controller.state.keyboardContext.hasFullAccess else {
+            state = .fullAccessRequired(prompt: prompt)
+            return false
+        }
+        guard AIAuthStore.readAccessToken() != nil else {
+            state = .error(prompt: prompt, message: "アプリでサインインしてください")
+            return false
+        }
+        return true
     }
 
     private func fire(
@@ -284,24 +464,10 @@ final class AIKeyboardController: ObservableObject {
             generationSegments = []
         }
 
-        guard KeyboardSettingsStore.readAIConsentGranted() else {
-            state = .consentRequired(prompt: prompt)
-            return
-        }
-        guard KeyboardSettingsStore.readCloudAIEnabled() else {
-            state = .error(prompt: prompt, message: "Cloud AIを設定でオンにしてください")
-            return
-        }
-        guard controller.state.keyboardContext.hasFullAccess else {
-            state = .fullAccessRequired(prompt: prompt)
-            return
-        }
-        guard AIAuthStore.readAccessToken() != nil else {
-            state = .error(prompt: prompt, message: "アプリでサインインしてください")
-            return
-        }
+        guard passGates(prompt: prompt) else { return }
 
         let configuration = CloudRewriteConfiguration(appVersion: Self.appVersion)
+        let isSelection = capture.mode == .selection
         let request = RewriteRequest(
             prompt: prompt.prompt,
             text: inputText,
@@ -311,7 +477,11 @@ final class AIKeyboardController: ObservableObject {
             locale: Self.locale(for: prompt),
             appVersion: configuration.appVersion,
             candidateCount: 3,
-            refinement: refinement
+            refinement: refinement,
+            analyticsAppInstanceId: KeyboardSettingsStore.readAnalyticsAppInstanceId(),
+            selection: isSelection,
+            selectionContextBefore: isSelection ? String(capture.beforeCursor.suffix(200)) : nil,
+            selectionContextAfter: isSelection ? String(capture.afterCursor.prefix(200)) : nil
         )
         let service = CloudRewriteService(configuration: configuration)
         state = .generating(prompt: prompt, capture: capture, refinement: refinement, existing: existing)
@@ -334,6 +504,7 @@ final class AIKeyboardController: ObservableObject {
                         candidates: combined,
                         selectedIndex: existing.count
                     )
+                    self?.resultShownAt = Date()
                     self?.rewriteTask = nil
                 }
             } catch {

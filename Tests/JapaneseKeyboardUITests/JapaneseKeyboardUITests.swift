@@ -1,4 +1,6 @@
 import KeyboardKit
+import KeyboardPreferences
+import UIKit
 import XCTest
 @testable import JapaneseKeyboardUI
 
@@ -6,6 +8,98 @@ final class JapaneseKeyboardUITests: XCTestCase {
     func testQwertyViewModuleResolves() {
         // Smoke test: ensure the module compiles and is importable.
         _ = QwertyKeyboardView.self
+    }
+
+    /// The tap surface must not interfere with the candidate bar's scroll:
+    /// a delegate that gated the scroll view's pan on the tap's failure made
+    /// horizontal scrolling unresponsive, and recognizer arbitration in the
+    /// hosted toolbar silently dropped chevron taps on iOS 26. Taps are now
+    /// decided from raw touch events, so there is no recognizer to gate or
+    /// be gated — a swipe reaches the pan untouched, and the pan's takeover
+    /// surfaces here as touchesCancelled (which must not fire the tap).
+    @MainActor
+    func testCandidateTapSurfaceHasNoGestureRecognizers() {
+        let view = CandidateTapSurfaceView(onTap: {})
+        XCTAssertTrue(view.gestureRecognizers?.isEmpty ?? true)
+    }
+
+    @MainActor
+    func testCandidateTapSurfaceFiresOnStationaryTouchUp() {
+        var fired = 0
+        let view = CandidateTapSurfaceView(onTap: { fired += 1 })
+
+        view.touchSequenceBegan(at: CGPoint(x: 10, y: 10))
+        view.touchSequenceEnded(at: CGPoint(x: 14, y: 12))
+
+        XCTAssertEqual(fired, 1)
+    }
+
+    @MainActor
+    func testCandidateTapSurfaceIgnoresSwipes() {
+        var fired = 0
+        let view = CandidateTapSurfaceView(onTap: { fired += 1 })
+
+        view.touchSequenceBegan(at: CGPoint(x: 10, y: 10))
+        view.touchSequenceEnded(at: CGPoint(x: 60, y: 10))
+
+        XCTAssertEqual(fired, 0)
+    }
+
+    @MainActor
+    func testCandidateTapSurfaceIgnoresCancelledTouches() {
+        var fired = 0
+        let view = CandidateTapSurfaceView(onTap: { fired += 1 })
+
+        view.touchSequenceBegan(at: CGPoint(x: 10, y: 10))
+        view.touchSequenceCancelled()
+        // UIKit never sends touchesEnded after a cancel; even if it did, the
+        // cleared start point must keep the tap from firing.
+        view.touchSequenceEnded(at: CGPoint(x: 10, y: 10))
+
+        XCTAssertEqual(fired, 0)
+    }
+
+    @MainActor
+    func testStandardKeySizePresetPreservesQwertyGeometry() {
+        let context = KeyboardContext()
+        var layout = KeyboardLayout.standard(for: context)
+        let originalConfiguration = layout.deviceConfiguration
+
+        layout.applyKeyboardKeySizePreset(.standard)
+
+        XCTAssertEqual(layout.deviceConfiguration.rowHeight, originalConfiguration.rowHeight)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.top, originalConfiguration.buttonInsets.top)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.leading, originalConfiguration.buttonInsets.leading)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.bottom, originalConfiguration.buttonInsets.bottom)
+        XCTAssertEqual(layout.deviceConfiguration.buttonInsets.trailing, originalConfiguration.buttonInsets.trailing)
+    }
+
+    @MainActor
+    func testLargeKeySizePresetExpandsCapsWithoutChangingRows() {
+        let context = KeyboardContext()
+        var layout = KeyboardLayout.standard(for: context)
+        let originalConfiguration = layout.deviceConfiguration
+        let adjustment = CGFloat(KeyboardKeySizePreset.large.keyCapInsetAdjustment)
+
+        layout.applyKeyboardKeySizePreset(.large)
+
+        XCTAssertEqual(layout.deviceConfiguration.rowHeight, originalConfiguration.rowHeight)
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.top,
+            originalConfiguration.buttonInsets.top + adjustment
+        )
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.leading,
+            originalConfiguration.buttonInsets.leading + adjustment
+        )
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.bottom,
+            originalConfiguration.buttonInsets.bottom + adjustment
+        )
+        XCTAssertEqual(
+            layout.deviceConfiguration.buttonInsets.trailing,
+            originalConfiguration.buttonInsets.trailing + adjustment
+        )
     }
 
     // WholeInputCapture tests moved to JapaneseKeyboardAITests/WholeInputCaptureTests.swift

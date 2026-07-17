@@ -74,7 +74,40 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
         urlRequest.timeoutInterval = 10
         urlRequest.httpBody = try? JSONEncoder().encode(
-            SelectionFeedback(eventId: eventId, selectedIndex: selectedIndex)
+            SelectionFeedback(
+                eventId: eventId,
+                selectedIndex: selectedIndex,
+                analyticsAppInstanceId: KeyboardSettingsStore.readAnalyticsAppInstanceId()
+            )
+        )
+
+        _ = try? await session.data(for: urlRequest)
+    }
+
+    /// Reports a user action on a result (e.g. `regenerated`, `dismissed`) to
+    /// the originating rewrite event. Fire-and-forget, like `submitSelection`.
+    public func submitAction(
+        eventId: String,
+        action: String,
+        selectedIndex: Int? = nil,
+        latencyMs: Int? = nil
+    ) async {
+        guard let accessToken = try? await ensureFreshAccessToken() else { return }
+
+        var urlRequest = URLRequest(url: configuration.endpoint)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        urlRequest.timeoutInterval = 10
+        urlRequest.httpBody = try? JSONEncoder().encode(
+            ActionFeedback(
+                eventId: eventId,
+                action: action,
+                selectedIndex: selectedIndex,
+                latencyMs: latencyMs,
+                analyticsAppInstanceId: KeyboardSettingsStore.readAnalyticsAppInstanceId()
+            )
         )
 
         _ = try? await session.data(for: urlRequest)
@@ -123,6 +156,15 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
 private struct SelectionFeedback: Encodable {
     let eventId: String
     let selectedIndex: Int
+    let analyticsAppInstanceId: String?
+}
+
+private struct ActionFeedback: Encodable {
+    let eventId: String
+    let action: String
+    let selectedIndex: Int?
+    let latencyMs: Int?
+    let analyticsAppInstanceId: String?
 }
 
 private struct CloudRewriteErrorPayload: Decodable {

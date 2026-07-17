@@ -71,15 +71,42 @@ enum UserPromptRemoteStore {
             .execute()
     }
 
-    static func updateSortOrders(_ orders: [(id: UUID, sortOrder: Int)], userId: UUID) async throws {
-        for entry in orders {
+    static func updateOrdering(_ entries: [UserPrompt], userId: UUID) async throws {
+        for entry in entries {
             try await supabase
                 .from("user_prompts")
-                .update(SortOrderRow(sort_order: entry.sortOrder))
+                .update(OrderingRow(
+                    slot: entry.slot.rawValue,
+                    sort_order: entry.sortOrder,
+                    is_enabled: entry.isEnabled
+                ))
                 .eq("id", value: entry.id)
                 .eq("user_id", value: userId)
                 .execute()
         }
+    }
+
+    static func resetToDefaults(userId: UUID) async throws {
+        try await supabase
+            .from("user_prompts")
+            .delete()
+            .eq("user_id", value: userId)
+            .execute()
+        let rows = UserPromptDefaults.seedEntries().map { entry in
+            InsertRow(
+                user_id: userId,
+                slot: entry.slot.rawValue,
+                builtin_key: entry.builtinKey,
+                title: entry.title,
+                prompt: entry.prompt,
+                is_enabled: true,
+                sort_order: entry.sortOrder
+            )
+        }
+        try await supabase
+            .from("user_prompts")
+            .insert(rows)
+            .execute()
     }
 }
 
@@ -127,6 +154,8 @@ private struct InsertRow: Encodable {
     let sort_order: Int
 }
 
-private struct SortOrderRow: Encodable {
+private struct OrderingRow: Encodable {
+    let slot: String
     let sort_order: Int
+    let is_enabled: Bool
 }

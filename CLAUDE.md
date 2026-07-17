@@ -66,7 +66,7 @@ iOS keyboard extensions are killed around 30-60 MB resident. Target < 40 MB peak
 The extension ships with `RequestsOpenAccess = YES` (Full Access), which the Cloud AI rewrite requires. The only network call is that rewrite, and only after the user explicitly taps an AI command — never send keystrokes, never run analytics from the extension.
 
 ### App Group is the only IPC
-Container ↔ extension data flows through the App Group container (`group.co.gastroduce-japan.bikey.japanese`). No URL schemes, no shared keychain in v1.
+Container ↔ extension data flows through the App Group container (`group.com.core7.keigobutton`). No URL schemes, no shared keychain in v1.
 
 ### Japanese is the default; other languages are opt-in parallel modes
 Japanese is what the keyboard ships with and every existing user keeps. A user may explicitly choose a different keyboard language (English first; Simplified Chinese planned) in onboarding or settings, stored as `KeyboardLanguage` in the App Group (default `.japanese`).

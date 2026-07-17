@@ -124,31 +124,77 @@ stable order: standard, slightly softer, then slightly more polite. The
 cards stay unlabeled; the differences should be subtle unless the user
 taps a refinement chip.
 
+A candidate taller than the fixed card scrolls vertically inside it
+(`CandidateCard` wraps the text in a `ScrollView` with
+`scrollBounceBehavior(.basedOnSize)`, so short candidates stay static). The
+vertical scroll is orthogonal to the horizontal snap-carousel, so a vertical
+drag reads a long candidate while a horizontal drag switches cards. Tapping
+the centered card still commits it — a tap never fires mid-drag, so scroll
+and tap-to-replace don't collide.
+
 Errors collapse the carousel and show a one-line message bar with a close
 button.
 
-## Replacement algorithm
+## Capture strategies
 
-The rewrite target is **the whole available host input** — everything
-`UITextDocumentProxy` returns from
-`documentContextBeforeInput + selectedText + documentContextAfterInput`.
-If the cursor is mid-text, replacement moves to the end of the captured
-input, deletes that captured text, and inserts the rewrite.
+`WholeInputCapture.mode` (`CaptureMode`) records which of three strategies
+produced the capture. The mode is chosen in `AIKeyboardController.runFresh`
+and decides how `WholeInputReplacementEngine` puts the rewrite back.
 
-`InputCapture.capture(from:)`:
+### 1. Selection — the user highlighted text
 
-1. `before = proxy.documentContextBeforeInput ?? ""`
-2. `selected = proxy.selectedText ?? ""`
-3. `after = proxy.documentContextAfterInput ?? ""`
-4. `target = before + selected + after`
-5. Reject if `target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty`
-   → `WholeInputCaptureError.empty`
-6. Reject if `target.count > 2000` → `WholeInputCaptureError.tooLong`
-7. `moveToEndCharacterCount = after.count`
-8. `deleteBackwardCharacterCount = target.count`
-9. `documentIdentifierString = String(describing: proxy.documentIdentifier)`
+If `proxy.selectedText` is non-empty (and no romaji composition is in
+flight), only the selection is rewritten. `InputCapture.captureSelection`
+sets `targetText = selectedText`; the surrounding before/after windows are
+kept on the capture as context (see privacy note below) but are not part of
+the target. Replacement is a single `proxy.insertText(replacement)`, which
+natively replaces the active selection — no cursor moves, no deletes.
 
-`WholeInputReplacementEngine.replace(...)`:
+`WholeInputReplacementEngine.replace(...)` validates that all three of
+`before` / `selected` / `after` still match the capture before inserting. A
+**cleared** selection aborts with `contextChanged`, because `insertText`
+would otherwise insert at the cursor instead of replacing.
+
+### 2. Full document — cursor walking
+
+Otherwise the whole document is the target. iOS truncates
+`documentContextBeforeInput`/`AfterInput` to a window around the cursor, so a
+long field would silently be only partially rewritten. `FullDocumentReader`
+reconstructs the full document by walking the cursor in window-sized hops:
+
+- Read the visible window, merge it into the accumulator (trimming any
+  overlap a hop undershoot leaves behind), hop by the window length, settle
+  ~50 ms, re-read. Repeat backward, then forward, then restore the cursor.
+- An empty window at a non-edge position marks a paragraph break, crossed
+  with a 1-character probe and stitched as `"\n"`. The document edge is the
+  probe that leaves both windows unchanged.
+- After restoring the cursor, the stitched text is verified against the
+  windows visible at the original position. Any drift (a host that ignores
+  or overshoots `adjustTextPosition`, text periodic at exactly the window
+  length) fails verification and the reader returns `.failed`.
+
+`runFresh` shows the `.generating` UI immediately, then runs the walk inside
+`rewriteTask` (so `close()` cancels it and the reader restores the cursor):
+
+- `.tooLong` (stitched over 2000) → `"入力が長すぎます"`.
+- `.failed` → fall back to the window capture (strategy 3) — never worse than
+  before this feature existed.
+- `.snapshot` longer than the window → `.fullDocument` capture. If the walk
+  only ever saw the window (short field), the plain window capture is kept so
+  replacement stays on the strict synchronous path.
+
+Full-document replacement (`replaceFullDocument`, async) validates
+suffix/prefix (strict equality is impossible — the proxy still shows only the
+window at replace time), moves to the document end in window-sized hops, then
+deletes `deleteBackwardCharacterCount` characters and inserts the rewrite. It
+is **not** cancelled by `close()`: interrupting between the move and the
+delete loop would leave the document half-replaced.
+
+### 3. Whole available input — window only
+
+The original strategy and the fallback for hosts the walk can't handle.
+`InputCapture.capture` captures `before + selected + after` as exposed;
+replacement moves to the end of the captured span, deletes it, and inserts.
 
 ```swift
 let currentTarget = (proxy.documentContextBeforeInput ?? "")
@@ -157,7 +203,6 @@ let currentTarget = (proxy.documentContextBeforeInput ?? "")
 guard currentTarget == capture.targetText else {
     throw ReplacementError.contextChanged
 }
-
 if capture.moveToEndCharacterCount > 0 {
     proxy.adjustTextPosition(byCharacterOffset: capture.moveToEndCharacterCount)
 }
@@ -172,16 +217,13 @@ focused a different field) trigger
 `AIKeyboardController.documentDidChange` which closes the rewrite mode
 and discards the in-flight task.
 
-### Why whole-input only
+### Honest limitations
 
-iOS keyboard extensions cannot select arbitrary text in the host. The
-proxy gives us before / selected / after, and nothing else. Trying to
-replace a "subsection" inside a paragraph would need offsets the host
-never gives us. We capture and replace what the host actually exposes —
-called "whole available input" in user-facing copy, not "whole document".
-
-If a host gives us only partial context, we rewrite only the partial
-context. The product copy must never promise full-document rewrite.
+Cursor walking is best-effort. Hosts that ignore `adjustTextPosition` (some
+web views) fall back to window-only capture; hosts that never report
+`selectedText` never enter selection mode. The product copy may now say
+full-document rewrite, but must keep the fallback caveat — it is not
+guaranteed in every host.
 
 ## Failure modes
 
@@ -192,8 +234,10 @@ context. The product copy must never promise full-document rewrite.
 | Full Access off | `"フルアクセスを有効にしてください"` error bar |
 | Not signed in (no cached token) | `"アプリでサインインしてください"` error bar |
 | Input empty | `"入力してからAIを使えます"` error bar |
-| Input over 2000 chars | `"入力が長すぎます"` error bar |
+| Input (or stitched full document) over 2000 chars | `"入力が長すぎます"` error bar |
+| Selection cleared before replace | `"入力が変わりました。もう一度実行してください"` error bar |
 | Context changed before replace | `"入力が変わりました。もう一度実行してください"` error bar |
+| Cursor walk anomaly (host ignores/overshoots adjust) | silent fallback to window capture |
 | Backend returns rate_limited | passes the backend message through |
 | Network failure / timeout | `"AI rewrite failed."` |
 
@@ -203,6 +247,10 @@ The container's privacy/settings screens must communicate:
 
 - Normal Japanese typing is **never** sent to the network.
 - Text is sent **only** when the user taps an AI prompt.
+- For **selection mode**, the small on-screen text immediately around the
+  selection is sent alongside it as context so the rewrite fits the sentence.
+  It is sent only on that same tap and is **never stored** by the backend —
+  only its length is recorded as metadata.
 - For **reply mode**, the clipboard's contents are read only when the user taps
   the 返信 pill, and are then sent as the message being replied to. That tap
   read triggers the iOS paste permission prompt (a prompt-free `UIPasteControl`
