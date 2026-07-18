@@ -78,10 +78,12 @@ struct KeigoButtonApp: App {
                     flushKeyboardUsageDays()
                     reportZenzaiAutoDisableIfPending()
                     reportKeyboardEnabledIfNeeded()
+                    reportFullAccessGrantedIfNeeded()
                 }
                 .onChange(of: scenePhase) { phase in
                     if phase == .active {
                         reportKeyboardEnabledIfNeeded()
+                        reportFullAccessGrantedIfNeeded()
                     }
                 }
         }
@@ -115,6 +117,18 @@ struct KeigoButtonApp: App {
         AppAnalytics.capture("keyboard_enabled", properties: [
             "full_access": status.isFullAccessEnabled,
         ])
+        UserDefaults.standard.set(true, forKey: reportedKey)
+    }
+
+    /// One-shot funnel event for the enabled → granted-Full-Access step.
+    /// `keyboard_enabled` only carries the status at first detection; users
+    /// who grant later (or never) are invisible without this. The extension
+    /// writes the ground-truth flag to the App Group on every keyboard open.
+    private func reportFullAccessGrantedIfNeeded() {
+        let reportedKey = "analytics.fullAccessGrantedReported"
+        guard !UserDefaults.standard.bool(forKey: reportedKey) else { return }
+        guard KeyboardSettingsStore.readLastKnownFullAccessEnabled() else { return }
+        AppAnalytics.capture("full_access_granted")
         UserDefaults.standard.set(true, forKey: reportedKey)
     }
 
