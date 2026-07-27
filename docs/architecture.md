@@ -8,14 +8,14 @@ There are two product targets and four SPM library products.
 
 | Target | Type | Where |
 |---|---|---|
-| `BikeyJP` | iOS app | `iOS/Container/` + `iOS/Shared/` |
+| `KeigoButton` | iOS app | `iOS/Container/` + `iOS/Shared/` |
 | `KeyboardExtension` | iOS app extension (`com.apple.keyboard-service`) | `iOS/KeyboardExtension/` + `iOS/Shared/` |
 | `JapaneseKeyboardCore` | SPM library | `Sources/JapaneseKeyboardCore/` |
 | `JapaneseKeyboardUI` | SPM library | `Sources/JapaneseKeyboardUI/` |
 | `JapaneseKeyboardAI` | SPM library | `Sources/JapaneseKeyboardAI/` |
 | `KeyboardPreferences` | SPM library | `Sources/KeyboardPreferences/` |
 
-`BikeyJP` depends on all four SPM products plus `KeyboardKit` and
+`KeigoButton` depends on all four SPM products plus `KeyboardKit` and
 `Supabase`. `KeyboardExtension` depends on all four SPM products plus
 `KeyboardKit` (no Supabase — the extension uses raw `URLSession`).
 

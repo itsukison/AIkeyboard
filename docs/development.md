@@ -13,14 +13,14 @@
 ```bash
 cd Japanese
 xcodegen generate
-open BikeyJP.xcodeproj
+open KeigoButton.xcodeproj
 ```
 
-Build and run the `BikeyJP` scheme. The keyboard extension target is
+Build and run the `KeigoButton` scheme. The keyboard extension target is
 built and embedded automatically.
 
-The scheme name is still legacy `BikeyJP`; the user-facing product name
-is `AIキーボード`. Rename is deferred — see open items in `AGENTS.md` §8.
+The Xcode project and scheme are `KeigoButton`; the user-facing product name
+is `AIキーボード`.
 
 ### Optional dev-only build settings
 
@@ -36,19 +36,16 @@ during `xcodegen generate` but the build still succeeds.
 swift test
 ```
 
-Covers `JapaneseKeyboardCore` (`Romaji`, `RomajiInputBuffer`,
-`KanaKanjiAdapter`, `InputManager`, `ConversionPreferenceStore`) and
-`JapaneseKeyboardUI`. The AI capture/replacement engine and the
-`AIKeyboardController` are currently in the extension target and not
-reachable from `swift test` — see the planned `JapaneseKeyboardAI`
-target in `docs/architecture.md`.
+Covers `JapaneseKeyboardCore`, `JapaneseKeyboardUI`, and the
+`JapaneseKeyboardAI` capture/replacement engine. Extension lifecycle code
+still needs Xcode target tests or simulator coverage.
 
 ## Run on simulator
 
-1. Run the `BikeyJP` scheme on a simulator.
+1. Run the `KeigoButton` scheme on a simulator.
 2. In the simulator, open
    `Settings > General > Keyboard > Keyboards > Add New Keyboard` and
-   select `AIキーボード` (may still appear as `BikeyJP`).
+   select `AIキーボード`.
 3. In any text field, long-press the globe key and switch.
 
 For Cloud AI:
@@ -117,7 +114,7 @@ recent devices). Target peak: < 40 MB. Profile before any release.
 
 Manual checklist on a real device (iPhone 12 or older):
 
-1. Build the `BikeyJP` scheme to a real device, Release configuration.
+1. Build the `KeigoButton` scheme to a real device, Release configuration.
 2. Enable the keyboard in Settings → General → Keyboard → Keyboards.
 3. Allow Full Access (so Cloud AI is testable).
 4. Open Xcode → Debug → Attach to Process → `KeyboardExtension`.

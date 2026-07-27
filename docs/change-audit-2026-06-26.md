@@ -157,13 +157,13 @@ Risk / cleanup before commit:
 ### 8. Debug/reference assets
 
 Untracked:
-- `debug/IMG_51863C6E0D0F-1.jpeg`
-- `debug/keigo.jpeg`
-- `debug/native.jpeg`
+- `docs/assets/screenshots/debug/IMG_51863C6E0D0F-1.jpeg`
+- `docs/assets/screenshots/debug/keigo.JPG`
+- `docs/assets/screenshots/debug/native.JPG`
 - `截屏 2026-06-25 0.14.55.png`
 
 Recommendation:
-- Do not commit these unless they are intentionally moved into `docs/` or `public/` with a clear purpose.
+- Do not commit these unless they are intentionally moved into `docs/assets/` with a clear purpose.
 
 ## Verification
 
@@ -189,4 +189,4 @@ Suggested order:
 
 Small cleanup before any commit:
 - Fix typo in `docs/development.md`: `thatDon` should be removed.
-- Keep untracked debug screenshots out of the commit.
+- Keep debug screenshots under `docs/assets/screenshots/` with a clear purpose.

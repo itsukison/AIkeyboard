@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>職場チャット</title>
+  <style>
+    :root {
+      --screen-width: 1080;
+      --ink: #101214;
+      --sub-ink: #5f6872;
+      --hairline: rgba(16, 24, 32, .12);
+      --chat-blue: #8faed2;
+      --chat-blue-deep: #86a6cc;
+      --incoming: #ffffff;
+      --outgoing: #84e26f;
+      --composer: #f6f7f8;
+      --accent: #06c755;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      color: var(--ink);
+      background: #11151a;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-feature-settings: "palt" 1;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+
+    .chat-app {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 1080px;
+      height: 1920px;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      background:
+        linear-gradient(rgba(255,255,255,.025), rgba(255,255,255,.025)),
+        var(--chat-blue);
+      box-shadow: 0 0 80px rgba(0, 0, 0, .28);
+      transform: translate(-50%, -50%) scale(var(--canvas-scale, .8333333));
+      transform-origin: center;
+    }
+
+    .status-bar {
+      height: 68px;
+      padding: 18px 38px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, .975);
+      font-size: 29px;
+      font-weight: 760;
+      letter-spacing: -.02em;
+    }
+
+    .status-icons,
+    .nav-actions,
+    .composer-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .status-icons { gap: 12px; }
+    .status-icons svg { display: block; }
+
+    .battery {
+      width: 48px;
+      height: 24px;
+      padding: 3px;
+      border: 3px solid var(--ink);
+      border-radius: 7px;
+      position: relative;
+    }
+
+    .battery::after {
+      content: "";
+      position: absolute;
+      top: 6px;
+      right: -7px;
+      width: 4px;
+      height: 10px;
+      border-radius: 0 3px 3px 0;
+      background: var(--ink);
+    }
+
+    .battery-level {
+      height: 100%;
+      width: 82%;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .navigation {
+      min-height: 124px;
+      padding: 14px 32px 17px 22px;
+      display: grid;
+      grid-template-columns: minmax(176px, 1fr) auto minmax(176px, 1fr);
+      align-items: center;
+      background: rgba(255, 255, 255, .975);
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .back {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #111820;
+      font-size: 35px;
+      font-weight: 570;
+    }
+
+    .back svg { width: 34px; height: 54px; }
+
+    .profile {
+      text-align: center;
+      min-width: 0;
+    }
+
+    .profile-name {
+      font-size: 38px;
+      line-height: 1.15;
+      font-weight: 760;
+      letter-spacing: -.025em;
+      white-space: nowrap;
+    }
+
+    .profile-members {
+      margin-top: 7px;
+      color: var(--sub-ink);
+      font-size: 24px;
+      font-weight: 550;
+    }
+
+    .nav-actions {
+      justify-content: flex-end;
+      gap: 29px;
+    }
+
+    .nav-actions svg {
+      width: 42px;
+      height: 42px;
+      stroke: #111820;
+      fill: none;
+      stroke-width: 2.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chat-scroll {
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      padding: 27px 27px 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: var(--chat-blue);
+    }
+
+    /* optional caption band — floats over the empty upper chat space */
+    .caption {
+      position: absolute; top: 34px; left: 50%; transform: translateX(-50%); z-index: 3;
+      width: max-content; max-width: calc(100% - 60px);
+      padding: 22px 38px; border-radius: 26px;
+      background: rgba(0, 0, 0, .82); color: #fff; box-shadow: 0 12px 44px rgba(0, 0, 0, .3);
+      font-size: 50px; line-height: 1.34; font-weight: 800; text-align: center;
+      letter-spacing: -.01em;
+    }
+    .caption.hidden { display: none; }
+
+    /* full-bleed text overlays — the furious 心の声 monologue and the slide-1 hook */
+    .innervoice, .hook {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 40px; padding: 80px 70px; text-align: center;
+      background: rgba(9, 13, 19, .84);
+    }
+    .innervoice.hidden, .hook.hidden { display: none; }
+    .innervoice .tag, .hook .tag, .cta .tag {
+      padding: 12px 38px; border-radius: 999px;
+      border: 3px solid rgba(255, 255, 255, .55); color: #fff;
+      font-size: 34px; font-weight: 720; letter-spacing: .18em;
+    }
+    .hook .tag:empty, .cta .tag:empty { display: none; }
+    .innervoice .line, .hook .line {
+      color: #fff; font-size: 96px; line-height: 1.28; font-weight: 900;
+      letter-spacing: -.01em; text-shadow: 0 6px 34px rgba(0, 0, 0, .5);
+      white-space: pre-wrap;
+    }
+
+    /* closing download CTA — same dark scrim language as the hook so the series
+       opens and ends in one voice, but deeper (.92): the CTA renders over the
+       full conversation, and white text must not collide with the green bubbles */
+    .cta {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 40px; padding: 80px 70px; text-align: center;
+      background: rgba(9, 13, 19, .92);
+    }
+    .cta.hidden { display: none; }
+    .cta .appicon { width: 320px; height: auto; display: block; }
+    .cta .appname {
+      color: #fff; font-size: 96px; line-height: 1.15; font-weight: 900;
+      letter-spacing: -.01em; text-shadow: 0 6px 34px rgba(0, 0, 0, .5);
+    }
+    .cta .copy {
+      color: rgba(255, 255, 255, .82); font-size: 46px; line-height: 1.5;
+      font-weight: 650; white-space: pre-wrap;
+    }
+    .cta .store {
+      display: inline-flex; align-items: center; gap: 22px;
+      padding: 30px 56px; border-radius: 999px;
+      background: #fff; color: #11151a;
+      font-size: 46px; font-weight: 760; letter-spacing: -.01em;
+    }
+    .cta .store svg { width: 42px; height: 52px; display: block; }
+
+    .conversation {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .day {
+      align-self: center;
+      margin: 0 auto 12px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(41, 63, 88, .38);
+      font-size: 23px;
+      line-height: 1.15;
+      font-weight: 650;
+    }
+
+    .message {
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      gap: 13px;
+      transform-origin: bottom;
+    }
+
+    .message.me { justify-content: flex-end; }
+
+    .avatar {
+      width: 62px;
+      height: 62px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: #d2d7dc;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .avatar svg {
+      width: 45px;
+      height: 45px;
+      fill: none;
+      stroke: #fff;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .bubble-group {
+      max-width: 82%;
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .me .bubble-group { flex-direction: row-reverse; }
+
+    .bubble {
+      position: relative;
+      padding: 20px 25px 21px;
+      border-radius: 36px;
+      background: var(--incoming);
+      box-shadow: none;
+      font-size: 40px;   /* keep in sync with product-ui.html — the same conversation appears in both */
+      line-height: 1.42;
+      font-weight: 480;
+      letter-spacing: -.018em;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .boss .bubble { border-bottom-left-radius: 11px; }
+
+    .boss .bubble::before {
+      content: "";
+      position: absolute;
+      left: -11px;
+      bottom: 1px;
+      width: 18px;
+      height: 21px;
+      background: var(--incoming);
+      clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    }
+
+    .me .bubble {
+      background: var(--outgoing);
+      border-bottom-right-radius: 11px;
+    }
+
+    .me .bubble::after {
+      content: "";
+      position: absolute;
+      right: -11px;
+      bottom: 1px;
+      width: 18px;
+      height: 21px;
+      background: var(--outgoing);
+      clip-path: polygon(0 0, 100% 100%, 0 100%);
+    }
+
+    .metadata {
+      min-width: 70px;
+      padding-bottom: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      color: rgba(20, 40, 64, .76);
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 570;
+    }
+
+    .boss .metadata { align-items: flex-start; }
+
+    .composer {
+      min-height: 137px;
+      padding: 15px 26px calc(24px + env(safe-area-inset-bottom));
+      display: flex;
+      align-items: flex-start;
+      gap: 17px;
+      background: var(--composer);
+      border-top: 1px solid rgba(16, 24, 32, .16);
+    }
+
+    .circle-button {
+      width: 52px;
+      height: 52px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 3px solid #65707a;
+      border-radius: 50%;
+      color: #58636d;
+      background: transparent;
+      font-size: 36px;
+      line-height: 1;
+      font-weight: 420;
+    }
+
+    .input-shell {
+      min-width: 0;
+      flex: 1;
+      min-height: 56px;
+      padding: 9px 11px 9px 21px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 27px;
+      background: #fff;
+      border: 1px solid rgba(28, 39, 50, .12);
+      color: #a0a7ae;
+      font-size: 29px;
+    }
+
+    .smile {
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      border: 2px solid #747e87;
+      border-radius: 50%;
+      color: #68727b;
+      font-size: 23px;
+      line-height: 1;
+    }
+
+    .composer-actions { gap: 20px; padding-top: 6px; }
+    .composer-actions svg {
+      width: 46px;
+      height: 46px;
+      stroke: #59646e;
+      fill: none;
+      stroke-width: 2.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .animate .message {
+      opacity: 0;
+      transform: translateY(22px) scale(.97);
+      animation: message-in .38s cubic-bezier(.2,.8,.2,1) forwards;
+      animation-delay: var(--delay);
+    }
+
+    @keyframes message-in {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    body.instagram .status-bar { height: 56px; padding-top: 13px; font-size: 25px; }
+    body.instagram .navigation { min-height: 101px; padding-top: 9px; padding-bottom: 11px; }
+    body.instagram .profile-name { font-size: 34px; }
+    body.instagram .profile-members { font-size: 20px; }
+    body.instagram .chat-scroll { padding-top: 18px; padding-bottom: 20px; }
+    body.instagram .conversation { gap: 16px; }
+    body.instagram .bubble { padding: 15px 20px 16px; font-size: 31px; }
+    body.instagram .avatar { width: 56px; height: 56px; font-size: 25px; }
+    body.instagram .composer { min-height: 103px; padding-top: 10px; padding-bottom: 16px; }
+    body.instagram .cta { gap: 30px; }
+    body.instagram .cta .appicon { width: 250px; }
+    body.instagram .cta .appname { font-size: 76px; }
+    body.instagram .cta .copy { font-size: 38px; }
+    body.instagram .cta .store { padding: 24px 44px; font-size: 38px; }
+    body.instagram .cta .store svg { width: 34px; height: 42px; }
+    body.instagram .chat-app {
+      width: 1080px;
+      height: 1350px;
+    }
+  </style>
+</head>
+<body>
+  <main class="chat-app" aria-label="職場チャット">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons" aria-hidden="true">
+        <svg width="32" height="24" viewBox="0 0 32 24"><path d="M2 20h4V14H2v6Zm8 0h4V10h-4v10Zm8 0h4V6h-4v14Zm8 0h4V2h-4v18Z" fill="#101214"/></svg>
+        <svg width="30" height="24" viewBox="0 0 30 24"><path d="M2 8c7.4-6.2 18.6-6.2 26 0M6 13c5.2-4.4 12.8-4.4 18 0m-13.5 5c2.6-2.2 6.4-2.2 9 0M15 22h.01" fill="none" stroke="#101214" stroke-width="3.1" stroke-linecap="round"/></svg>
+        <span class="battery"><span class="battery-level"></span></span>
+      </div>
+    </div>
+
+    <header class="navigation">
+      <div class="back" aria-hidden="true">
+        <svg viewBox="0 0 32 54"><path d="M25 5 6 27l19 22" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>4</span>
+      </div>
+      <div class="profile">
+        <div class="profile-name" id="profile-name">上司</div>
+        <div class="profile-members">社内チャット</div>
+      </div>
+      <div class="nav-actions" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><circle cx="21" cy="21" r="13"/><path d="m31 31 11 11"/></svg>
+        <svg viewBox="0 0 48 48"><path d="M12 7c2-2 7-1 8 2l3 8c1 2 0 4-2 5l-4 2c3 7 7 11 14 14l2-4c1-2 3-3 5-2l8 3c3 1 4 6 2 8l-3 3c-3 3-8 4-12 2C17 42 6 31 1 16c-1-4 0-8 3-11l2-2"/></svg>
+        <svg viewBox="0 0 48 48"><path d="M8 13h32M8 24h32M8 35h32"/></svg>
+      </div>
+    </header>
+
+    <section class="chat-scroll">
+      <div class="caption hidden" id="caption"></div>
+      <div class="innervoice hidden" id="innervoice"><span class="tag">心の声</span><span class="line"></span></div>
+      <div class="hook hidden" id="hook"><span class="tag" id="hook-tag"></span><span class="line"></span></div>
+      <div class="cta hidden" id="cta">
+        <span class="tag" id="cta-tag"></span>
+        <img class="appicon" src="../../../../assets/marketing/iconbgremoved.png" alt="敬語ボタンのアイコン">
+        <span class="appname">敬語ボタン</span>
+        <span class="copy" id="cta-copy">送りづらいメッセージを、&#10;その場で送れる文章に。</span>
+        <span class="store"><svg viewBox="0 0 384 512" aria-hidden="true"><path fill="#11151a" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>App Storeからダウンロード</span>
+      </div>
+      <div class="conversation" id="conversation">
+        <div class="day">今日</div>
+        <div class="message boss">
+          <div class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>
+          <div class="bubble-group">
+            <div class="bubble">今日中にいけそう？</div>
+            <div class="metadata"><span>16:42</span></div>
+          </div>
+        </div>
+        <div class="message me">
+          <div class="bubble-group">
+            <div class="bubble">正直、厳しいです…</div>
+            <div class="metadata"><span>既読</span><span>16:43</span></div>
+          </div>
+        </div>
+        <div class="message boss">
+          <div class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>
+          <div class="bubble-group">
+            <div class="bubble">どこまでならいける？</div>
+            <div class="metadata"><span>16:44</span></div>
+          </div>
+        </div>
+        <div class="message me">
+          <div class="bubble-group">
+            <div class="bubble">最寄駅までならいけます</div>
+            <div class="metadata"><span>既読</span><span>16:44</span></div>
+          </div>
+        </div>
+        <div class="message boss">
+          <div class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>
+          <div class="bubble-group">
+            <div class="bubble">仕事の進捗の話です</div>
+            <div class="metadata"><span>16:45</span></div>
+          </div>
+        </div>
+        <div class="message me">
+          <div class="bubble-group">
+            <div class="bubble">……</div>
+            <div class="metadata"><span>既読</span><span>16:45</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="composer" aria-hidden="true">
+      <button class="circle-button" tabindex="-1">＋</button>
+      <div class="input-shell"><span>メッセージを入力</span><span class="smile">⌣</span></div>
+      <div class="composer-actions">
+        <svg viewBox="0 0 48 48"><path d="M5 14h9l3-5h14l3 5h9v27H5V14Z"/><circle cx="24" cy="27" r="8"/></svg>
+        <svg viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="32" rx="6"/><path d="m10 35 10-11 8 8 5-6 9 9M34 17h.01"/></svg>
+        <svg viewBox="0 0 48 48"><rect x="17" y="5" width="14" height="25" rx="7"/><path d="M11 25c0 8 5 13 13 13s13-5 13-13M24 38v6M17 44h14"/></svg>
+      </div>
+    </footer>
+  </main>
+
+  <script src="../scenes.js"></script>
+  <script>
+    const scenes = SCENES;
+
+    const params = new URLSearchParams(location.search);
+    const scene = scenes[params.get("scene")] || scenes.progress;
+    const animate = params.get("animate") === "1";
+    const requestedStep = Number(params.get("step"));
+    const step = Number.isFinite(requestedStep) && requestedStep >= 0
+      ? Math.min(requestedStep, scene.messages.length)
+      : Math.min(6, scene.messages.length);
+    const format = params.get("format") === "instagram" ? "instagram" : "tiktok";
+
+    document.body.classList.add(format);
+    if (animate) document.body.classList.add("animate");
+    const canvas = document.querySelector(".chat-app");
+    const designWidth = 1080;
+    const designHeight = format === "instagram" ? 1350 : 1920;
+    const fitCanvas = () => {
+      const scale = Math.min(innerWidth / designWidth, innerHeight / designHeight);
+      canvas.style.setProperty("--canvas-scale", scale);
+    };
+    fitCanvas();
+    addEventListener("resize", fitCanvas);
+    window.visualViewport?.addEventListener("resize", fitCanvas);
+    document.querySelector("#profile-name").textContent = scene.name;
+    document.title = `${scene.name}｜職場チャット`;
+
+    const caption = params.get("caption");
+    if (caption) {
+      const cap = document.querySelector("#caption");
+      cap.textContent = caption;
+      cap.classList.remove("hidden");
+    }
+
+    const innervoice = params.get("innervoice");
+    if (innervoice) {
+      const iv = document.querySelector("#innervoice");
+      iv.querySelector(".line").textContent = innervoice;
+      iv.classList.remove("hidden");
+    }
+
+    const hook = params.get("hook");
+    if (hook) {
+      const hk = document.querySelector("#hook");
+      hk.querySelector(".line").textContent = hook;
+      const hookTag = params.get("hooktag");
+      if (hookTag) document.querySelector("#hook-tag").textContent = hookTag;
+      hk.classList.remove("hidden");
+    }
+
+    const cta = params.get("cta");
+    if (cta) {
+      const ct = document.querySelector("#cta");
+      const ctaTag = params.get("ctatag");
+      if (ctaTag) document.querySelector("#cta-tag").textContent = ctaTag;
+      const ctaCopy = params.get("ctacopy");
+      if (ctaCopy) document.querySelector("#cta-copy").textContent = ctaCopy;
+      ct.classList.remove("hidden");
+    }
+
+    const visibleMessages = animate ? scene.messages : scene.messages.slice(0, step);
+    const messageHTML = visibleMessages.map((message, index) => {
+      const meta = message.side === "me"
+        ? `<span>${message.read || "既読"}</span><span>${message.time}</span>`
+        : `<span>${message.time}</span>`;
+      const avatar = message.side === "boss"
+        ? `<div class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>`
+        : "";
+      return `
+        <div class="message ${message.side}" style="--delay:${(.7 + index * 1.05).toFixed(2)}s">
+          ${avatar}
+          <div class="bubble-group">
+            <div class="bubble">${message.text}</div>
+            <div class="metadata">${meta}</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    document.querySelector("#conversation").innerHTML = `
+      <div class="day">${scene.day}</div>
+      ${messageHTML}`;
+  </script>
+</body>
+</html>

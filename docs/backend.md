@@ -128,10 +128,16 @@ that do not decode `eventId` keep working.
 Provider selection is server-side only. The iOS app still calls only the
 Supabase Edge Function.
 
-Three providers are supported: `azure`, `cerebras`, `groq`. `REWRITE_PROVIDER`
-picks the primary; the other two follow as fallback (in the order they appear in
-`ALL_PROVIDERS`) unless they have no key configured.
+Four providers are supported: `openai`, `cerebras`, `azure`, `groq`.
+`REWRITE_PROVIDER` picks the primary; the others follow as fallback (in the
+order they appear in `ALL_PROVIDERS`) unless they have no key configured.
 
+- **OpenAI** — `https://api.openai.com/v1/chat/completions`,
+  `OPENAI_MODEL = gpt-5.6-terra` by default. Requests use low reasoning effort,
+  strict structured output, `store = false`, and a one-way hashed Supabase user
+  ID as `safety_identifier` when the hash pepper is configured. Set
+  `OPENAI_SERVICE_TIER=priority` for latency-sensitive production traffic; the
+  effective tier returned by OpenAI is logged with each rewrite.
 - **Azure OpenAI** — deployment name in the URL path, `api-key` header (not
   Bearer). `AZURE_OPENAI_DEPLOYMENT = gpt-4.1` by default. Only listed as a
   candidate when both `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` are set.
@@ -140,15 +146,21 @@ picks the primary; the other two follow as fallback (in the order they appear in
 - **Groq** — `https://api.groq.com/openai/v1/chat/completions`,
   `GROQ_MODEL = openai/gpt-oss-120b`.
 
-All three use `response_format = json_schema` (strict). Set
-`REWRITE_PROVIDER=azure` (or `groq`) to change the primary, or
-`REWRITE_PROVIDER_FALLBACK=false` to disable fallback. Safety/content blocks
-do **not** fall back to another provider.
+All four use `response_format = json_schema` (strict). OpenAI is the default
+primary when `OPENAI_API_KEY` is configured. If it is absent, routing continues
+to Cerebras without changing the iOS client. Set `REWRITE_PROVIDER=cerebras`
+for an immediate rollback, or `REWRITE_PROVIDER_FALLBACK=false` to disable
+fallback. Safety/content blocks do **not** fall back to another provider. The
+whole provider chain has an 18-second deadline by default so it remains below
+the client's 20-second request timeout.
+
+The provider-facing schema asks for a compact array of candidate strings. The
+Edge Function restores each candidate to the public `{ replacement, changed }`
+shape before responding, so this optimization does not change the iOS contract.
 
 Do **not** set `AZURE_REASONING_EFFORT` for `gpt-4.1` — it is not a reasoning
-model. Reasoning models (o-series, GPT-5 with reasoning) can exceed the timeout
-when generating multiple candidates and are not recommended on this interactive
-path.
+model. GPT-5.6 Terra uses `OPENAI_REASONING_EFFORT=low` on this interactive
+path; increase it only after measuring rewrite acceptance and latency.
 
 The prompt is built in `userPrompt()` and `systemInstructions()` inside
 `index.ts`. Refinement intents map to one-line tone instructions in
@@ -160,6 +172,13 @@ Set in Supabase Dashboard → Project Settings → Edge Functions → Secrets.
 
 | Key | Required | Default |
 |---|---|---|
+| `OPENAI_API_KEY` | preferred primary provider | — |
+| `OPENAI_MODEL` | no | `gpt-5.6-terra` |
+| `OPENAI_CHAT_COMPLETIONS_URL` | no | `https://api.openai.com/v1/chat/completions` |
+| `OPENAI_TIMEOUT_MS` | no | `11000` |
+| `OPENAI_MAX_OUTPUT_TOKENS` | no | `600` (per candidate; total = value × candidateCount) |
+| `OPENAI_REASONING_EFFORT` | no | `low` |
+| `OPENAI_SERVICE_TIER` | no | unset (`priority` in production for lower latency) |
 | `AZURE_OPENAI_API_KEY` | one provider required | — |
 | `AZURE_OPENAI_ENDPOINT` | with Azure | — (e.g. `https://keigobutton.openai.azure.com`) |
 | `AZURE_OPENAI_DEPLOYMENT` | no | `gpt-4.1` (the deployment name in the Foundry portal) |
@@ -169,8 +188,9 @@ Set in Supabase Dashboard → Project Settings → Edge Functions → Secrets.
 | `AZURE_REASONING_EFFORT` | no | unset. Leave unset for `gpt-4.1`. |
 | `CEREBRAS_API_KEY` | one provider required | — |
 | `GROQ_API_KEY` | one provider required | — |
-| `REWRITE_PROVIDER` | no | `cerebras` (`azure` / `groq` to change primary) |
+| `REWRITE_PROVIDER` | no | `openai` (`cerebras` for rollback) |
 | `REWRITE_PROVIDER_FALLBACK` | no | `true` |
+| `REWRITE_TOTAL_TIMEOUT_MS` | no | `18000` |
 | `CEREBRAS_MODEL` | no | `gpt-oss-120b` |
 | `CEREBRAS_TIMEOUT_MS` | no | `8000` |
 | `CEREBRAS_MAX_OUTPUT_TOKENS` | no | `600` (per candidate; total = value × candidateCount) |
@@ -213,9 +233,9 @@ The migration creates an RLS-enabled usage table and grants access only to
 
 ## Privacy
 
-- Console logs include only: provider, command key, refinement, candidate
-  count, input/prompt/output character lengths, latency, status. Raw text is
-  not written to console logs.
+- Console logs include only: provider, model, service tier, token counts, command key,
+  refinement, candidate count, input/prompt/output character lengths, latency,
+  status. Raw text is not written to console logs.
 - **Metadata only by default (Phase 0, fail-closed).** `ai_rewrite_events`
   stores only non-sensitive metadata (provider, command key, title,
   refinement, locale, app version, counts, lengths, latency, language). Raw
@@ -246,7 +266,7 @@ Table: `public.ai_rewrite_events`
 | `id` | `uuid` | Returned as `eventId` in the response |
 | `user_id` | `uuid` | Supabase auth `sub` |
 | `created_at` | `timestamptz` | Defaults to `now()` |
-| `payload` | `jsonb` | Metadata only: `{ language, command_key, title, refinement, locale, app_version, candidate_count, provider, is_reply, is_selection, selection_context_*_length, *_length, latency_ms }`. Raw text keys (including selection context) are dropped (Phase 0). |
+| `payload` | `jsonb` | Metadata only: `{ language, command_key, title, refinement, locale, app_version, candidate_count, provider, model, service_tier, *_tokens, is_reply, is_selection, selection_context_*_length, *_length, latency_ms }`. Raw text keys (including selection context) are dropped (Phase 0). |
 | `data_use_scope` | `text` | Scope in effect at capture time. Default `none`. |
 | `dataset_eligible` | `boolean` | Gates every export view. Default `false`. |
 | `consent_version` | `text` (nullable) | Consent version the row was captured under; `legacy_unconsented` for pre-Phase-0 rows. |
@@ -323,9 +343,6 @@ curl -i -X POST \
   `delete_ai_rewrite_events_older_than` and
   `delete_old_ai_rewrite_usage_buckets` functions exist but are not yet on
   a `pg_cron` schedule.
-- **No selected-candidate feedback path yet.** `eventId` is returned but the
-  iOS client does not post selection back. Required for the highest-value
-  signal in the collected data.
 - **No abuse logging beyond Edge Function console logs.** Wire to
   Sentry / Logflare before launch.
 - **No Retry-After display** — provider 429s are mapped to
@@ -334,15 +351,13 @@ curl -i -X POST \
 
 ## Rollback
 
-If a provider deploy goes bad, the previous OpenAI Responses API (`gpt-5.1`)
-implementation is recoverable from git history. Find the commit before the
-Groq/Cerebras provider work with:
+Set the provider secret back to Cerebras and redeploy; the client contract does
+not change:
 
 ```bash
-git log --oneline -- supabase/functions/keyboard-rewrite/index.ts
-git show <commit>:supabase/functions/keyboard-rewrite/index.ts > /tmp/openai.ts
+supabase secrets set REWRITE_PROVIDER=cerebras
+supabase functions deploy keyboard-rewrite
 ```
 
-Re-set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`,
-`OPENAI_TIMEOUT_MS`, `OPENAI_MAX_OUTPUT_TOKENS`,
-`OPENAI_REASONING_EFFORT`) in Supabase secrets, then deploy.
+If OpenAI should remain primary but Cerebras fallback must be disabled, set
+`REWRITE_PROVIDER_FALLBACK=false` instead.
