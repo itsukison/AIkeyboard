@@ -139,6 +139,71 @@ When a peak exceeds 40 MB, the usual suspects:
 - A `UIHostingController` not torn down between sessions (see
   `SnapCarouselView`).
 
+## Input latency profiling
+
+`InputLatencyProbe` (`Sources/JapaneseKeyboardCore/InputLatencyProbe.swift`)
+measures why typing feels slower than the native keyboard. Every entry point
+compiles to nothing in Release, so it costs nothing to leave the call sites in.
+
+What it records:
+
+| Metric | Meaning |
+|---|---|
+| `impactOccurred` | UIKit's key-press haptic call. A cold Taptic Engine would show up here. |
+| `playInputClick` | The key click sound. |
+| `textDidChange` / `selectionDidChange` | The whole handler, with each piece (`├ …`) timed separately. |
+| `setMarkedText` | The marked-text write to the host (cross-process). |
+| `convert` | One `requestCandidates` — Zenzai included. |
+| `runloop-stall` | How late a 60 Hz main-runloop timer fires. The overall congestion number. |
+
+How to read it:
+
+1. Build the `KeyboardExtension` scheme (Debug) to a real device — the
+   simulator's CPU scheduling doesn't represent anything. Rebuilding is not
+   enough on its own: iOS keeps the extension process alive, so switch to
+   another keyboard and back to force it to restart.
+2. Attach Xcode to the `KeyboardExtension` process, open a text field, and type
+   a normal Japanese sentence with conversion.
+3. Read the `⏱ LATENCY` table in the console: printed every 5 s while the
+   keyboard is up, and again on dismiss (`[FINAL]`). Samples reset on every
+   appearance, so one keyboard session = one reading. Filter on `LATENCY` —
+   every row carries the marker, precisely so filtering keeps all of them.
+4. For a timeline instead of aggregates, profile with Instruments and look at
+   the Points of Interest track (subsystem `com.core7.keigobutton`, category
+   `InputLatency`) — the same intervals appear as signposts.
+
+Comparing a fix: record a `[FINAL]` table before and after on the same device,
+typing the same sentence. p90 matters more than p50 — the felt lag is the
+occasional slow keystroke, not the median one.
+
+### Baseline measured 2026-07-30 (real device, romaji layout)
+
+| Metric | p50 | p90 | max |
+|---|---|---|---|
+| `convert` | 57-62 ms | 122-133 ms | 233 ms |
+| `runloop-stall` | 0.0 ms | 0.1-0.3 ms | 0.5-9.4 ms |
+| `impactOccurred` | 0.2 ms | 0.3 ms | 0.7 ms |
+| `setMarkedText` | 0.0 ms | 0.0 ms | 0.1 ms |
+| `textDidChange` | 0.3 ms (**n=1 per session**) | — | — |
+
+Conclusions that came out of it, so nobody re-litigates them:
+
+- **The input path is not the problem.** Physical touch reaches the extension in
+  ~15-18 ms, KeyboardKit's `.press` arrives ~2 ms later, and the haptic call
+  costs 0.2 ms. Finger to haptic is roughly one frame.
+- **`textDidChange` does not fire per keystroke.** It fired once per *session*
+  against ~50 keystrokes — marked-text updates aren't a host document change.
+  Nothing in that handler is on the hot path, including the `DateFormatter` in
+  `markTypedActivityIfNeeded` and the pasteboard read in
+  `refreshReplyAvailability`.
+- **Zenzai does not starve the main thread** on a modern device: `convert` costs
+  57-62 ms per keystroke but `runloop-stall` stays at 0. It runs on the converter
+  actor, off the main thread. What it does cost is candidate freshness — the
+  candidate bar trails typing by 57-133 ms.
+- Do **not** try to measure finger-to-haptic with an observing recognizer on the
+  root view. See the warning in `InputLatencyProbe`'s doc comment: the ordering
+  isn't guaranteed and the metric degrades into the inter-keystroke interval.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every push and PR to `main`:

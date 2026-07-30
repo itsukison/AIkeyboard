@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "episode": {
+    "id": "017",
+    "slug": "before-work-chase",
+    "series": "丁寧にキレる。",
+    "bankReference": "explicitly approved viral-format variation, 2026-07-29",
+    "hypothesis": "Moving the viral three-minute progress chase from 23:58 to before work will test whether the countdown-and-escalation structure travels beyond the late-night setting."
+  },
+  "approval": {
+    "status": "approved",
+    "rewriteVerified": true,
+    "rewriteVerificationMethod": "manual-copy-labelled",
+    "visualQA": true
+  },
+  "scene": {
+    "name": "上司",
+    "day": "今日",
+    "messages": [
+      { "side": "boss", "text": "8時の会議で使う資料、今から直せる？", "time": "6:02" },
+      { "side": "boss", "text": "もう見た？進んでる？", "time": "6:05" },
+      { "side": "me", "text": "勤務開始前のため、現時点での対応はいたしかねます。始業後に確認し、対応可能な時刻をご連絡いたします。", "time": "6:11", "read": "既読" },
+      { "side": "boss", "text": "でも8時の会議で使うから急いで", "time": "6:12" },
+      { "side": "me", "text": "会議時刻は事前に共有されていないため、始業前の対応はできかねます。始業後、可能な範囲で対応いたします。", "time": "6:17", "read": "既読" }
+    ]
+  },
+  "slides": [
+    { "template": "line-chat", "params": { "step": "0", "hook": "朝6:02、上司から\n8時までのお願い", "hooktag": "丁寧にキレる。" } },
+    { "template": "line-chat", "params": { "step": "1" }, "caption": "始業前に、2時間後の締切が生えた" },
+    { "template": "line-chat", "params": { "step": "2", "innervoice": "3分で催促するなら\n昨日言ってくれ" } },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "2", "draft": "始業前なので今は対応しません。出社後に確認します。" }, "caption": "朝6時は、まだ勤務時間じゃない" },
+    { "template": "product-ui", "params": { "state": "result", "step": "2", "draft": "始業前なので今は対応しません。出社後に確認します。", "result": "勤務開始前のため、現時点での対応はいたしかねます。始業後に確認し、対応可能な時刻をご連絡いたします。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "4" }, "caption": "『でも8時の会議で使うから』" },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "4", "draft": "会議の時間は聞いてません。始業前には対応できません。" }, "caption": "知らない締切は、守れない" },
+    { "template": "product-ui", "params": { "state": "result", "step": "4", "draft": "会議の時間は聞いてません。始業前には対応できません。", "result": "会議時刻は事前に共有されていないため、始業前の対応はできかねます。始業後、可能な範囲で対応いたします。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "5" }, "caption": "朝6時の業務LINE、返す？寝る？" },
+    { "template": "line-chat", "params": { "step": "5", "cta": "1", "ctatag": "丁寧にキレる。" } }
+  ],
+  "publish": {
+    "title": "朝6:02、3分で催促する上司に丁寧にキレる。",
+    "hashtags": ["#上司と部下", "#敬語", "#仕事辞めたい", "#社会人", "#新卒"],
+    "experiment": { "allocation": "exploit", "hookFamily": "three-minute-escalation", "productRevealSlide": 4 }
+  }
+}

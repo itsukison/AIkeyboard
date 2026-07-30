@@ -49,6 +49,15 @@ public enum KeyboardUsageDailyStore {
         mutateToday(defaults: defaults, now: now) { $0.typed = true }
     }
 
+    public static func currentDayUsage(
+        defaults: UserDefaults = KeyboardSettingsStore.sharedDefaults ?? .standard,
+        now: Date = Date()
+    ) -> KeyboardDayUsage {
+        let today = dayIdentifier(for: now)
+        return load(defaults: defaults).first(where: { $0.date == today })
+            ?? KeyboardDayUsage(date: today)
+    }
+
     /// Returns and removes every fully-elapsed day (anything before today),
     /// leaving today's still-accumulating record in place. Called by the
     /// container so each completed day reaches analytics exactly once.
@@ -91,6 +100,20 @@ public enum KeyboardUsageDailyStore {
     private static func save(_ days: [KeyboardDayUsage], defaults: UserDefaults) {
         guard let data = try? JSONEncoder().encode(days) else { return }
         defaults.set(data, forKey: dailyUsageKey)
+    }
+
+    /// The instant a completed day should carry when it finally reaches
+    /// analytics, days after the fact. Noon UTC keeps the event's date equal
+    /// to `date` in the analytics project's UTC timezone regardless of the
+    /// device offset the tally was recorded under; local midnight would
+    /// bucket a JST day into the previous UTC one.
+    public static func analyticsTimestamp(forDayIdentifier identifier: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let midnight = formatter.date(from: identifier) else { return nil }
+        return midnight.addingTimeInterval(12 * 60 * 60)
     }
 
     private static func dayIdentifier(for date: Date) -> String {

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "episode": {
+    "id": "020",
+    "slug": "client-abuse",
+    "series": "丁寧にキレる。",
+    "bankReference": "spicy-content-bank.md §10 (held concept)",
+    "hypothesis": "The proven workplace-boundary format may attract qualified client-facing workers when the employee requests a concrete handoff instead of absorbing personal abuse."
+  },
+  "approval": {
+    "status": "pending",
+    "rewriteVerified": true,
+    "rewriteVerificationMethod": "manual-copy-labelled",
+    "visualQA": true
+  },
+  "scene": {
+    "name": "上司",
+    "day": "今日",
+    "messages": [
+      { "side": "boss", "text": "取引先から『本当に使えないね』って言われても、とりあえず謝って流して", "time": "16:32" },
+      { "side": "me", "text": "先方から人格を否定する発言があり、私が継続して対応することは困難です。今後の窓口変更をご検討ください。", "time": "16:40", "read": "既読" },
+      { "side": "boss", "text": "社会人なら、それくらい流せないと", "time": "16:41" },
+      { "side": "me", "text": "業務上のご指摘には対応いたしますが、人格を否定する発言まで受け入れることはできません。窓口変更をお願いいたします。", "time": "16:47", "read": "既読" }
+    ]
+  },
+  "slides": [
+    { "template": "line-chat", "params": { "step": "0", "hook": "暴言を受けても\n謝って流せと言う上司", "hooktag": "丁寧にキレる。" } },
+    { "template": "line-chat", "params": { "step": "1" }, "caption": "取引先の暴言まで、飲み込めと言われた" },
+    { "template": "line-chat", "params": { "step": "1", "innervoice": "サンドバッグとして\n雇われてません" } },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "1", "draft": "人格を否定されたので、もう対応できません。担当を変えてください。" }, "caption": "我慢ではなく、窓口変更を頼む" },
+    { "template": "product-ui", "params": { "state": "result", "step": "1", "draft": "人格を否定されたので、もう対応できません。担当を変えてください。", "result": "先方から人格を否定する発言があり、私が継続して対応することは困難です。今後の窓口変更をご検討ください。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "3" }, "caption": "すると『社会人なら流せ』" },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "3", "draft": "仕事の指摘には対応しますが、人格否定は受け入れません。" }, "caption": "指摘と人格否定を、分けて伝える" },
+    { "template": "product-ui", "params": { "state": "result", "step": "3", "draft": "仕事の指摘には対応しますが、人格否定は受け入れません。", "result": "業務上のご指摘には対応いたしますが、人格を否定する発言まで受け入れることはできません。窓口変更をお願いいたします。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "4" }, "caption": "お客様なら、どこまで許される？" },
+    { "template": "line-chat", "params": { "step": "4", "cta": "1", "ctatag": "丁寧にキレる。" } }
+  ],
+  "publish": {
+    "title": "取引先の暴言を『流せ』と言う上司に、丁寧にキレる。",
+    "hashtags": ["#上司と部下", "#敬語", "#仕事辞めたい", "#社会人", "#カスハラ"],
+    "experiment": { "allocation": "exploit", "hookFamily": "workplace-boundary", "productRevealSlide": 4 }
+  }
+}

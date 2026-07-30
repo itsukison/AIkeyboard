@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "episode": {
+    "id": "016",
+    "slug": "lunch-meeting",
+    "series": "丁寧にキレる。",
+    "bankReference": "spicy-content-bank.md §11",
+    "hypothesis": "A low-risk lunch-break violation will test whether everyday office comedy can retain the winning conflict-first structure."
+  },
+  "approval": {
+    "status": "approved",
+    "rewriteVerified": true,
+    "rewriteVerificationMethod": "manual-copy-labelled",
+    "visualQA": true
+  },
+  "scene": {
+    "name": "上司",
+    "day": "今日",
+    "messages": [
+      { "side": "boss", "text": "昼休みしか空いてないから会議入れたよ。食べながらでOK！", "time": "12:03" },
+      { "side": "me", "text": "休憩時間のため、12時台の会議参加は難しいです。13時以降で再調整をお願いいたします。", "time": "12:08", "read": "既読" },
+      { "side": "boss", "text": "30分だけだから大丈夫でしょ？", "time": "12:09" },
+      { "side": "me", "text": "時間の長さにかかわらず、休憩時間は確保したいと考えております。13時以降であれば参加可能です。", "time": "12:13", "read": "既読" }
+    ]
+  },
+  "slides": [
+    { "template": "line-chat", "params": { "step": "0", "hook": "12:03、昼休みに\n会議を入れる上司", "hooktag": "丁寧にキレる。" } },
+    { "template": "line-chat", "params": { "step": "1" }, "caption": "『食べながらでOK！』" },
+    { "template": "line-chat", "params": { "step": "1", "innervoice": "OKなのは\nお前だけ" } },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "1", "draft": "昼休みなので参加しません。午後にしてください。" }, "caption": "休憩を、休憩として守りたい" },
+    { "template": "product-ui", "params": { "state": "result", "step": "1", "draft": "昼休みなので参加しません。午後にしてください。", "result": "休憩時間のため、12時台の会議参加は難しいです。13時以降で再調整をお願いいたします。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "3" }, "caption": "今度は『30分だけだから』" },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "3", "draft": "30分でも休憩時間なので参加しません。13時以降なら参加できます。" }, "caption": "30分でも、休憩は休憩" },
+    { "template": "product-ui", "params": { "state": "result", "step": "3", "draft": "30分でも休憩時間なので参加しません。13時以降なら参加できます。", "result": "時間の長さにかかわらず、休憩時間は確保したいと考えております。13時以降であれば参加可能です。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "4" }, "caption": "ランチ会議、仕事？それとも休憩？" },
+    { "template": "line-chat", "params": { "step": "4", "cta": "1", "ctatag": "丁寧にキレる。" } }
+  ],
+  "publish": {
+    "title": "『食べながら会議でOK』な上司に、丁寧にキレる。",
+    "hashtags": ["#昼休み", "#敬語", "#仕事辞めたい", "#社会人", "#上司"],
+    "experiment": { "allocation": "explore", "hookFamily": "everyday-office-comedy", "productRevealSlide": 4 }
+  }
+}

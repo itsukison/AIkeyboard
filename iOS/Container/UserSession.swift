@@ -106,7 +106,7 @@ final class UserSession: ObservableObject {
         // Lowercased to match the edge function's distinct_id (Supabase's canonical
         // form) — uppercase `uuidString` split every user into two PostHog persons.
         AppAnalytics.identify(profile.id.uuidString.lowercased(), userProperties: identifyProperties(for: profile))
-        AppAnalytics.capture("signed_up")
+        AppAnalytics.capture("signed_up", properties: ["auth_provider": "email"])
         state = .signedIn(profile)
         await syncCommercialConsent(for: profile.id)
         // Brand-new account: carry up onboarding prompt edits/reordering before
@@ -115,13 +115,65 @@ final class UserSession: ObservableObject {
         try? await refreshUserPromptsCache(for: profile.id)
     }
 
+    /// Sign in (or first-time sign up) with an Apple identity token. One entry
+    /// point handles both because Apple's button doesn't distinguish them; the
+    /// `lastSignInAt`/`createdAt` gap tells a fresh account from a returning one.
+    func signInWithApple(idToken: String, nonce: String, fullName: PersonNameComponents?) async throws {
+        let session = try await supabase.auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(provider: .apple, idToken: idToken, nonce: nonce)
+        )
+        let user = session.user
+
+        // Apple sends the name only on the FIRST authorization; the
+        // handle_new_user trigger seeds display_name empty for OAuth sign-ups, so
+        // persist it now or later launches fall back to the (often relayed) email.
+        let appleName = fullName
+            .map { PersonNameComponentsFormatter().string(from: $0).trimmingCharacters(in: .whitespaces) }
+            .flatMap { $0.isEmpty ? nil : $0 }
+        if let appleName {
+            try? await supabase
+                .from("profiles")
+                .update(["display_name": appleName])
+                .eq("id", value: user.id)
+                .execute()
+        }
+
+        let profile = try await loadProfile(for: user, fallbackName: appleName)
+        // Lowercased to match the edge function's distinct_id (Supabase's canonical
+        // form) — uppercase `uuidString` split every user into two PostHog persons.
+        AppAnalytics.identify(profile.id.uuidString.lowercased(), userProperties: identifyProperties(for: profile))
+        state = .signedIn(profile)
+        await syncCommercialConsent(for: profile.id)
+
+        if isNewlyCreated(user) {
+            AppAnalytics.capture("signed_up", properties: ["auth_provider": "apple"])
+            // Brand-new account: carry up onboarding prompt edits/reordering before
+            // the local cache is overwritten with the server-seeded set.
+            await applyPendingOnboardingPrompts(for: profile.id)
+        } else {
+            AppAnalytics.capture("signed_in", properties: ["auth_provider": "apple"])
+            // Existing account: its saved prompts win, so discard any onboarding edit
+            // rather than clobber the server set.
+            KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
+            KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
+        }
+        try? await refreshUserPromptsCache(for: profile.id)
+    }
+
+    /// A just-created account signs in within a moment of creation; a returning
+    /// user's `createdAt` is far behind this sign-in.
+    private func isNewlyCreated(_ user: User) -> Bool {
+        guard let lastSignInAt = user.lastSignInAt else { return true }
+        return lastSignInAt.timeIntervalSince(user.createdAt) < 5
+    }
+
     func signIn(email: String, password: String) async throws {
         let session = try await supabase.auth.signIn(email: email, password: password)
         let profile = try await loadProfile(for: session.user)
         // Lowercased to match the edge function's distinct_id (Supabase's canonical
         // form) — uppercase `uuidString` split every user into two PostHog persons.
         AppAnalytics.identify(profile.id.uuidString.lowercased(), userProperties: identifyProperties(for: profile))
-        AppAnalytics.capture("signed_in")
+        AppAnalytics.capture("signed_in", properties: ["auth_provider": "email"])
         state = .signedIn(profile)
         await syncCommercialConsent(for: profile.id)
         // Existing account: its saved prompts win, so discard any onboarding edit
@@ -140,37 +192,11 @@ final class UserSession: ObservableObject {
             return
         }
         do {
-            let serverEntries = try await UserPromptRemoteStore.fetchEntries(for: userId)
-            let serverByBuiltin = Dictionary(
-                serverEntries.compactMap { entry -> (String, UserPrompt)? in
-                    guard let key = entry.builtinKey else { return nil }
-                    return (key, entry)
-                },
-                uniquingKeysWith: { first, _ in first }
-            )
-            var orderedForServer: [UserPrompt] = []
-            for pendingEntry in pending {
-                guard let key = pendingEntry.builtinKey, var serverEntry = serverByBuiltin[key] else {
-                    continue
-                }
-                try await UserPromptRemoteStore.updatePrompt(
-                    id: serverEntry.id,
-                    title: pendingEntry.title,
-                    prompt: pendingEntry.prompt,
-                    isEnabled: pendingEntry.isEnabled,
-                    sortOrder: pendingEntry.sortOrder,
-                    userId: userId
-                )
-                serverEntry.slot = pendingEntry.slot
-                serverEntry.title = pendingEntry.title
-                serverEntry.prompt = pendingEntry.prompt
-                serverEntry.isEnabled = pendingEntry.isEnabled
-                serverEntry.sortOrder = pendingEntry.sortOrder
-                orderedForServer.append(serverEntry)
-            }
-            if !orderedForServer.isEmpty {
-                try await UserPromptRemoteStore.updateOrdering(orderedForServer, userId: userId)
-            }
+            // The pending set is only stored when it differs from the seeded
+            // default (a use-case preset or a hand-edited set), so replace the
+            // trigger-seeded rows wholesale — presets may add, drop, reorder, or
+            // include custom buttons the seeded four can't represent.
+            try await UserPromptRemoteStore.replaceAll(pending, userId: userId)
             KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
             KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
         } catch {

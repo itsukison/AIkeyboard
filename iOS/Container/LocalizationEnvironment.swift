@@ -38,3 +38,19 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         localeIdentifier.map(Locale.init(identifier:)) ?? .current
     }
 }
+
+/// Resolves a localized string honoring the in-app language override. `Text`
+/// picks the override up from `\.locale`, but plain `String(localized:)` reads
+/// the device language — wrong for users who switch language in ProfileScreen
+/// (e.g. Chinese users on Japanese devices). Use this for any user-facing
+/// string built outside a `Text` literal.
+func localizedAppString(_ keyAndValue: String.LocalizationValue) -> String {
+    let preference = UserDefaults.standard.string(forKey: AppLanguage.storageKey)
+        .flatMap(AppLanguage.init(rawValue:)) ?? .system
+    if let identifier = preference.localeIdentifier,
+       let path = Bundle.main.path(forResource: identifier, ofType: "lproj"),
+       let bundle = Bundle(path: path) {
+        return String(localized: keyAndValue, bundle: bundle)
+    }
+    return String(localized: keyAndValue)
+}

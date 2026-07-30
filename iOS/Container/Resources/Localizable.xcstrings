@@ -4,6 +4,54 @@
     "" : {
 
     },
+    "“敬語ボタン”に\nフルアクセスを許可しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Full Access for\n“敬語ボタン”?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要允许“敬語ボタン”\n完全访问吗？"
+          }
+        }
+      }
+    },
+    "[プライバシーポリシー](%@)の内容に同意します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I agree to the [Privacy Policy](%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我同意[隐私政策](%@)的内容"
+          }
+        }
+      }
+    },
+    "「%@」ボタン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” button"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”按钮"
+          }
+        }
+      }
+    },
     "「敬語」ボタンの変換のしかたを変えたり、よく使う言い換えを自分のボタンとして追加できます。設定の「プロンプト」からいつでも編集できます。" : {
       "localizations" : {
         "en" : {
@@ -37,7 +85,20 @@
       }
     },
     "【任意】日本語AIの改善に協力する" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Optional) Help improve Japanese AI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（可选）协助改进日语 AI"
+          }
+        }
+      }
     },
     "%@回書き直し" : {
       "localizations" : {
@@ -72,7 +133,7 @@
       }
     },
     "© 2026 敬語ボタン" : {
-
+      "shouldTranslate" : false
     },
     "10キー入力" : {
       "localizations" : {
@@ -154,6 +215,22 @@
         }
       }
     },
+    "AIで書き直すために必要です。通常の入力中に勝手に送信されることはありません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needed for AI rewriting. Nothing is sent on its own while you type normally."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 改写需要此权限。日常输入时绝不会自动发送任何内容。"
+          }
+        }
+      }
+    },
     "AIによるかな漢字変換を搭載しました。文脈を読んで、より自然な変換候補を提案します。すべて端末内で動作し、入力内容が送信されることはありません。" : {
       "localizations" : {
         "en" : {
@@ -202,8 +279,37 @@
         }
       }
     },
+    "AIボタンで\n書き換えてみましょう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite it\nwith an AI button"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用 AI 按钮\n改写试试"
+          }
+        }
+      }
+    },
     "AIボタンをドラッグして並べ替えたり、使わないボタンを削除したり。自分の使い方に合わせて自由に整理できます。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag AI buttons to reorder them, delete the ones you don't use — organize them to match how you write."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖动 AI 按钮排序，删除不需要的按钮，按自己的使用习惯自由整理。"
+          }
+        }
+      }
     },
     "AIボタンを押した文章だけ書き直します" : {
       "localizations" : {
@@ -221,8 +327,37 @@
         }
       }
     },
+    "AIボタンを押した時だけ、今の文章を敬語に書き直します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your text is rewritten politely only when you tap an AI button."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在按下 AI 按钮时，才会将当前文字改写为敬语。"
+          }
+        }
+      }
+    },
     "AIボタンを押すと、その部分だけを書き直し" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap an AI button to rewrite only that part"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按下 AI 按钮，只改写该部分"
+          }
+        }
+      }
     },
     "AIボタンを押すと、今の文章に合う自然な候補をすぐ選べます。" : {
       "localizations" : {
@@ -288,14 +423,30 @@
         }
       }
     },
+    "Appleサインインに失敗しました。時間をおいて再度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple failed. Please try again later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 Apple 登录失败，请稍后再试。"
+          }
+        }
+      }
+    },
     "Facebook" : {
-
+      "shouldTranslate" : false
     },
     "Google" : {
-
+      "shouldTranslate" : false
     },
     "Instagram" : {
-
+      "shouldTranslate" : false
     },
     "iOS設定を開く" : {
       "localizations" : {
@@ -362,10 +513,10 @@
       }
     },
     "LinkedIn" : {
-
+      "shouldTranslate" : false
     },
     "Product Hunt" : {
-
+      "shouldTranslate" : false
     },
     "QWERTY配列" : {
       "localizations" : {
@@ -384,16 +535,16 @@
       }
     },
     "Reddit" : {
-
+      "shouldTranslate" : false
     },
     "TikTok" : {
-
+      "shouldTranslate" : false
     },
     "Twitter/X" : {
-
+      "shouldTranslate" : false
     },
     "YouTube" : {
-
+      "shouldTranslate" : false
     },
     "アカウント" : {
       "localizations" : {
@@ -423,6 +574,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将永久删除你的账号、已保存的提示词和转换历史。此操作无法撤销。"
+          }
+        }
+      }
+    },
+    "アカウントが見つかりません。メールアドレスをご確認ください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account not found. Please check your email address."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到账户，请确认邮箱地址。"
           }
         }
       }
@@ -459,7 +626,24 @@
         }
       }
     },
+    "アカウントを作成すると、AI書き直しと、カスタムボタンの保存・同期が使えるようになります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an account to unlock AI rewriting and to save and sync your custom buttons."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建账号后即可使用 AI 改写，并保存和同步自定义按钮。"
+          }
+        }
+      }
+    },
     "アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -572,6 +756,38 @@
         }
       }
     },
+    "あと一歩で\nAIが使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One step away\nfrom AI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还差一步\n即可使用 AI"
+          }
+        }
+      }
+    },
+    "あなた専用の\nボタンができました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your own buttons\nare ready"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "专属于你的按钮\n已经就绪"
+          }
+        }
+      }
+    },
     "おかえりなさい" : {
       "localizations" : {
         "en" : {
@@ -668,6 +884,22 @@
         }
       }
     },
+    "カジュアル・フレンドリー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Casual & friendly"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随意·友好"
+          }
+        }
+      }
+    },
     "カスタムプロンプト" : {
       "localizations" : {
         "en" : {
@@ -685,7 +917,20 @@
       }
     },
     "カスタムプロンプトは削除され、初期の4つのボタン（敬語・自然に・メール・英訳）に戻ります。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom prompts will be deleted, restoring the original four buttons (敬語, 自然に, メール, 英訳)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义提示词将被删除，恢复为最初的 4 个按钮（敬語・自然に・メール・英訳）。"
+          }
+        }
+      }
     },
     "カスタムプロンプトを保存・同期" : {
       "localizations" : {
@@ -736,7 +981,20 @@
       }
     },
     "キーボード" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘"
+          }
+        }
+      }
     },
     "キーボードを試す" : {
       "localizations" : {
@@ -750,6 +1008,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "试用键盘"
+          }
+        }
+      }
+    },
+    "キーボード上の「%@」を押すと、候補が3つ出ます。好きな候補で「置き換え」してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap “%@” above the keyboard to get 3 suggestions, then replace the text with the one you like."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按键盘上方的「%@」会生成 3 个候选，选一个喜欢的进行「替换」。"
           }
         }
       }
@@ -771,8 +1045,37 @@
         }
       }
     },
+    "キーボード左下の地球儀キーを長押しして、「敬語ボタン」を選びます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press and hold the globe key at the bottom left of the keyboard, then choose 敬語ボタン."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长按键盘左下角的地球键，选择「敬語ボタン」。"
+          }
+        }
+      }
+    },
     "キーボード設定" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘设置"
+          }
+        }
+      }
     },
     "キャンセル" : {
       "localizations" : {
@@ -786,6 +1089,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "ここに「%@」と入力" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type “%@” here"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在这里输入「%@」"
           }
         }
       }
@@ -822,6 +1141,54 @@
         }
       }
     },
+    "このメールアドレスはすでに登録されています。サインインしてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email address is already registered. Please sign in."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该邮箱已注册，请直接登录。"
+          }
+        }
+      }
+    },
+    "このメッセージをコピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy this message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制这条消息"
+          }
+        }
+      }
+    },
+    "コピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制"
+          }
+        }
+      }
+    },
     "コピーした文に\nワンタップで返信。" : {
       "localizations" : {
         "en" : {
@@ -854,20 +1221,118 @@
         }
       }
     },
+    "コピーしました" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制"
+          }
+        }
+      }
+    },
+    "コピー済み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制"
+          }
+        }
+      }
+    },
     "これにする" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use This"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就用这个"
+          }
+        }
+      }
     },
     "ご協力のお願い" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Request for Your Help"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请您协助"
+          }
+        }
+      }
     },
     "ご意見・ご要望、不具合のご報告をお送りください。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send us your thoughts, requests, or bug reports."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎发送您的意见、需求或问题反馈。"
+          }
+        }
+      }
     },
     "ご意見ありがとうございます。\n今後の改善に役立てます。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thank you for your feedback.\nWe'll use it to keep improving."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "感谢您的反馈。\n我们将用于今后的改进。"
+          }
+        }
+      }
     },
     "ご確認お願いいたします" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could you kindly take a look?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "烦请您查收确认。"
+          }
+        }
+      }
     },
     "サインアウト" : {
       "localizations" : {
@@ -981,6 +1446,22 @@
         }
       }
     },
+    "サインインに失敗しました。時間をおいて再度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign-in failed. Please try again later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录失败，请稍后再试。"
+          }
+        }
+      }
+    },
     "さっそく使う" : {
       "localizations" : {
         "en" : {
@@ -1046,10 +1527,69 @@
       }
     },
     "すべてのボタンを最初の状態に戻しますか？" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset all buttons to their original state?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将所有按钮恢复为初始状态吗？"
+          }
+        }
+      }
     },
     "すべてのボタンを編集できます。一番上がメインボタンになり、長押しで並び替えできます。" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every button is editable. The top one becomes the main button; press and hold to reorder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有按钮都可以编辑。最上面的是主按钮，长按即可排序。"
+          }
+        }
+      }
+    },
+    "セキュリティ保護のため、しばらく時間をおいて再度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For security reasons, please wait a moment and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出于安全考虑，请稍后再试。"
+          }
+        }
+      }
+    },
+    "そのまま送れるメール本文に整える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polish it into email text you can send as is"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整理成可直接发送的邮件正文"
+          }
+        }
+      }
     },
     "その他" : {
       "localizations" : {
@@ -1063,6 +1603,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他"
+          }
+        }
+      }
+    },
+    "その他（AIにおまかせ）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other (let AI decide)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他（交给 AI）"
           }
         }
       }
@@ -1131,6 +1687,22 @@
         }
       }
     },
+    "タップすると名前や指示を自由に書き換えられます。長押しで並び替え、一番上がメインボタンです。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a button to freely edit its name and instructions. Press and hold to reorder — the top one is your main button."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按按钮即可自由修改名称和指令。长按可排序，最上方是主按钮。"
+          }
+        }
+      }
+    },
     "チャットを離れずに書き直せます" : {
       "localizations" : {
         "en" : {
@@ -1180,6 +1752,54 @@
         }
       }
     },
+    "できました。この調子です！" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done. You're getting it!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成了，就是这样！"
+          }
+        }
+      }
+    },
+    "できました。もう返信で悩みません！" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done. No more agonizing over replies!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成了，再也不用为回复发愁！"
+          }
+        }
+      }
+    },
+    "できました。使い方はこれだけです！" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done — that's all there is to it!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成了，用法就这么简单！"
+          }
+        }
+      }
+    },
     "できること" : {
       "localizations" : {
         "en" : {
@@ -1197,13 +1817,68 @@
       }
     },
     "デフォルトに戻す" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复默认"
+          }
+        }
+      }
     },
     "ドラッグでボタンを並べ替え" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag buttons to reorder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖动按钮即可排序"
+          }
+        }
+      }
+    },
+    "バージョン %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本 %@ (%@)"
+          }
+        }
+      }
     },
     "バグ報告" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bug report"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "问题反馈"
+          }
+        }
+      }
     },
     "パスワード" : {
       "localizations" : {
@@ -1233,6 +1908,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "密码（6 个字符以上）"
+          }
+        }
+      }
+    },
+    "パスワードは6文字以上で入力してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password must be at least 6 characters."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码至少需要 6 个字符。"
           }
         }
       }
@@ -1413,6 +2104,22 @@
         }
       }
     },
+    "フルアクセスを許可" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Full Access"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许完全访问"
+          }
+        }
+      }
+    },
     "プロンプト" : {
       "localizations" : {
         "en" : {
@@ -1446,6 +2153,7 @@
       }
     },
     "プロンプトを保存して\nどの端末でも" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1478,7 +2186,20 @@
       }
     },
     "プロンプトを整理する" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organize My Buttons"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整理我的按钮"
+          }
+        }
+      }
     },
     "プロンプトを編集・追加するには" : {
       "localizations" : {
@@ -1545,7 +2266,20 @@
       }
     },
     "ボタンは、\n好きな順番に。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your buttons,\nin your order."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按钮顺序，\n由你决定。"
+          }
+        }
+      }
     },
     "ボタンは、\n自分仕様にできる。" : {
       "localizations" : {
@@ -1564,6 +2298,7 @@
       }
     },
     "ボタンは自由に\nカスタマイズできる。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1579,8 +2314,101 @@
         }
       }
     },
+    "ボタンを作成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create buttons"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建按钮"
+          }
+        }
+      }
+    },
+    "ボタンを作成できませんでした。少し待ってからもう一度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't create the buttons. Please wait a moment and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法创建按钮。请稍后再试。"
+          }
+        }
+      }
+    },
+    "ボタン名" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Button name"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按钮名称"
+          }
+        }
+      }
+    },
+    "まず、上のメッセージをコピーしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First, copy the message above"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先复制上面的消息"
+          }
+        }
+      }
+    },
+    "または" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "或"
+          }
+        }
+      }
+    },
     "まだ追加されていないようです。「設定を開く」→「キーボード」から「敬語ボタン」をオンにしてください。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It looks like it hasn't been added yet. Tap “Open Settings” → “Keyboards” and turn on 敬語ボタン."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "似乎还没有添加。请点按“打开设置”→“键盘”，然后开启“敬語ボタン”。"
+          }
+        }
+      }
     },
     "メール" : {
       "localizations" : {
@@ -1594,6 +2422,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "邮件"
+          }
+        }
+      }
+    },
+    "メール・ビジネス文書" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email & business writing"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮件·商务文书"
           }
         }
       }
@@ -1614,8 +2458,69 @@
         }
       }
     },
+    "メールアドレスの形式が正しくありません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The email address format is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮箱格式不正确。"
+          }
+        }
+      }
+    },
+    "メールアドレスまたはパスワードが正しくありません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incorrect email address or password."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮箱或密码不正确。"
+          }
+        }
+      }
+    },
+    "メール認証が完了していません。受信トレイの確認メールをご確認ください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your email isn't verified yet. Please check the confirmation email in your inbox."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮箱尚未完成验证，请查收验证邮件。"
+          }
+        }
+      }
+    },
     "メイン" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主"
+          }
+        }
+      }
     },
     "メインボタン" : {
       "extractionState" : "stale",
@@ -1716,7 +2621,20 @@
       }
     },
     "リセットできませんでした。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reset."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置失败。"
+          }
+        }
+      }
     },
     "ローマ字" : {
       "localizations" : {
@@ -1782,8 +2700,54 @@
         }
       }
     },
+    "一般" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        }
+      }
+    },
+    "上から順にキーボードのボタンになります。一番上がメインボタン。長押しして並び替えできます。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These become your keyboard buttons, top to bottom. The top one is the main button. Press and hold to reorder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按钮将按从上到下的顺序显示在键盘上，最上面的是主按钮。长按即可排序。"
+          }
+        }
+      }
+    },
     "上から順にキーボードのボタンになります。一番上がメインボタンです。長押しして並び替えできます。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These become your keyboard buttons, top to bottom. The top one is the main button. Press and hold to reorder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按钮将按从上到下的顺序显示在键盘上，最上面的是主按钮。长按即可排序。"
+          }
+        }
+      }
     },
     "上司・取引先向けの自然な文面に" : {
       "localizations" : {
@@ -1802,10 +2766,36 @@
       }
     },
     "並び替えを保存できませんでした。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save the new order."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序未能保存。"
+          }
+        }
+      }
     },
     "了解です" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "got it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好的"
+          }
+        }
+      }
     },
     "今はスキップ" : {
       "localizations" : {
@@ -1872,7 +2862,20 @@
       }
     },
     "今回は見送る" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这次先不用"
+          }
+        }
+      }
     },
     "他のアプリでメッセージをコピー" : {
       "localizations" : {
@@ -1886,6 +2889,55 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在其他应用中复制消息"
+          }
+        }
+      }
+    },
+    "何のために\n使いますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What will you\nuse it for?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你想用它\n做什么？"
+          }
+        }
+      }
+    },
+    "何のために使いますか？" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What will you use it for?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你想用它做什么？"
+          }
+        }
+      }
+    },
+    "使いたい用途を書くと、AIがボタンを作成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Describe what you need and AI creates the buttons"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写下你想要的用途，AI 会创建按钮"
           }
         }
       }
@@ -1923,7 +2975,20 @@
       }
     },
     "使わないボタンは削除" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the ones you don't use"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不用的按钮可以删除"
+          }
+        }
+      }
     },
     "使用した機能の種類（敬語・メール・翻訳など）" : {
       "localizations" : {
@@ -1937,6 +3002,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所使用功能的类型（敬语、邮件、翻译等）"
+          }
+        }
+      }
+    },
+    "例：中国語を自然な日本語に直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. Turn Chinese into natural Japanese"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如：把中文改写成自然的日语"
           }
         }
       }
@@ -2005,6 +3086,22 @@
         }
       }
     },
+    "候補バーの上にある「%@」ボタンを押してみましょう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the “%@” button above the keyboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按键盘上方的「%@」按钮试试"
+          }
+        }
+      }
+    },
     "候補バーの敬語ボタンから、よく使う書き換えをすぐ選べます。" : {
       "localizations" : {
         "en" : {
@@ -2053,6 +3150,22 @@
         }
       }
     },
+    "先にキーボードの追加が必要です。「設定を開く」から追加してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You need to add the keyboard first. Tap “Open Settings” to add it."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要先添加键盘。请点按「打开设置」进行添加。"
+          }
+        }
+      }
+    },
     "入力" : {
       "localizations" : {
         "en" : {
@@ -2070,16 +3183,68 @@
       }
     },
     "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可いただけますか。同意は任意です。同意しなくても、すべての機能をこれまで通りご利用いただけます。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "May we anonymize your typing and conversion data and use it to build and provide datasets for training Japanese AI (including provision to third parties)? Consent is optional — everything keeps working as before even if you decline."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是否允许我们将您的输入与转换数据匿名化，用于制作和提供日语 AI 训练数据集（包括向第三方提供）？同意与否完全自愿，即使不同意，所有功能也可照常使用。"
+          }
+        }
+      }
     },
     "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけ、品質向上により将来的に変換精度の改善につながる可能性があります。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allows your typing and conversion data to be anonymized and used to build and provide datasets for training Japanese AI (including provision to third parties). All features work without it; enabling it may help improve conversion accuracy over time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许将您的输入与转换数据匿名化，用于制作和提供日语 AI 训练数据集（包括向第三方提供）。不开启也可使用全部功能；开启有助于未来提升转换精度。"
+          }
+        }
+      }
     },
     "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。オンにしなくてもすべての機能をご利用いただけます。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allows your typing and conversion data to be anonymized and used to build and provide datasets for training Japanese AI (including provision to third parties). All features remain available without it."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许将您的输入与转换数据匿名化，用于制作和提供日语 AI 训练数据集（包括向第三方提供）。不开启也可使用全部功能。"
+          }
+        }
+      }
     },
     "入力・変換データを匿名化し、日本語AIの学習用データセットの作成・提供（第三者提供を含む）に利用することを許可します。任意です。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allows your typing and conversion data to be anonymized and used to build and provide datasets for training Japanese AI (including provision to third parties). Optional."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许将您的输入与转换数据匿名化，用于制作和提供日语 AI 训练数据集（包括向第三方提供）。此项为可选。"
+          }
+        }
+      }
     },
     "入力したテキスト" : {
       "localizations" : {
@@ -2130,7 +3295,20 @@
       }
     },
     "入力方式" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input Style"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入方式"
+          }
+        }
+      }
     },
     "入力方式はいつでも変更できます。" : {
       "extractionState" : "stale",
@@ -2149,7 +3327,24 @@
         }
       }
     },
+    "入力方式を\n選びましょう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your\ninput style"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择你的\n输入方式"
+          }
+        }
+      }
+    },
     "入力方式を選ぶ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2165,17 +3360,101 @@
         }
       }
     },
+    "入力欄をタップ → 地球儀キーを長押し →「敬語ボタン」を選択" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the field → hold the globe key → choose 敬語ボタン"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按输入框 → 长按地球键 → 选择「敬語ボタン」"
+          }
+        }
+      }
+    },
+    "入力欄をタップして、キーボードの「返信」ボタンを押してみましょう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the field, then tap the “Reply” button on the keyboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按输入框，然后点按键盘上的「回复」按钮"
+          }
+        }
+      }
+    },
     "内容" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内容"
+          }
+        }
+      }
     },
     "内容を入力してください" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入内容"
+          }
+        }
+      }
     },
     "最初の4つに戻す" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset to Original 4"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复最初 4 个"
+          }
+        }
+      }
     },
     "最初の4つのボタンに戻す" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset to the original 4 buttons"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复为最初的 4 个按钮"
+          }
+        }
+      }
     },
     "処理に関する技術情報（文字数・処理日時など）" : {
       "localizations" : {
@@ -2189,6 +3468,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "处理相关的技术信息（字符数、处理时间等）"
+          }
+        }
+      }
+    },
+    "切り替えられました。「%@」と入力してみましょう。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switched! Now try typing “%@”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换成功！试着输入「%@」吧。"
           }
         }
       }
@@ -2257,6 +3553,22 @@
         }
       }
     },
+    "友達やSNS向けの自然でやわらかい口調に" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A natural, easygoing tone for friends and social media"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面向朋友和社交媒体的自然轻松语气"
+          }
+        }
+      }
+    },
     "同意してはじめる" : {
       "localizations" : {
         "en" : {
@@ -2274,7 +3586,20 @@
       }
     },
     "同意して協力する" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agree and Help Out"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同意并协助"
+          }
+        }
+      }
     },
     "同意して有効にする" : {
       "localizations" : {
@@ -2293,7 +3618,20 @@
       }
     },
     "同意は任意、設定からいつでも取り消し可能" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional — withdraw anytime in Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同意与否自愿，可随时在设置中撤回"
+          }
+        }
+      }
     },
     "名前" : {
       "extractionState" : "stale",
@@ -2345,7 +3683,20 @@
       }
     },
     "変換内容もいつでも編集" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit the rewrite style anytime"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "改写方式也可随时编辑"
+          }
+        }
+      }
     },
     "始める" : {
       "localizations" : {
@@ -2380,7 +3731,20 @@
       }
     },
     "将来的に変換精度の改善につながる可能性" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "May help improve conversion accuracy over time"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有望在未来提升转换精度"
+          }
+        }
+      }
     },
     "戻る" : {
       "localizations" : {
@@ -2399,7 +3763,20 @@
       }
     },
     "承知しました" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certainly, understood."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好的，已知悉。"
+          }
+        }
+      }
     },
     "敬語" : {
       "localizations" : {
@@ -2413,6 +3790,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "敬语"
+          }
+        }
+      }
+    },
+    "敬語に整える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refine into Keigo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整理成敬语"
           }
         }
       }
@@ -2435,7 +3828,23 @@
       }
     },
     "敬語ボタン" : {
-
+      "shouldTranslate" : false
+    },
+    "敬語ボタンに\n切り替えてみましょう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to\n敬語ボタン"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到\n敬語ボタン键盘"
+          }
+        }
+      }
     },
     "敬語ボタンについて" : {
       "localizations" : {
@@ -2449,6 +3858,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关于 敬語ボタン"
+          }
+        }
+      }
+    },
+    "敬語ボタンに切り替わりました！" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switched to 敬語ボタン!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已切换到「敬語ボタン」！"
           }
         }
       }
@@ -2597,6 +4022,22 @@
         }
       }
     },
+    "文法や誤字、不自然な言い回しを直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix grammar, typos, and unnatural phrasing"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修正语法、错别字和不自然的表达"
+          }
+        }
+      }
+    },
     "文脈を理解して変換候補を提案" : {
       "localizations" : {
         "en" : {
@@ -2614,7 +4055,36 @@
       }
     },
     "文章の一部を選択してAIボタンを押すと、選んだところだけを書き直します。前後の文章はそのまま、自然につながるように整えます。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select part of your text and tap an AI button to rewrite only what you selected. Everything around it stays put and reads naturally."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中一部分文字后按下 AI 按钮，只改写选中的内容。前后文字保持不变，衔接自然。"
+          }
+        }
+      }
+    },
+    "新しいキーボードを追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add New Keyboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加新键盘"
+          }
+        }
+      }
     },
     "新しいバージョンが利用可能です。最新版にアップデートすると、最新の機能と改善をご利用いただけます。" : {
       "localizations" : {
@@ -2649,13 +4119,68 @@
       }
     },
     "日本語AIの改善に、\n力を貸してください。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help us improve\nJapanese AI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请帮助我们\n改进日语 AI。"
+          }
+        }
+      }
     },
     "日本語AIの改善に協力する" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help improve Japanese AI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "协助改进日语 AI"
+          }
+        }
+      }
     },
     "日本語AIの改善のためのデータ利用に同意する（任意）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agree to data use for improving Japanese AI (optional)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同意为改进日语 AI 使用数据（可选）"
+          }
+        }
+      }
+    },
+    "日本語をチェック・添削" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check & correct Japanese"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查·修改日语"
+          }
+        }
+      }
     },
     "日連続" : {
       "localizations" : {
@@ -2674,13 +4199,68 @@
       }
     },
     "明日いけますか" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "can you make it tomorrow?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "明天可以吗？"
+          }
+        }
+      }
     },
     "明日ご都合いかがでしょうか" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Would tomorrow suit your schedule?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请问您明天是否方便？"
+          }
+        }
+      }
     },
     "明日までに確認お願いします" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "please check this by tomorrow"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在明天前确认一下"
+          }
+        }
+      }
+    },
+    "書き換え方（AIへの指示）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite style (instructions for the AI)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "改写方式（给 AI 的指令）"
+          }
+        }
+      }
     },
     "書き直し" : {
       "localizations" : {
@@ -2699,7 +4279,20 @@
       }
     },
     "書き直したい部分を選択（ハイライト）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select (highlight) the part to rewrite"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中（高亮）想改写的部分"
+          }
+        }
+      }
     },
     "有効にする" : {
       "localizations" : {
@@ -2718,7 +4311,36 @@
       }
     },
     "機能リクエスト" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feature request"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "功能建议"
+          }
+        }
+      }
+    },
+    "次は、「%@」と入力してみましょう。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next, try typing “%@”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接下来，输入「%@」试试。"
+          }
+        }
+      }
     },
     "次へ" : {
       "localizations" : {
@@ -2737,10 +4359,36 @@
       }
     },
     "氏名・連絡先などは自動で匿名化" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Names and contact details are anonymized automatically"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "姓名、联系方式等将自动匿名化"
+          }
+        }
+      }
     },
     "気になる部分だけ、\nAIで書き直す。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrite just the part\nthat bugs you."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只用 AI 改写\n在意的部分。"
+          }
+        }
+      }
     },
     "片手でも、\nフリックで入力。" : {
       "localizations" : {
@@ -2754,6 +4402,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "即使单手，\n也能用 flick 输入。"
+          }
+        }
+      }
+    },
+    "現在、新規登録を一時停止しています。しばらくしてから再度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New sign-ups are temporarily paused. Please try again later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前暂停新用户注册，请稍后再试。"
           }
         }
       }
@@ -2774,6 +4438,22 @@
         }
       }
     },
+    "用途に合わせて、ぴったりのボタンを用意します。あとで自由に変更できます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We'll set up the right buttons for how you'll use it. You can change them anytime."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我们会根据你的用途准备合适的按钮，之后可随时更改。"
+          }
+        }
+      }
+    },
     "登録日" : {
       "localizations" : {
         "en" : {
@@ -2786,6 +4466,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "注册日期"
+          }
+        }
+      }
+    },
+    "目上の人・ビジネス向けの丁寧な言い方に" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polite wording for superiors and business"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面向上级和商务的礼貌表达"
           }
         }
       }
@@ -2806,6 +4502,22 @@
         }
       }
     },
+    "相手のメッセージをコピーすると、キーボードに「返信」ボタンが現れます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the other person's message and a Reply button appears on the keyboard."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制对方的消息后，键盘上会出现「回复」按钮。"
+          }
+        }
+      }
+    },
     "相手のメッセージをコピーすると、ツールバーに返信ボタンが出ます。押すだけで返信文の候補を作成します。" : {
       "localizations" : {
         "en" : {
@@ -2822,11 +4534,70 @@
         }
       }
     },
+    "相手のメッセージをコピーすると「返信」ボタンが現れ、文脈に合った返信の候補を作ります。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the other person's message and a Reply button appears, generating replies that fit the context."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制对方的消息后会出现「回复」按钮，自动生成符合语境的回复候选。"
+          }
+        }
+      }
+    },
+    "短時間にリクエストが集中しました。しばらく時間をおいて再度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many requests in a short time. Please wait a moment and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短时间内请求过多，请稍后再试。"
+          }
+        }
+      }
+    },
     "確認お願いします" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "can you check this?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "帮我确认一下"
+          }
+        }
+      }
     },
     "種類" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
+          }
+        }
+      }
     },
     "端末に合わせて自動で最適化" : {
       "localizations" : {
@@ -2876,6 +4647,22 @@
         }
       }
     },
+    "翻訳する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        }
+      }
+    },
     "自動" : {
       "localizations" : {
         "en" : {
@@ -2888,6 +4675,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自动"
+          }
+        }
+      }
+    },
+    "英語・中国語などに翻訳する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate into English, Chinese, and more"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译成英语、中文等"
           }
         }
       }
@@ -2920,6 +4723,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在多台设备间沿用设置"
+          }
+        }
+      }
+    },
+    "要約・わかりやすく" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summarize & simplify"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "摘要·简明易懂"
           }
         }
       }
@@ -3036,6 +4855,57 @@
         }
       }
     },
+    "語彙データ: 国立国語研究所 NWJC (CC BY 4.0)" : {
+
+    },
+    "返信がここに入ります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your reply will appear here"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回复会显示在这里"
+          }
+        }
+      }
+    },
+    "返信ボタンにはフルアクセスが必要です。「設定を開く」から有効にしてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Reply button needs Full Access. Enable it via “Open Settings”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「回复」按钮需要完全访问权限。请通过「打开设置」启用。"
+          }
+        }
+      }
+    },
+    "返信も、\nコピーするだけ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replies?\nJust copy the message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回复消息\n只需复制"
+          }
+        }
+      }
+    },
     "返信文の候補から選んで置き換え" : {
       "localizations" : {
         "en" : {
@@ -3053,7 +4923,20 @@
       }
     },
     "追加" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加"
+          }
+        }
+      }
     },
     "追加したボタンはキーボードの「…」から呼び出し" : {
       "localizations" : {
@@ -3185,10 +5068,68 @@
       }
     },
     "送信" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送"
+          }
+        }
+      }
     },
     "送信しました" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送"
+          }
+        }
+      }
+    },
+    "送信するにはサインインが必要です。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You need to sign in to send."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送前请先登录。"
+          }
+        }
+      }
+    },
+    "送信できませんでした。通信環境を確認して、もう一度お試しください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't send. Check your connection and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送失败，请检查网络后重试。"
+          }
+        }
+      }
     },
     "送信先：第三者のAIサービス" : {
       "localizations" : {
@@ -3239,6 +5180,22 @@
         }
       }
     },
+    "通信エラーが発生しました。インターネット接続を確認してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A network error occurred. Please check your internet connection."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发生网络错误，请检查网络连接。"
+          }
+        }
+      }
+    },
     "通常入力は端末内で。AIはタップ時だけ。" : {
       "localizations" : {
         "en" : {
@@ -3256,7 +5213,36 @@
       }
     },
     "選択しなければ、これまで通り全体を書き直し" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With nothing selected, it rewrites the whole text as before"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不选中则照旧改写全文"
+          }
+        }
+      }
+    },
+    "長い文章を短く、読みやすくする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make long text shorter and easier to read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把长文变短、更易读"
+          }
+        }
+      }
     },
     "閉じる" : {
       "localizations" : {
@@ -3273,6 +5259,9 @@
           }
         }
       }
+    },
+    "駅名データ: station_database (CC BY 4.0)" : {
+
     }
   },
   "version" : "1.0"

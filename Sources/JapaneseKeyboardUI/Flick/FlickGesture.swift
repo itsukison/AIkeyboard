@@ -12,6 +12,19 @@ struct FlickGesture: UIViewRepresentable {
     let onTouchDown: () -> Void
     let onTouchMove: (CGFloat, CGFloat, TimeInterval) -> Void
     let onTouchUp: (CGFloat, CGFloat, TimeInterval) -> Void
+    let onTouchCancel: () -> Void
+
+    init(
+        onTouchDown: @escaping () -> Void,
+        onTouchMove: @escaping (CGFloat, CGFloat, TimeInterval) -> Void,
+        onTouchUp: @escaping (CGFloat, CGFloat, TimeInterval) -> Void,
+        onTouchCancel: @escaping () -> Void = {}
+    ) {
+        self.onTouchDown = onTouchDown
+        self.onTouchMove = onTouchMove
+        self.onTouchUp = onTouchUp
+        self.onTouchCancel = onTouchCancel
+    }
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
@@ -25,22 +38,35 @@ struct FlickGesture: UIViewRepresentable {
         context.coordinator.onTouchDown = onTouchDown
         context.coordinator.onTouchMove = onTouchMove
         context.coordinator.onTouchUp = onTouchUp
+        context.coordinator.onTouchCancel = onTouchCancel
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onTouchDown: onTouchDown, onTouchMove: onTouchMove, onTouchUp: onTouchUp)
+        Coordinator(
+            onTouchDown: onTouchDown,
+            onTouchMove: onTouchMove,
+            onTouchUp: onTouchUp,
+            onTouchCancel: onTouchCancel
+        )
     }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onTouchDown: () -> Void
         var onTouchMove: (CGFloat, CGFloat, TimeInterval) -> Void
         var onTouchUp: (CGFloat, CGFloat, TimeInterval) -> Void
+        var onTouchCancel: () -> Void
         private var startTime: Date = .init()
 
-        init(onTouchDown: @escaping () -> Void, onTouchMove: @escaping (CGFloat, CGFloat, TimeInterval) -> Void, onTouchUp: @escaping (CGFloat, CGFloat, TimeInterval) -> Void) {
+        init(
+            onTouchDown: @escaping () -> Void,
+            onTouchMove: @escaping (CGFloat, CGFloat, TimeInterval) -> Void,
+            onTouchUp: @escaping (CGFloat, CGFloat, TimeInterval) -> Void,
+            onTouchCancel: @escaping () -> Void
+        ) {
             self.onTouchDown = onTouchDown
             self.onTouchMove = onTouchMove
             self.onTouchUp = onTouchUp
+            self.onTouchCancel = onTouchCancel
         }
 
         @objc func handle(_ gesture: FlickGestureRecognizer) {
@@ -52,6 +78,8 @@ struct FlickGesture: UIViewRepresentable {
                 onTouchMove(gesture.dx, gesture.dy, Date().timeIntervalSince(startTime))
             case .ended:
                 onTouchUp(gesture.dx, gesture.dy, Date().timeIntervalSince(startTime))
+            case .cancelled, .failed:
+                onTouchCancel()
             default:
                 break
             }
@@ -74,6 +102,8 @@ final class FlickGestureRecognizer: UIGestureRecognizer {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
         if state == .possible {
+            dx = 0
+            dy = 0
             startLocation = touches.first?.location(in: nil) ?? .zero
             state = .began
         }

@@ -47,12 +47,6 @@ targets:
           - Resources/Info.plist
       - path: iOS/Shared
       - path: GoogleService-Info.plist
-      - path: public/applogo.png
-      - path: public/gradientwithglobe.png
-      - path: public/homebg.png
-      - path: public/gradient4.png
-      - path: public/globebg.png
-      - path: public/globebg-dark.png
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.core7.keigobutton

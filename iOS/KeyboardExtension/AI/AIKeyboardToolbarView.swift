@@ -6,6 +6,7 @@ import SwiftUI
 import UIKit
 
 struct AIKeyboardToolbarView: View {
+    @Environment(\.openURL) private var openURL
     @ObservedObject var inputManager: InputManager
     @ObservedObject var aiController: AIKeyboardController
     let onSelectCandidate: (Candidate) -> Void
@@ -55,7 +56,9 @@ struct AIKeyboardToolbarView: View {
     /// login CTA; signed-in users get the prompt / overflow controls.
     @ViewBuilder
     private func mainBar(isOverflow: Bool) -> some View {
-        if !aiController.isSignedInForAI() {
+        // Practice mode (onboarding) presents the real buttons before sign-in;
+        // taps are answered locally, so no auth is needed yet.
+        if !aiController.isSignedInForAI() && !aiController.isPracticeModeActive {
             signedOutBar
         } else {
             signedInMainBar(isOverflow: isOverflow)
@@ -277,18 +280,7 @@ struct AIKeyboardToolbarView: View {
 
             Spacer(minLength: 8)
 
-            Button {
-                onTriggerHaptic()
-                aiController.close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .medium))
-                    .frame(width: KeyboardChromeMetrics.toolbarHeight, height: KeyboardChromeMetrics.toolbarHeight)
-                    .contentShape(Rectangle())
-                    .foregroundStyle(KeyboardPalette.ink)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("閉じる")
+            closeButton(side: KeyboardChromeMetrics.toolbarHeight)
         }
         .padding(.horizontal, 6)
     }
@@ -305,17 +297,7 @@ struct AIKeyboardToolbarView: View {
 
             Spacer(minLength: 4)
 
-            Button {
-                onTriggerHaptic()
-                aiController.close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .medium))
-                    .frame(width: KeyboardChromeMetrics.toolbarButtonHeight, height: KeyboardChromeMetrics.toolbarButtonHeight)
-                    .foregroundStyle(KeyboardPalette.ink)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("閉じる")
+            closeButton(side: KeyboardChromeMetrics.toolbarButtonHeight)
         }
         .padding(.horizontal, 12)
     }
@@ -335,17 +317,7 @@ struct AIKeyboardToolbarView: View {
             pillLink(label: "プライバシーを確認", url: AIKeyboardController.consentURL)
             .accessibilityLabel("アプリでプライバシーを確認する")
 
-            Button {
-                onTriggerHaptic()
-                aiController.close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .medium))
-                    .frame(width: KeyboardChromeMetrics.toolbarButtonHeight, height: KeyboardChromeMetrics.toolbarButtonHeight)
-                    .foregroundStyle(KeyboardPalette.ink)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("閉じる")
+            closeButton(side: KeyboardChromeMetrics.toolbarButtonHeight)
         }
         .padding(.horizontal, 12)
     }
@@ -366,17 +338,7 @@ struct AIKeyboardToolbarView: View {
             pillLink(label: "フルアクセスを開く", url: AIKeyboardController.fullAccessURL)
             .accessibilityLabel("アプリでフルアクセスを有効にする")
 
-            Button {
-                onTriggerHaptic()
-                aiController.close()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .medium))
-                    .frame(width: KeyboardChromeMetrics.toolbarButtonHeight, height: KeyboardChromeMetrics.toolbarButtonHeight)
-                    .foregroundStyle(KeyboardPalette.ink)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("閉じる")
+            closeButton(side: KeyboardChromeMetrics.toolbarButtonHeight)
         }
         .padding(.horizontal, 12)
     }
@@ -391,15 +353,55 @@ struct AIKeyboardToolbarView: View {
         .buttonStyle(.plain)
     }
 
-    /// A pill that opens a container-app URL. Uses a SwiftUI `Link` because the
-    /// selector-based `openURL:` responder-chain trick stopped working in keyboard
-    /// extensions on iOS 18+; `Link` is the supported way to open URLs from here.
+    /// A pill that opens a container-app URL. The URL still goes through
+    /// SwiftUI's supported openURL path, but the tap is detected from raw UIKit
+    /// touches because SwiftUI controls can drop toolbar presses on iOS 26.
     private func pillLink(label: String, url: URL) -> some View {
-        Link(destination: url) {
-            pillLabel(label, isSelected: false)
+        pillLabel(label, isSelected: false)
+            .contentShape(Rectangle())
+            .overlay {
+                KeyboardToolbarTapSurface(label: "url-\(label)") {
+                    onTriggerHaptic()
+                    // Temporary diagnostics (same investigation as the candidate
+                    // expander): separates "tap never fired" from "openURL was
+                    // rejected" when reading a device log.
+                    openURL(url) { accepted in
+                        NSLog("%@", "🔗 [url-\(label)] openURL accepted=\(accepted)")
+                    }
+                }
+            }
+            .accessibilityAddTraits(.isButton)
+    }
+
+    /// The ✕ close control. Same raw-touch tap surface as `pillLink`: a SwiftUI
+    /// Button here drops presses in the keyboard's hosted toolbar on iOS 26.
+    private func closeButton(side: CGFloat) -> some View {
+        Image(systemName: "xmark")
+            .font(.system(size: 13, weight: .medium))
+            .frame(width: side, height: side)
+            .contentShape(Rectangle())
+            .foregroundStyle(KeyboardPalette.ink)
+            .overlay {
+                KeyboardToolbarTapSurface(label: "close") {
+                    onTriggerHaptic()
+                    aiController.close()
+                }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("閉じる")
+    }
+
+    private struct KeyboardToolbarTapSurface: UIViewRepresentable {
+        let label: String
+        let onTap: () -> Void
+
+        func makeUIView(context: Context) -> KeyboardToolbarTapSurfaceView {
+            KeyboardToolbarTapSurfaceView(label: label, onTap: onTap)
         }
-        .buttonStyle(.plain)
-        .simultaneousGesture(TapGesture().onEnded { onTriggerHaptic() })
+
+        func updateUIView(_ view: KeyboardToolbarTapSurfaceView, context: Context) {
+            view.onTap = onTap
+        }
     }
 
     // Font weight + paddings + frame are identical across states so the
@@ -419,6 +421,47 @@ struct AIKeyboardToolbarView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(isSelected ? KeyboardPalette.accent : Color.clear, lineWidth: 1)
             )
+    }
+}
+
+private final class KeyboardToolbarTapSurfaceView: UIView {
+    var onTap: () -> Void
+    private let label: String
+    private var touchStart: CGPoint?
+    private static let maximumTapMovement: CGFloat = 12
+
+    init(label: String, onTap: @escaping () -> Void) {
+        self.label = label
+        self.onTap = onTap
+        super.init(frame: .zero)
+        // Not .clear — same hit-test hardening as CandidateTapSurfaceView.
+        backgroundColor = UIColor.white.withAlphaComponent(0.01)
+        isMultipleTouchEnabled = false
+        accessibilityIdentifier = "KeyboardToolbarTapSurface.\(label)"
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        touchStart = touches.first?.location(in: self)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        defer { touchStart = nil }
+        guard let start = touchStart,
+              let point = touches.first?.location(in: self) else { return }
+        guard hypot(point.x - start.x, point.y - start.y) <= Self.maximumTapMovement else { return }
+        NSLog("%@", "🫳 [\(label)] toolbar tap fired")
+        onTap()
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        touchStart = nil
     }
 }
 

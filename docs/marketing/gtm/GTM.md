@@ -10,11 +10,24 @@ Sold as a set: ① keyboard-native 敬語変換 (empty positioning) × ② conse
 
 ## Current position (update from `metrics-baseline.md`)
 
-As of 2026-07-18: 2,851 users / ~3,500 DL, launched ~June 22. Activation excellent (82% try AI), **retention is the crisis** (68% one-day users, W1 5–18%). Data asset barely exists (199 opt-ins, 677 eligible events, 0 raw-text). ~60 hardcore daily users. **Growth spikes to date came from RED (小紅書) UGC, not App Store** (founder-reported); the RED/Chinese segment is the largest volume but retains ~half as well as Japanese/organic (`metrics-baseline.md` → Retention by segment) — do not assume Chinese speakers are the primary target.
+As of 2026-07-18: 2,851 users / ~3,500 DL, launched ~June 22. Data asset barely exists (199 opt-ins, 677 eligible events, 0 raw-text).
+
+**Revised 2026-07-30 — the diagnosis changed.** Retention was being measured against installs,
+which understates it. On the canonical definition (`metrics-baseline.md` → *Retention definition
+v2*: kept ≥1 rewrite **and** returned for a 2nd rewrite day), **activated users retain at ~30% W1
+/ ~16% W2** — not a crisis (no comparable external benchmark exists for this
+denominator, so don't call it top-quartile). The crisis is one step earlier:
+**only 11.5% of installs ever activate**, and 61% of users who try a rewrite never keep one. The
+old "82% try the AI, activation is fine" reading was counting a *prompted trial* — 85% of first
+real rewrites happen within 5 minutes of finishing onboarding. So: **the problem is try → keep, not
+churn.** ~60 hardcore daily users. **Growth spikes to date came from RED (小紅書) UGC, not App Store** (founder-reported); the RED/Chinese segment is the largest volume but retains ~half as well as Japanese/organic (`metrics-baseline.md` → Retention by segment) — do not assume Chinese speakers are the primary target.
 
 ## The one rule
 
-**Do not spend effort or money on acquisition while W1 retention < 25%.** (D30 <10% → scaling installs accelerates losses. `research/benchmarks.md`)
+**Do not spend effort or money on acquisition until both gates are green: activation (install →
+activated) ≥25% and activated W2 ≥25%.** Now 11.5% and 13–18% → ❌. Restated 2026-07-30; the old
+wording ("W1 retention < 25%") reads green under the v2 definition purely because the denominator
+changed, so do not use it. Gate detail in `roadmap.md` Phase 0, evidence in `metrics-baseline.md`.
 
 ## Context router — do not read everything
 
@@ -29,8 +42,13 @@ References inside a routed file are not instructions to preload them.
 | Retention or persona diagnosis | `metrics-baseline.md`, `churn-signals.md` | Exit and content files |
 | User-email campaign | `outreach-log.md`, then the standing playbook in `churn-signals.md` | Research and content files |
 | General organic-content strategy | `content-strategy.md` | Metrics detail and research; the important constraints are summarized there |
-| Funny, spicy, or controversial workplace content | `spicy-content-bank.md` only | `content-strategy.md` unless changing the overall portfolio |
+| Viral-format research, hook testing, or winning-formula exploration — including provocative hooks for a new scalable format | `viral-format-research.md` | The existing LINE-story bank and production/publishing files unless moving an approved experiment into production |
+| New episode for the existing funny/spicy LINE-style workplace slideshow series | `spicy-content-bank.md` only | `viral-format-research.md` and `content-strategy.md` unless changing the format or overall portfolio |
 | Produce an approved chat mockup | The approved episode in `spicy-content-bank.md` + the relevant template README under `../content/templates/` | All other GTM files |
+| Publish or schedule approved social content through Buffer | `buffer-publishing.md`, then the owning content bank + relevant episode/template README | Metrics and research unless evaluating results |
+| Run or configure the autonomous TikTok loop | `tiktok-autopilot.md`, then only the files it routes to | Unrelated GTM research and outreach |
+| Website SEO / GEO, keyword targeting, llms.txt | `seo-geo.md` | Content and metrics files unless a number is needed |
+| Writing a new page for the website | `seo-geo.md` §設計方針 first, then §キーワードマップ | Everything else |
 | Competitor, ASO, or JP-market question | `research/jp-market.md` | Other research files |
 | Paid ads / channel-spend question | `research/paid-channels.md` | Other research files |
 | KPI benchmark or channel evidence | `research/benchmarks.md` | Market and exit research |
@@ -49,7 +67,11 @@ detail elsewhere.
 | `churn-signals.md` | Churn evidence, personas, email learnings |
 | `outreach-log.md` | Contact history and deduplication |
 | `content-strategy.md` | Content positioning, audiences, portfolio, measurement |
-| `spicy-content-bank.md` | Provocative concepts and production-ready scripts |
+| `viral-format-research.md` | Viral references, format decomposition, hook-test strategy, and exploration of a new scalable formula separate from the LINE slideshow system |
+| `seo-geo.md` | Website design principles, keyword map, page inventory, GEO/llms.txt, search measurement |
+| `spicy-content-bank.md` | Provocative concepts and production-ready scripts for the existing LINE-style slideshow system |
+| `buffer-publishing.md` | Rendering, media upload, Buffer publishing, monitoring, result recording |
+| `tiktok-autopilot.md` | Autonomous TikTok cadence, gates, feedback policy, and scheduled-task prompts |
 | `research/*.md` | Point-in-time external evidence; read only for its named question |
 
 ## Operating cadence
@@ -60,7 +82,11 @@ detail elsewhere.
 
 ## Future direction (Itsuki, 2026-07-18)
 
-Evolve this from md files + manual weekly reviews into an **autonomous GTM team**: scheduled agents that run the metrics pull, draft UGC/PR content, monitor competitors, and propose actions on their own cadence (harness cycle). Building blocks when ready: scheduled routines (`/schedule`) for the weekly review, multi-agent workflows for content production, PushNotification for alerts. Not built yet — revisit after Phase 0.
+The first autonomous GTM harness is the TikTok growth loop documented in
+`tiktok-autopilot.md`. Its repository pieces are built; scheduled tasks remain
+disabled until the manual dry run and approval gates are verified. Extend the
+same pattern later to weekly metrics, PR content, competitor monitoring, and
+alerts without mixing their state or permissions.
 
 ## Standing prompts for Claude Code sessions
 

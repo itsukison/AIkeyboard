@@ -690,19 +690,13 @@ Together these cover sexual-boundary outrage, universal workplace frustration,
 and client-work pressure without defining the whole account as a harassment
 account.
 
-## Production queue status (2026-07-27)
+## Production queue status (2026-07-30)
 
-Produced so far (`../content/`): §1, §2, §3, §8, §13, §15, §17 (posts 002–008)
-and §6, §7, §14, §16, §18 (posts 009–013).
+Produced so far (`../content/`): §1, §2, §3, §8, §13, §15, §17 (posts 002–008),
+§6, §7, §14, §16, §18 (posts 009–013), §4 (post 014), §5 (post 015), §11
+(post 016), and an approved §15 variation (post 017).
 
-Remaining stock, in suggested order:
-
-1. **Sick-day pressure (§4):** high outrage, broad recognition. A soft pilot
-   version of the scene already exists in `scenes.js` (`sick-day`), so the
-   spicy cut needs its own scene under a new key.
-2. **Drinking-party evaluation (§5):** strong disagreement potential; pairs
-   naturally with the paid-leave episode (post 009).
-3. **Lunch meeting (§11):** low-risk everyday comedy reset.
+Remaining approved stock: none.
 
 Hold **public shaming (§9)**, **client abuse (§10)**, and **resignation (§12)**
 for when the account has enough audience trust to carry a more consequential

@@ -53,6 +53,7 @@ enum AppTab: String, CaseIterable, Hashable {
 struct RootContainerView: View {
     @State private var selectedTab: AppTab = .home
     @State private var profileShowsAbout = false
+    @State private var pendingProfileDeepLink: ProfileDeepLink?
     @StateObject private var stats = ConversionStats.shared
     @StateObject private var overlay = AppOverlay()
     @EnvironmentObject private var session: UserSession
@@ -86,6 +87,11 @@ struct RootContainerView: View {
     @State private var whatsNewSheet: WhatsNewSheet?
     @State private var updateInfo: AppUpdateChecker.UpdateInfo?
 
+    private enum ProfileDeepLink {
+        case about
+        case consent
+    }
+
     private enum WhatsNewSheet: String, Identifiable {
         case reply
         case flick
@@ -114,7 +120,20 @@ struct RootContainerView: View {
                 }
             case .signedIn:
                 signedInBody
-                    .onAppear { hasCompletedFirstRun = true }
+                    .onAppear {
+                        let completedInteractiveOnboarding = InteractiveOnboardingState.isAuthRequired()
+                        hasCompletedFirstRun = true
+                        InteractiveOnboardingState.markAuthenticated()
+                        if completedInteractiveOnboarding {
+                            AppAnalytics.capture("onboarding_completed", properties: [
+                                "onboarding_version": InteractiveOnboardingState.version,
+                                "stage": "post_auth",
+                            ])
+                        }
+                        // Safety net: onboarding practice mode must never
+                        // outlive onboarding.
+                        InteractiveOnboardingState.disarmPractice()
+                    }
             }
         }
         .environmentObject(overlay)
@@ -128,16 +147,19 @@ struct RootContainerView: View {
                 // Also re-check on foregrounding: the app can stay resident for
                 // days without a cold launch. The 24h throttle inside guards it.
                 Task { await maybeCheckForUpdate() }
+                applyPendingProfileDeepLinkIfReady()
             }
+        }
+        .onChange(of: session.state) { _ in
+            applyPendingProfileDeepLinkIfReady()
         }
         .onOpenURL { url in
             guard url.scheme == "keigobutton" || url.scheme == "aikeyboard" else { return }
             switch url.host {
             case "fullaccess":
-                profileShowsAbout = true
+                openProfileDeepLink(.about)
             case "consent":
-                profileShowsAbout = true
-                overlay.present(.aiConsent)
+                openProfileDeepLink(.consent)
             case "update":
                 // Arriving from the keyboard's update pill: the user explicitly
                 // asked, so bypass the daily throttle and the あとで dismissal.
@@ -147,9 +169,28 @@ struct RootContainerView: View {
                 }
                 return
             default:
-                break
+                selectedTab = .profile
             }
-            selectedTab = .profile
+        }
+    }
+
+    private func openProfileDeepLink(_ destination: ProfileDeepLink) {
+        pendingProfileDeepLink = destination
+        selectedTab = .profile
+        DispatchQueue.main.async {
+            applyPendingProfileDeepLinkIfReady()
+        }
+    }
+
+    private func applyPendingProfileDeepLinkIfReady() {
+        guard selectedTab == .profile,
+              let destination = pendingProfileDeepLink,
+              session.state != .loading,
+              hasCompletedFirstRun || session.profile != nil else { return }
+        pendingProfileDeepLink = nil
+        profileShowsAbout = true
+        if destination == .consent {
+            overlay.present(.aiConsent)
         }
     }
 

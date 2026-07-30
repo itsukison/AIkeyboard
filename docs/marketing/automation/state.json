@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-30T14:02:44+09:00",
+  "posts": [
+    {
+      "bufferPostId": "6a698c75e9aefbbb12a847bb",
+      "metricsSnapshots": [],
+      "episode": "017-before-work-chase",
+      "contentSha256": "0b7857d166136ae17bbf8997d1013142acb7d4da91c3783ebe82010b2b984527",
+      "dueAt": "2026-07-30T09:30:00+09:00",
+      "status": "sent",
+      "slot": "09:30",
+      "allocation": "exploit",
+      "hypothesis": "Moving the viral three-minute progress chase from 23:58 to before work will test whether the countdown-and-escalation structure travels beyond the late-night setting.",
+      "externalLink": "https://tiktok.com/@keigobutton/video/7668111829591182610",
+      "sentAt": "2026-07-30T00:34:01+00:00"
+    },
+    {
+      "bufferPostId": "6a698c87d3cfdc3678f7723b",
+      "metricsSnapshots": [],
+      "episode": "015-drinking-party-evaluation",
+      "contentSha256": "06db906098dee41a750191c7d7380e494856f88dec8b1b4432f89e068bc8f893",
+      "dueAt": "2026-07-29T18:30:00+09:00",
+      "status": "sent",
+      "slot": "18:30",
+      "allocation": "exploit",
+      "hypothesis": "A familiar coercive drinking-party message will extend the workplace-boundary format into a high-disagreement topic without making a legal claim.",
+      "externalLink": "https://tiktok.com/@keigobutton/video/7667879947939237138",
+      "sentAt": "2026-07-29T09:34:16+00:00"
+    },
+    {
+      "bufferPostId": "6a698c9734a0a0955d7583f5",
+      "metricsSnapshots": [],
+      "episode": "016-lunch-meeting",
+      "contentSha256": "d12d6e1b27ec8639168e30a706a77563666dbe5f8609e087989c740b43cb94a7",
+      "dueAt": "2026-07-30T12:30:00+09:00",
+      "status": "sent",
+      "slot": "12:30",
+      "allocation": "explore",
+      "hypothesis": "A low-risk lunch-break violation will test whether everyday office comedy can retain the winning conflict-first structure.",
+      "externalLink": "https://tiktok.com/@keigobutton/video/7668158186515352840",
+      "sentAt": "2026-07-30T03:31:53+00:00"
+    }
+  ]
+}

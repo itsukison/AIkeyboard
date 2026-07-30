@@ -93,6 +93,9 @@ product-ui.html?state=toolbar&incoming=...&draft=...&format=instagram   (legacy 
 - `result`: the rewritten message shown in the candidate card (result state). The card
   is centered with the next candidate peeking at the right edge.
 - `incoming`: legacy fallback — a single boss bubble when no `scene` is given.
+- `scenejson`: a JSON scene injected by the generic episode renderer. It takes
+  precedence over `scene` and keeps autonomous story and product frames on the
+  same declarative conversation.
 - `chat`: `off` to hide the context area (e.g. when layering over a line-chat frame)
 
 `scene`/`step` load `../scenes.js`, so headless renders need

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>AIキーボード 日本語変換・予測エンジン 技術概要</title>
+<style>
+  @page { size: Letter portrait; margin: 0.78in 0.82in 0.72in; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: #15202b;
+    font-family: "Yu Gothic", "Hiragino Sans", sans-serif;
+    font-size: 10.3pt;
+    line-height: 1.42;
+  }
+  h1 {
+    margin: 0 0 4pt;
+    color: #0b2545;
+    font-size: 22pt;
+    line-height: 1.16;
+    letter-spacing: -0.2pt;
+  }
+  .subtitle {
+    margin: 0 0 13pt;
+    color: #526273;
+    font-size: 9.2pt;
+  }
+  h2 {
+    margin: 12pt 0 5pt;
+    color: #2e74b5;
+    font-size: 14.5pt;
+    line-height: 1.2;
+  }
+  h3 {
+    margin: 7pt 0 2pt;
+    color: #1f4d78;
+    font-size: 11.2pt;
+    line-height: 1.25;
+  }
+  p { margin: 0 0 5pt; }
+  .lead {
+    margin: 0 0 10pt;
+    padding: 9pt 11pt;
+    border-left: 4pt solid #2e74b5;
+    background: #f4f6f9;
+  }
+  .lead strong { color: #0b2545; }
+  .flow {
+    margin: 5pt 0 9pt;
+    padding: 7pt 9pt;
+    border: 0.7pt solid #d7e0ea;
+    border-radius: 4pt;
+    color: #0b2545;
+    background: #f9fbfd;
+    font-weight: 700;
+    text-align: center;
+  }
+  ol, ul { margin: 3pt 0 6pt 19pt; padding: 0; }
+  li { margin: 0 0 3pt; padding-left: 2pt; }
+  .decision { margin-bottom: 5pt; }
+  .label { color: #1f4d78; font-weight: 700; }
+  .page-break { page-break-before: always; }
+  .risk {
+    margin: 6pt 0 8pt;
+    padding: 7pt 10pt;
+    background: #fff8e8;
+    border-left: 4pt solid #c58b00;
+  }
+  .small { color: #4f5d6b; font-size: 8.2pt; line-height: 1.35; }
+  .sources { margin-top: 7pt; padding-top: 5pt; border-top: 0.7pt solid #d7e0ea; }
+  a { color: #245e91; text-decoration: none; }
+</style>
+</head>
+<body>
+  <h1>AIキーボード<br>日本語変換・予測エンジン 技術概要</h1>
+  <p class="subtitle">投資家向け技術ブリーフ｜実装確認日 2026年7月26日｜対象：通常の日本語入力（AI文章書き換え機能は別系統）</p>
+
+  <div class="lead"><strong>要点：</strong>通常入力は、ローマ字／フリック入力から候補表示、学習、次語予測まで端末内で完結する。辞書型の高速変換を土台に、軽量ニューラルモデル「Zenzai」で文脈を考慮し、利用者自身の選択履歴と端末内コーパス表で個人化する。入力中の文字をサーバーへ送らないため、通信遅延・圏外・プライバシーの影響を受けずに基本機能が動く。</div>
+
+  <h2>1. 入力から確定まで、何が起きているか</h2>
+  <div class="flow">キー入力 → かな生成 → 候補探索・順位付け → 候補表示 → ユーザー確定 → 学習・次語予測</div>
+  <ol>
+    <li><strong>入力を受け取る。</strong>QWERTYでは英字を小文字化してローマ字バッファへ、12キーではかなを直接バッファへ入れる。未完成の末尾（例：「きょうk」のk）は候補探索から外しつつ、画面にはそのまま見せる。</li>
+    <li><strong>かなを即時表示する。</strong>解決できたローマ字を逐次かなに変え、iOSの「未確定文字（marked text）」として入力先アプリへ表示する。変換候補を待たないので、キー入力の反応が先に返る。</li>
+    <li><strong>毎入力で非同期変換する。</strong>状態管理の <em>InputManager</em> が、AzooKeyKanaKanjiConverterを包むactorへ変換を依頼する。古い処理はキャンセルし、同じかな部分なら再計算を省く。</li>
+    <li><strong>候補を安全に提示する。</strong>上位20件を横スクロールで表示し、展開時だけ全候補を読み出す。空白キーは候補を順番に選ぶ。ユーザーが選択を始めた後は候補配列を固定し、遅れて届いた結果でタップ対象が動かないようにする。</li>
+    <li><strong>見えている文字だけを確定する。</strong>候補タップ、または空白で選んだ候補を確定する。何も選ばずReturnを押した場合は、先頭の漢字候補を勝手に採用せず、表示中のかなを確定する。</li>
+  </ol>
+
+  <h2>2. 変換精度を作る二層構造</h2>
+  <p class="decision"><span class="label">土台＝辞書・ラティス変換。</span>AzooKeyの標準辞書、タイプミス補正、入力途中の日本語予測を利用する。成熟したOSSを採用することで、辞書整備と日本語の分かち書きをゼロから再実装せず、アプリ固有の操作性・安全性・個人化に開発を集中できる。</p>
+  <p class="decision"><span class="label">上積み＝Zenzai。</span>20MBの <em>zenz-v3.1-xsmall</em> をCPU上で動かし、古典変換だけでは曖昧な候補を文脈込みで評価する。入力開始時にカーソル左側の文脈を一度取得し、直近部分だけを使うため、精度改善と計算量の上限を両立する。推論回数は2回に抑え、品質と待ち時間の均衡を取った。</p>
+
+  <div class="page-break"></div>
+
+  <h2>3. 予測変換と「使うほど合う」仕組み</h2>
+  <p>単語を確定した直後、最大10件の次語候補を次の優先順で統合し、重複を除いて表示する。</p>
+  <ol>
+    <li><strong>本人の履歴：</strong>「この語の次に何を確定したか」を端末内App Groupへ保存。頻度が高いものを優先し、同数なら最近使ったものを上位にする（最大2,000遷移）。結果は即時表示できる。</li>
+    <li><strong>3-gram表：</strong>直前2形態素から次の形態素を予測。FineWeb-2の日本語Webコーパスからオフライン生成した約12MBの表で、文脈を絞り込む。</li>
+    <li><strong>AzooKeyの予測：</strong>確定候補が持つ品詞・形態素情報と適応学習を使う。候補をタップすると学習へ戻し、次の予測にも文脈を連結する。</li>
+    <li><strong>2-gram表：</strong>直前1形態素からの約10MBの表で、3-gramやAzooKeyが不足する場合を補う。</li>
+  </ol>
+  <p>変換候補を確定した結果はAzooKeyの入力・出力学習へ渡し、同じ読みや関連表現の順位を改善する。メモリ内学習は最大5,000件に制限し、ディスク統合は入力中ではなくキーボード終了時に行う。これにより、タイピング中の引っ掛かりを避けながら長期学習を残す。</p>
+
+  <h2>4. 主な設計判断と、その理由</h2>
+  <ul>
+    <li><strong>変換は完全ローカル：</strong>基本入力を通信・ログイン・Full Accessの有無から切り離し、速度、可用性、信頼を守る。Cloud AIはユーザーが明示操作した文章書き換えだけの別機能。</li>
+    <li><strong>デバウンスなし：</strong>かな表示は即時、変換器は差分ラティスを延長でき、actorが直列化する。待ち時間を人工的に足すより、古いタスクを捨てて最新候補を早く出す方がUXに合う。</li>
+    <li><strong>変換器はプロセスに1個：</strong>iOSはキーボード画面を作り直しても拡張プロセスを残すことがある。コントローラごとに辞書／llamaコンテキストを持つとメモリが積み上がるため、共有インスタンスだけを使う。</li>
+    <li><strong>CPU専用の自社fork：</strong>上流のMetal付きllamaバイナリはキーボード拡張でモデル読込時に異常終了したため、Metalを外した <em>ZenzaiCPU</em> を固定採用した。</li>
+    <li><strong>予測表はメモリマップ：</strong>大きな2-gram／3-gram全体をRAMへ展開せず、二分探索で必要ページだけ読む。常駐メモリを抑える代わりに、アプリ容量は約23MB増える。</li>
+  </ul>
+
+  <h2>5. 制約・残るリスク</h2>
+  <div class="risk"><strong>最大の制約はiOSキーボード拡張のメモリ上限。</strong>端末・ホストアプリにより上限が変わり、超過するとiOSがプロセスを終了する。目標は40MB未満。Zenzaiは古典変換に加えて約25MBの一時的な余裕を要するため、利用可能メモリが50MB以下なら自動的に古典変換へ戻す。</div>
+  <ul>
+    <li><strong>速度保護：</strong>最初の3回を除く15回の中央値が150msを超えると、そのプロセスではZenzaiを停止し、同一ビルドでは設定を保持する。低電力モードや高温時の遅さは端末性能判定に使わない。</li>
+    <li><strong>起動保護：</strong>辞書だけを先に準備し、Zenzaiの重み読込と初回推論はキーボード表示後に遅延実行する。初画面と重いモデルロードを競合させない。</li>
+    <li><strong>予測データの限界：</strong>FineWeb-2由来の表は2013〜2024年のWeb傾向を反映する静的データで、最新語や専門語は再生成または利用者学習が必要。Webコーパス固有の偏りも残り得る。</li>
+    <li><strong>ホスト依存：</strong>入力先アプリが文書を外部操作で消去した場合は未確定状態を破棄するなど防御しているが、取得できる周辺文脈とmarked textの挙動はiOS／ホストアプリのAPI制約を受ける。</li>
+    <li><strong>公開前確認：</strong>実機（旧端末を含む）で、変換・候補展開・AIオーバーレイを通した40MB未満のピーク確認が未完了の本番準備項目である。</li>
+  </ul>
+
+  <p><strong>投資家向け総括：</strong>本エンジンの競争力は、既存の高品質OSSを基盤にしながら、端末内ニューラル変換、個人学習、独自の次語コーパス、iOS拡張向けのメモリ防御を一つの入力体験に統合した点にある。品質を上げる機構と、遅い・メモリが少ない端末でも落とさず動かす機構が同時に設計されている。</p>
+
+  <div class="sources small"><strong>根拠資料：</strong>リポジトリ内 <em>AGENTS.md</em>、<em>docs/architecture.md</em>、<em>InputManager.swift</em>、<em>KanaKanjiAdapter.swift</em>、<em>NextWordPrior.swift</em>、<em>KeyboardViewController.swift</em>、関連ユニットテスト。外部一次資料：<a href="https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard">Apple「Creating a custom keyboard」</a>、<a href="https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard">Apple「Configuring open access」</a>、<a href="https://github.com/azooKey/AzooKeyKanaKanjiConverter">AzooKeyKanaKanjiConverter</a>、<a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb-2">FineWeb-2 Dataset Card</a>。</div>
+</body>
+</html>

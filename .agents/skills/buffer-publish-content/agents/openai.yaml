@@ -1,0 +1,4 @@
+interface:
+  display_name: "Buffer GTM Publisher"
+  short_description: "Render and publish 敬語ボタン social content"
+  default_prompt: "Use $buffer-publish-content to produce and publish the next approved TikTok slideshow."

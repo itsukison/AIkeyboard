@@ -7,6 +7,7 @@ enum OnboardingGradientAsset: String {
     case welcome = "homebg"
 }
 
+@available(*, deprecated, message: "Use InteractiveOnboardingFlow through FirstRunFlow.")
 struct OnboardingFlow: View {
     let onFinish: () -> Void
 
@@ -21,7 +22,7 @@ struct OnboardingFlow: View {
     @AppStorage("aikJP.seenPromptOrganizeFeature") private var seenPromptOrganizeFeature = false
     @AppStorage("aikJP.seenCommercialConsentFeature") private var seenCommercialConsentFeature = false
 
-    private let totalPages = 8
+    private let totalPages = 9
 
     var body: some View {
         Group {
@@ -67,14 +68,20 @@ struct OnboardingFlow: View {
                     style: selectedStyle
                 )
             case 5:
-                KeyboardPromptsPage(
+                KeyboardUseCasePage(
                     progress: progress(for: 5),
                     onBack: { goBack() },
                     onContinue: { advance() }
                 )
             case 6:
-                OnboardingSourcePage(
+                KeyboardPromptsPage(
                     progress: progress(for: 6),
+                    onBack: { goBack() },
+                    onContinue: { advance() }
+                )
+            case 7:
+                OnboardingSourcePage(
+                    progress: progress(for: 7),
                     onBack: { goBack() },
                     onContinue: { source in
                         if let source {
@@ -86,9 +93,9 @@ struct OnboardingFlow: View {
                         advance()
                     }
                 )
-            case 7:
+            case 8:
                 KeyboardConsentPage(
-                    progress: progress(for: 7),
+                    progress: progress(for: 8),
                     onBack: { goBack() },
                     onAgree: { commercialOptIn in completeOnboarding(consentGranted: true, commercialOptIn: commercialOptIn) },
                     onDecline: { completeOnboarding(consentGranted: false, commercialOptIn: false) }
@@ -309,11 +316,11 @@ private struct HowItWorksCard: View {
 
 private struct SettingsBreadcrumb: View {
     private let segments = [
-        "設定",
-        "一般",
-        "キーボード",
-        "キーボード",
-        "新しいキーボードを追加",
+        localizedAppString("設定"),
+        localizedAppString("一般"),
+        localizedAppString("キーボード"),
+        localizedAppString("キーボード"),
+        localizedAppString("新しいキーボードを追加"),
         "敬語ボタン"
     ]
 
@@ -563,6 +570,6 @@ struct OnboardingBackground: View {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("public/\(name).png").path)
+        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("iOS/Container/Resources/Images/\(name).png").path)
     }
 }

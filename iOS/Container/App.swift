@@ -92,15 +92,22 @@ struct KeigoButtonApp: App {
     /// Forwards the keyboard extension's completed daily usage tallies to
     /// analytics. The extension can't emit analytics itself (memory ceiling +
     /// no network in the typing path), so the container drains the App Group
-    /// counters on launch. Group by the `date` property for DAU / time-in-app.
+    /// counters on launch. Each day is backdated to when it happened — the
+    /// relay runs a median of five days late (up to the 30-day retention cap),
+    /// so stamping at flush time collapsed a month of typing onto whichever
+    /// day the container was next opened and made retention read low.
     private func flushKeyboardUsageDays() {
         for day in KeyboardUsageDailyStore.flushCompletedDays() {
-            AppAnalytics.capture("keyboard_usage_day", properties: [
-                "date": day.date,
-                "opens": day.opens,
-                "active_seconds": day.activeSeconds,
-                "typed": day.typed,
-            ])
+            AppAnalytics.capture(
+                "keyboard_usage_day",
+                properties: [
+                    "date": day.date,
+                    "opens": day.opens,
+                    "active_seconds": day.activeSeconds,
+                    "typed": day.typed,
+                ],
+                timestamp: KeyboardUsageDailyStore.analyticsTimestamp(forDayIdentifier: day.date)
+            )
         }
     }
 

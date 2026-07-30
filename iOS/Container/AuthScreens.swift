@@ -378,34 +378,34 @@ func japaneseAuthErrorMessage(for error: Error) -> String {
     let raw = error.localizedDescription.lowercased()
 
     if (error as NSError).domain == NSURLErrorDomain {
-        return "通信エラーが発生しました。インターネット接続を確認してください。"
+        return localizedAppString("通信エラーが発生しました。インターネット接続を確認してください。")
     }
     if raw.contains("invalid login credentials") || raw.contains("invalid_credentials") {
-        return "メールアドレスまたはパスワードが正しくありません。"
+        return localizedAppString("メールアドレスまたはパスワードが正しくありません。")
     }
     if raw.contains("user already registered") || raw.contains("already been registered") || raw.contains("user_already_exists") {
-        return "このメールアドレスはすでに登録されています。サインインしてください。"
+        return localizedAppString("このメールアドレスはすでに登録されています。サインインしてください。")
     }
     if raw.contains("email not confirmed") {
-        return "メール認証が完了していません。受信トレイの確認メールをご確認ください。"
+        return localizedAppString("メール認証が完了していません。受信トレイの確認メールをご確認ください。")
     }
     if raw.contains("email rate limit") || raw.contains("over_email_send_rate_limit") {
-        return "短時間にリクエストが集中しました。しばらく時間をおいて再度お試しください。"
+        return localizedAppString("短時間にリクエストが集中しました。しばらく時間をおいて再度お試しください。")
     }
     if raw.contains("for security purposes") || raw.contains("you can only request this") {
-        return "セキュリティ保護のため、しばらく時間をおいて再度お試しください。"
+        return localizedAppString("セキュリティ保護のため、しばらく時間をおいて再度お試しください。")
     }
     if raw.contains("password should be at least") || raw.contains("weak_password") {
-        return "パスワードは6文字以上で入力してください。"
+        return localizedAppString("パスワードは6文字以上で入力してください。")
     }
     if raw.contains("unable to validate email") || raw.contains("invalid format") || raw.contains("invalid email") {
-        return "メールアドレスの形式が正しくありません。"
+        return localizedAppString("メールアドレスの形式が正しくありません。")
     }
     if raw.contains("signup is disabled") || raw.contains("signup_disabled") {
-        return "現在、新規登録を一時停止しています。しばらくしてから再度お試しください。"
+        return localizedAppString("現在、新規登録を一時停止しています。しばらくしてから再度お試しください。")
     }
     if raw.contains("user not found") {
-        return "アカウントが見つかりません。メールアドレスをご確認ください。"
+        return localizedAppString("アカウントが見つかりません。メールアドレスをご確認ください。")
     }
-    return "サインインに失敗しました。時間をおいて再度お試しください。"
+    return localizedAppString("サインインに失敗しました。時間をおいて再度お試しください。")
 }

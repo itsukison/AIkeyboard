@@ -60,6 +60,11 @@ public enum KeyboardSettingsStore {
     public static let anonymousDeviceIdKey = "anonymousDeviceId"
     public static let analyticsAppInstanceIdKey = "analyticsAppInstanceId"
     public static let lastKnownFullAccessEnabledKey = "lastKnownFullAccessEnabled"
+    public static let onboardingPracticeUntilKey = "onboardingPracticeUntil"
+    public static let onboardingPracticeCandidatesKey = "onboardingPracticeCandidates"
+    public static let onboardingPracticeKeyboardSeenAtKey = "onboardingPracticeKeyboardSeenAt"
+    public static let onboardingPracticeTypedAtKey = "onboardingPracticeTypedAt"
+    public static let onboardingPracticeAcceptedAtKey = "onboardingPracticeAcceptedAt"
     public static let lastSeenPasteboardChangeCountKey = "lastSeenPasteboardChangeCount"
 
     public static let aiAccessTokenKey = "aiAccessToken"
@@ -357,6 +362,68 @@ public enum KeyboardSettingsStore {
         defaults: UserDefaults? = sharedDefaults
     ) {
         defaults?.set(enabled, forKey: lastKnownFullAccessEnabledKey)
+    }
+
+    /// Onboarding practice mode: while active, the keyboard shows the AI
+    /// buttons before sign-in and answers a tap with locally stored practice
+    /// candidates instead of a network call — nothing leaves the device. The
+    /// container arms it on the practice pages (with an expiry so an abandoned
+    /// onboarding can't leave the keyboard in practice mode) and clears it when
+    /// practice or onboarding finishes.
+    public static func readOnboardingPracticeActive(defaults: UserDefaults? = sharedDefaults) -> Bool {
+        guard let until = defaults?.object(forKey: onboardingPracticeUntilKey) as? Double else {
+            return false
+        }
+        return Date().timeIntervalSince1970 < until
+    }
+
+    public static func writeOnboardingPracticeActive(
+        until: Date,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(until.timeIntervalSince1970, forKey: onboardingPracticeUntilKey)
+    }
+
+    public static func clearOnboardingPractice(defaults: UserDefaults? = sharedDefaults) {
+        defaults?.removeObject(forKey: onboardingPracticeUntilKey)
+        defaults?.removeObject(forKey: onboardingPracticeCandidatesKey)
+        defaults?.removeObject(forKey: onboardingPracticeKeyboardSeenAtKey)
+        defaults?.removeObject(forKey: onboardingPracticeTypedAtKey)
+        defaults?.removeObject(forKey: onboardingPracticeAcceptedAtKey)
+    }
+
+    /// Progress signals the extension writes while practice mode is active, so
+    /// the onboarding pages can detect "switched to our keyboard", "typed with
+    /// it", and "accepted a rewrite" directly — the daily-usage counters alone
+    /// are fragile for this (marked-text composition doesn't update the host
+    /// field's binding, and counts carry no ordering).
+    public static func writeOnboardingPracticeSignal(
+        _ key: String,
+        at date: Date = Date(),
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(date.timeIntervalSince1970, forKey: key)
+    }
+
+    public static func readOnboardingPracticeSignal(
+        _ key: String,
+        defaults: UserDefaults? = sharedDefaults
+    ) -> Date? {
+        guard let ti = defaults?.object(forKey: key) as? Double else { return nil }
+        return Date(timeIntervalSince1970: ti)
+    }
+
+    /// The canned rewrite candidates the keyboard returns while practice mode
+    /// is active, written by the container to match the practice scenario.
+    public static func readOnboardingPracticeCandidates(defaults: UserDefaults? = sharedDefaults) -> [String] {
+        defaults?.stringArray(forKey: onboardingPracticeCandidatesKey) ?? []
+    }
+
+    public static func writeOnboardingPracticeCandidates(
+        _ candidates: [String],
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(candidates, forKey: onboardingPracticeCandidatesKey)
     }
 }
 

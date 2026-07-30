@@ -4,8 +4,9 @@ Reusable HTML for TikTok/Reels video and slideshow frames. It intentionally
 recreates the familiar proportions and interaction chrome of a Japanese mobile
 messenger without using LINE logos, copyrighted stickers, or a real conversation.
 
-All chats must be disclosed as fiction in the post caption. The disclosure stays
-out of the artwork so the chat screen remains visually clean.
+Keep every chat fictional and generic, but do not add a fiction disclosure to a
+TikTok Photo Mode post. Use a funny title and a description containing hashtags
+only.
 
 ## URLs
 
@@ -34,6 +35,9 @@ line-chat.html?scene=progress&animate=1&format=tiktok
   text stays readable over the full conversation.
 - `animate=1`: reveal the entire chat as a timed animation for video capture
 - `format`: `tiktok` or `instagram`
+- `scenejson`: a JSON scene injected by the generic episode renderer. Prefer
+  this for autonomous episodes so one `episode.json` owns the conversation;
+  hand-authored legacy episodes may continue using `scene`.
 
 Render static exports at 1080 × 1920 for TikTok or 1080 × 1350 for Instagram.
 The same HTML can be recorded for a vertical video; messages animate in sequence

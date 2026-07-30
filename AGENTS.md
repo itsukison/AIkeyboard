@@ -10,7 +10,7 @@ Last verified against the code: 2026-06-08.
 
 ## 1. What this project is
 
-`AIキーボード` is a third-party Japanese iOS keyboard with an AI rewrite
+`敬語ボタン` is a third-party Japanese iOS keyboard with an AI rewrite
 mode. There are two user surfaces:
 
 - **Keyboard extension** — a stock-iOS-looking Japanese keyboard built on
@@ -78,6 +78,7 @@ them gets users killed by jetsam or rejected by App Review.
 ├── iOS/
 │   ├── Container/                    ← main app target (KeigoButton)
 │   │   └── Design/                   ← Bikey Design System (container-only)
+│   │   └── Resources/Images/         ← PNGs bundled by the container target
 │   ├── KeyboardExtension/            ← UIInputViewController + UIKit glue
 │   │   └── AI/                       ← AIKeyboardController, toolbar view, proxy adapter
 │   └── Shared/                       ← types used by both targets
@@ -85,7 +86,9 @@ them gets users killed by jetsam or rejected by App Review.
 ├── supabase/
 │   └── functions/keyboard-rewrite/   ← Edge Function (Deno + AI providers)
 ├── docs/                             ← reference docs (see §6)
-└── public/                           ← splash + onboarding images
+│   ├── assets/                       ← reference screenshots and non-bundled visuals
+│   └── marketing/                    ← GTM notes, ad assets, storyboards
+└── archive/                          ← dormant/restorable code, excluded from builds
 ```
 
 ### Module dependency rules
@@ -122,9 +125,9 @@ Pipeline, end to end:
    Refreshes the access token via `auth/v1/token?grant_type=refresh_token` if
    it's within 30 s of expiry.
 5. The Edge Function (`supabase/functions/keyboard-rewrite/index.ts`)
-   validates the JWT, enforces abuse-oriented usage limits, calls Cerebras
-   Chat Completions (`gpt-oss-120b` by default, Groq fallback optional) with
-   `response_format = json_schema` (strict), and returns
+   validates the JWT, enforces abuse-oriented usage limits, calls OpenAI Chat
+   Completions (`gpt-5.6-terra` by default when its key is configured, with
+   Cerebras fallback) with `response_format = json_schema` (strict), and returns
    `{ candidates, language }`.
 6. The result card (`AIResultOverlayView`) shows the candidates in a snap
    carousel. The user picks one, taps `置き換え`, and
@@ -283,7 +286,7 @@ From `CLAUDE.md`:
   belong in the keyboard detail settings page, not as extra top-level profile
   rows.
 - Ask before destructive operations (deletes, force-pushes, dropping
-  dependencies). The `fix/` scratch directory and
-  `supabase/functions/_deprecated/` rollback folder are untracked — leave
-  them alone unless the user asks for cleanup.
+  dependencies). The `docs/assets/screenshots/punctuation/` scratch images and
+  `supabase/functions/_deprecated/` rollback folder are historical recovery
+  material — leave them alone unless the user asks for cleanup.
 - Default to no comments. Add one only when the *why* is non-obvious.

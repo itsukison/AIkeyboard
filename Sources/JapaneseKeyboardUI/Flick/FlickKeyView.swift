@@ -14,8 +14,8 @@ extension EnvironmentValues {
 }
 
 /// One flickable key in the 10-key kana layout. Renders the center label,
-/// handles the flick gesture, shows the suggest popup on touch-down, and
-/// commits the selected character on touch-up.
+/// handles the flick gesture, shows a compact preview for quick flicks or the
+/// full guide after a hold, and commits the selected character on touch-up.
 ///
 /// For the 小書き key, pass `onCenterTap` to handle the character-type
 /// toggle (center tap cycles the last kana through small/dakuten forms).
@@ -27,10 +27,11 @@ struct FlickKanaKeyView: View {
     let onCenterTap: (() -> Void)?
     let onTriggerHaptic: () -> Void
 
-    @State private var isPressed = false
-    @State private var selectedDirection: FlickKanaTable.FlickDirection? = nil
+    @State private var interaction = FlickInteractionState()
+    @State private var guideTimer: Timer?
     @Environment(\.flickKeyCapInset) private var keyCapInset
 
+    private let guideDelay: TimeInterval = 0.30
     private let thresholds: (left: CGFloat, top: CGFloat, right: CGFloat, bottom: CGFloat) = (
         left: 24, top: 44, right: 64, bottom: 24
     )
@@ -51,7 +52,9 @@ struct FlickKanaKeyView: View {
         ZStack {
             keyBackground
                 .padding(keyCapInset)
+                .opacity(interaction.hidesBaseKey ? 0 : 1)
             keyLabel
+                .opacity(interaction.hidesBaseKey ? 0 : 1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Publish the pressed key + its frame so FlickKeyboardView can draw
@@ -61,8 +64,15 @@ struct FlickKanaKeyView: View {
             GeometryReader { geo in
                 Color.clear.preference(
                     key: FlickPopupKey.self,
-                    value: isPressed
-                        ? FlickPopup(key: key, direction: selectedDirection, frame: geo.frame(in: .named(FlickPopupKey.space)))
+                    value: interaction.showsPopup
+                        ? FlickPopup(
+                            key: key,
+                            phase: interaction.phase,
+                            frame: geo.frame(in: .named(FlickPopupKey.space)).insetBy(
+                                dx: keyCapInset,
+                                dy: keyCapInset
+                            )
+                        )
                         : nil
                 )
             }
@@ -70,20 +80,27 @@ struct FlickKanaKeyView: View {
         .overlay {
             FlickGesture(
                 onTouchDown: {
-                    isPressed = true
-                    selectedDirection = nil
+                    interaction.touchDown()
+                    scheduleGuide()
                     onTriggerHaptic()
                 },
                 onTouchMove: { dx, dy, _ in
-                    selectedDirection = flickDirection(dx: dx, dy: dy)
+                    if interaction.move(to: flickDirection(dx: dx, dy: dy)) {
+                        cancelGuide()
+                    }
                 },
                 onTouchUp: { dx, dy, _ in
                     let direction = flickDirection(dx: dx, dy: dy)
+                    resetInteraction()
                     commit(direction)
-                    isPressed = false
-                    selectedDirection = nil
+                },
+                onTouchCancel: {
+                    resetInteraction()
                 }
             )
+        }
+        .onDisappear {
+            resetInteraction()
         }
     }
 
@@ -99,9 +116,31 @@ struct FlickKanaKeyView: View {
 
     private var keyBackground: some View {
         RoundedRectangle(cornerRadius: 6)
-            .fill(isPressed ? FlickKeyPalette.kanaKeyPressed : FlickKeyPalette.kanaKey)
+            .fill(interaction.isPressed ? FlickKeyPalette.kanaKeyPressed : FlickKeyPalette.kanaKey)
             // Subtle bottom-only shadow, like the native key cap.
             .shadow(color: .black.opacity(0.2), radius: 1, y: 1)
+    }
+
+    private func scheduleGuide() {
+        cancelGuide()
+        let timer = Timer(timeInterval: guideDelay, repeats: false) { _ in
+            MainActor.assumeIsolated {
+                guideTimer = nil
+                interaction.longPressElapsed()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        guideTimer = timer
+    }
+
+    private func cancelGuide() {
+        guideTimer?.invalidate()
+        guideTimer = nil
+    }
+
+    private func resetInteraction() {
+        cancelGuide()
+        interaction.reset()
     }
 
     private func flickDirection(dx: CGFloat, dy: CGFloat) -> FlickKanaTable.FlickDirection? {
@@ -194,6 +233,10 @@ struct FlickUtilityKeyView: View {
                         action()
                     }
                     isPressed = false
+                },
+                onTouchCancel: {
+                    stopRepeat()
+                    isPressed = false
                 }
             )
         }
@@ -222,6 +265,53 @@ struct FlickUtilityKeyView: View {
     private func stopRepeat() {
         repeatTimer?.invalidate()
         repeatTimer = nil
+    }
+}
+
+struct FlickInteractionState: Equatable {
+    private(set) var isPressed = false
+    private(set) var phase: FlickPopupPhase = .hidden
+
+    var showsPopup: Bool {
+        phase != .hidden
+    }
+
+    var hidesBaseKey: Bool {
+        if case .quick(let direction) = phase {
+            return direction != nil
+        }
+        return false
+    }
+
+    mutating func touchDown() {
+        isPressed = true
+        phase = .hidden
+    }
+
+    @discardableResult
+    mutating func move(to direction: FlickKanaTable.FlickDirection?) -> Bool {
+        guard isPressed else { return false }
+        switch phase {
+        case .hidden:
+            guard let direction else { return false }
+            phase = .quick(direction)
+            return true
+        case .quick:
+            phase = .quick(direction)
+        case .guide:
+            phase = .guide(direction)
+        }
+        return false
+    }
+
+    mutating func longPressElapsed() {
+        guard isPressed, phase == .hidden else { return }
+        phase = .guide(nil)
+    }
+
+    mutating func reset() {
+        isPressed = false
+        phase = .hidden
     }
 }
 

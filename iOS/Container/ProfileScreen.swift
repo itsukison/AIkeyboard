@@ -526,7 +526,7 @@ private enum ProfileBundledImage {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("public/\(name).png").path)
+        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("iOS/Container/Resources/Images/\(name).png").path)
     }
 }
 
@@ -1093,7 +1093,7 @@ private struct ProfileConsentAgreementCheckbox: View {
             .accessibilityLabel("プライバシーポリシーの内容に同意する")
             .accessibilityAddTraits(isOn ? [.isSelected] : [])
 
-            Text(.init("[プライバシーポリシー](\(LegalLinks.privacy.absoluteString))の内容に同意します"))
+            Text(.init(localizedAppString("[プライバシーポリシー](\(LegalLinks.privacy.absoluteString))の内容に同意します")))
                 .bikeyFont(13, weight: .regular, relativeTo: .footnote)
                 .foregroundStyle(AppColor.ink)
                 .tint(AppColor.purple)
@@ -1293,7 +1293,7 @@ private struct KeyboardSettingsView: View {
     // NOTE: The key-size slider + live keyboard preview are deferred. The
     // rendering plumbing (KeyboardKeySizeObserver, the views' keySizeObserver
     // param, the store read/write) stays in place, dormant at .standard. The
-    // parked UI lives under deferred/keysize/ — see that folder to re-enable.
+    // parked UI lives under archive/deferred/keysize/ — see that folder to re-enable.
 
     var body: some View {
         ScrollView {

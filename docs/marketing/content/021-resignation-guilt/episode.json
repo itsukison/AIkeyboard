@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "episode": {
+    "id": "021",
+    "slug": "resignation-guilt",
+    "series": "丁寧にキレる。",
+    "bankReference": "spicy-content-bank.md §12 (held concept)",
+    "hypothesis": "The proven boundary-escalation structure may resonate with workers considering resignation when it distinguishes responsible handoff from changing the exit date."
+  },
+  "approval": {
+    "status": "pending",
+    "rewriteVerified": true,
+    "rewriteVerificationMethod": "manual-copy-labelled",
+    "visualQA": true
+  },
+  "scene": {
+    "name": "上司",
+    "day": "今日",
+    "messages": [
+      { "side": "boss", "text": "今辞めたら、チーム全員に迷惑だよ。後任が決まるまで待てない？", "time": "15:10" },
+      { "side": "me", "text": "申し訳ありませんが、退職日の変更はいたしかねます。残りの期間で必要な引き継ぎを整理し、責任をもって対応いたします。", "time": "15:18", "read": "既読" },
+      { "side": "boss", "text": "そんな無責任な人だと思わなかった", "time": "15:19" },
+      { "side": "me", "text": "担当業務の引き継ぎには責任をもって対応いたしますが、退職日の変更には応じかねます。", "time": "15:24", "read": "既読" }
+    ]
+  },
+  "slides": [
+    { "template": "line-chat", "params": { "step": "0", "hook": "退職を『裏切り』に\n変える上司", "hooktag": "丁寧にキレる。" } },
+    { "template": "line-chat", "params": { "step": "1" }, "caption": "後任が決まるまで、退職を待てと言われた" },
+    { "template": "line-chat", "params": { "step": "1", "innervoice": "採用まで私の責任に\nするな" } },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "1", "draft": "退職日は変えません。残りの期間で引き継ぎはします。" }, "caption": "引き継ぎと退職日を、分けて伝える" },
+    { "template": "product-ui", "params": { "state": "result", "step": "1", "draft": "退職日は変えません。残りの期間で引き継ぎはします。", "result": "申し訳ありませんが、退職日の変更はいたしかねます。残りの期間で必要な引き継ぎを整理し、責任をもって対応いたします。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "3" }, "caption": "今度は『無責任』" },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "3", "draft": "引き継ぎは責任を持ってしますが、退職日は変えません。" }, "caption": "責任は果たす。期限は変えない" },
+    { "template": "product-ui", "params": { "state": "result", "step": "3", "draft": "引き継ぎは責任を持ってしますが、退職日は変えません。", "result": "担当業務の引き継ぎには責任をもって対応いたしますが、退職日の変更には応じかねます。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "4" }, "caption": "退職日を決めるのは、会社？本人？" },
+    { "template": "line-chat", "params": { "step": "4", "cta": "1", "ctatag": "丁寧にキレる。" } }
+  ],
+  "publish": {
+    "title": "退職を『無責任』に変える上司に、丁寧にキレる。",
+    "hashtags": ["#退職", "#上司と部下", "#敬語", "#仕事辞めたい", "#社会人"],
+    "experiment": { "allocation": "exploit", "hookFamily": "workplace-boundary", "productRevealSlide": 4 }
+  }
+}
