@@ -7,7 +7,7 @@ import urllib.parse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TEMPLATES = ROOT / "docs/marketing/content/templates"
+TEMPLATES = ROOT / "docs/marketing/content/line-story/templates"
 DEFAULT_CHROME = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 TEMPLATE_PATHS = {
     "line-chat": TEMPLATES / "line-chat/line-chat.html",

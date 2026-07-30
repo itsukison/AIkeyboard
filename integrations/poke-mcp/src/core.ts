@@ -21,7 +21,7 @@ function findRepoRoot(start: string): string {
 }
 
 export const repoRoot = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-const contentRoot = resolve(repoRoot, "docs/marketing/content");
+const contentRoot = resolve(repoRoot, "docs/marketing/content/line-story/episodes");
 
 export type ShareMode = "shareNow" | "addToQueue" | "customScheduled";
 

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>敬語ボタン｜プロダクトUI</title>
+  <!--
+    Pixel-recreation of the shipped keyboard, measured from
+    ../../../../marketing_reference/toolbar.jpg (collapsed) and result.jpg (overlay).
+    Both references are dark mode; this is the light-mode equivalent, flat colors,
+    no gradients or blur. Geometry is the reference pixels scaled by 1080/1169.
+    Above the keyboard uses the line-chat.html blue so the two composite as one phone.
+
+    Layout rules (audited against post 002, 2026-07-23 — keep these):
+    - The tray is a FIXED-height box in both states, shrunk by a per-format
+      `zoom` (tiktok .8, instagram .62). The reference screenshots come from a
+      19.5:9 iPhone; on the shorter 16:9 / 4:5 canvases the 1:1 keyboard reads
+      far taller than it feels on device, and on instagram it ate ~65% of the
+      frame. Never render the tray unscaled.
+    - The result card is exempt from the shrink: its dims are reference px / zoom,
+      so the card and its text render at true size — 40 px on tiktok, 31 px on
+      instagram (tracking that format's compressed bubble text, audited
+      2026-07-26). Keep results ≤ ~75 chars — instagram's card is
+      vertically capped and longer text clips.
+    - state=result keeps the composer visible (the real overlay covers only the
+      keyboard; the host field with the draft stays). Pass `draft` to result
+      slides too, so composer+tray are pixel-identical between draft and result.
+  -->
+  <style>
+    :root {
+      --ink: #1c1c1e;
+      --line-blue: #8faed2;
+      --composer: #f6f7f8;
+      --tray: #d0d3da;                 /* light keyboard background */
+      --key: #ffffff;                  /* letter + space keys */
+      --key-special: #abb0b8;          /* shift, backspace, 123, globe, return */
+      --key-shadow: rgba(72, 76, 84, .55);
+      --purple: #6c5ce7;
+      --purple-border: #9b90e6;
+      --card: #ffffff;
+      --outgoing: #84e26f;             /* my chat bubble (matches line-chat) */
+      --hairline: rgba(16, 24, 32, .14);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      color: var(--ink); background: #11151a;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-feature-settings: "palt" 1; -webkit-font-smoothing: antialiased;
+    }
+
+    .phone {
+      position: fixed; top: 50%; left: 50%;
+      width: 1080px; height: 1920px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);   /* pin column to 1080 so the keyboard can't widen the frame */
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+      background: var(--line-blue);
+      transform: translate(-50%, -50%) scale(var(--canvas-scale, .8333333));
+      transform-origin: center; overflow: hidden;
+    }
+
+    /* ---------- status bar ---------- */
+    .status-bar {
+      height: 78px; padding: 22px 44px 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255, 255, 255, .975);   /* match line-chat — no blue strip at top */
+      font-size: 30px; font-weight: 760; letter-spacing: -.02em;
+    }
+    .status-icons { display: flex; align-items: center; gap: 12px; }
+    .battery { width: 48px; height: 24px; padding: 3px; border: 3px solid var(--ink); border-radius: 7px; position: relative; }
+    .battery::after { content: ""; position: absolute; top: 6px; right: -7px; width: 4px; height: 10px; border-radius: 0 3px 3px 0; background: var(--ink); }
+    .battery-level { height: 100%; width: 82%; border-radius: 2px; background: var(--ink); }
+
+    /* ---------- nav header (matches line-chat.html) ---------- */
+    .navigation {
+      min-height: 124px; padding: 14px 32px 17px 22px;
+      display: grid; grid-template-columns: minmax(176px, 1fr) auto minmax(176px, 1fr);
+      align-items: center; background: rgba(255, 255, 255, .975);
+      border-bottom: 1px solid var(--hairline);
+    }
+    .back { display: flex; align-items: center; gap: 5px; color: #111820; font-size: 35px; font-weight: 570; }
+    .back svg { width: 34px; height: 54px; }
+    .profile { text-align: center; min-width: 0; }
+    .profile-name { font-size: 38px; line-height: 1.15; font-weight: 760; letter-spacing: -.025em; white-space: nowrap; }
+    .profile-members { margin-top: 7px; color: #5f6872; font-size: 24px; font-weight: 550; }
+    .nav-actions { display: flex; align-items: center; justify-content: flex-end; gap: 29px; }
+    .nav-actions svg { width: 42px; height: 42px; stroke: #111820; fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ---------- chat context area (mirrors line-chat.html) ---------- */
+    .chat {
+      min-height: 0; position: relative; overflow: hidden;
+      padding: 24px 27px 27px; display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .caption {
+      position: absolute; top: 34px; left: 50%; transform: translateX(-50%); z-index: 2;
+      width: max-content; max-width: calc(100% - 60px);
+      padding: 22px 38px; border-radius: 26px;
+      background: rgba(0, 0, 0, .82); color: #fff; box-shadow: 0 12px 44px rgba(0, 0, 0, .3);
+      font-size: 50px; line-height: 1.34; font-weight: 800; text-align: center; letter-spacing: -.01em;
+    }
+    .caption.hidden { display: none; }
+    .chat.hidden { visibility: hidden; }
+
+    .conversation { width: 100%; display: flex; flex-direction: column; gap: 24px; }
+    .day { align-self: center; margin: 0 auto 12px; padding: 8px 18px; border-radius: 999px; color: #fff; background: rgba(41, 63, 88, .38); font-size: 23px; line-height: 1.15; font-weight: 650; }
+    .message { width: 100%; display: flex; align-items: flex-end; gap: 13px; }
+    .message.me { justify-content: flex-end; }
+    .avatar { width: 62px; height: 62px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: #d2d7dc; }
+    .avatar svg { width: 45px; height: 45px; fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .bubble-group { max-width: 82%; display: flex; align-items: flex-end; gap: 10px; }
+    .me .bubble-group { flex-direction: row-reverse; }
+    .bubble {
+      position: relative; padding: 20px 25px 21px; border-radius: 36px; background: #fff;
+      font-size: 40px; line-height: 1.42; font-weight: 480; letter-spacing: -.018em;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .boss .bubble { border-bottom-left-radius: 11px; }
+    .boss .bubble::before { content: ""; position: absolute; left: -11px; bottom: 1px; width: 18px; height: 21px; background: #fff; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+    .me .bubble { background: var(--outgoing); border-bottom-right-radius: 11px; }
+    .me .bubble::after { content: ""; position: absolute; right: -11px; bottom: 1px; width: 18px; height: 21px; background: var(--outgoing); clip-path: polygon(0 0, 100% 100%, 0 100%); }
+    .metadata { min-width: 70px; padding-bottom: 2px; display: flex; flex-direction: column; align-items: flex-end; color: rgba(20, 40, 64, .76); font-size: 20px; line-height: 1.25; font-weight: 570; }
+    .boss .metadata { align-items: flex-start; }
+
+    /* ---------- composer (matches line-chat.html) ---------- */
+    .composer {
+      display: flex; align-items: flex-end; gap: 17px;
+      padding: 15px 26px 17px; background: var(--composer);
+      border-top: 1px solid var(--hairline);
+    }
+    .circle-button { width: 52px; height: 52px; flex: 0 0 auto; display: grid; place-items: center; border: 3px solid #65707a; border-radius: 50%; color: #58636d; font-size: 36px; line-height: 1; margin-bottom: 22px; }
+    .input-shell {
+      flex: 1; min-width: 0; min-height: 96px; padding: 20px 22px 20px 28px;
+      display: flex; align-items: center; gap: 12px;
+      border-radius: 30px; background: #fff; border: 1px solid rgba(28, 39, 50, .12);
+      font-size: 41px; color: var(--ink); font-weight: 460;
+    }
+    .input-shell .field { flex: 1 1 auto; min-width: 0; line-height: 1.36; }   /* wraps to a 2nd line instead of clipping */
+    .caret { display: inline-block; width: 3px; height: 42px; background: var(--purple); vertical-align: -8px; margin-left: 1px; }
+    .smile { flex: 0 0 auto; align-self: center; width: 39px; height: 39px; display: grid; place-items: center; border: 2px solid #747e87; border-radius: 50%; color: #68727b; font-size: 23px; }
+    .composer-actions { display: flex; gap: 20px; }
+    .composer-actions svg { width: 46px; height: 46px; stroke: #59646e; fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* =====================================================================
+       KEYBOARD TRAY — geometry = reference px × (1080/1169)
+       Fixed intrinsic height so the tray is pixel-identical in both states,
+       like the shipped keyboard. The tray is shrunk by a per-format zoom (--tz)
+       — the reference is a 19.5:9 device, on a 16:9/4:5 canvas the 1:1 keyboard
+       reads too tall. Inside the tray, 1 CSS px renders at --tz px, so the
+       result card divides its reference dims by --tz to render UNSHRUNK.
+       Heights (intrinsic): keys state = toolbar 152 + keys 578 + chrome 126
+       = 856; result state = overlay-top 128 + card 500 + refine 102 + chrome
+       126 = 856. Instagram keeps 876 (slack absorbs above the bottom row).
+       ===================================================================== */
+    .tray {
+      --tz: .8;                      /* tray zoom: keys + chrome shrink */
+      --card-h: 500px;               /* × .8 = reference 400 px rendered */
+      height: 856px; display: flex; flex-direction: column; overflow: hidden;
+      background: var(--tray); padding: 0 7px calc(8px + env(safe-area-inset-bottom));
+      zoom: var(--tz);
+    }
+    body.instagram .tray { --tz: .62; --card-h: 520px; height: 876px; }  /* card × .62 = 322 rendered */
+    /* instagram compresses the chat to 31 px, so the card tracks it: 31/.62 × .62
+       = 31 rendered — same invariant as tiktok (card text == bubble text) */
+    body.instagram .cand { font-size: calc(31px / var(--tz)); }
+    .tray .kbottom { margin-top: auto; }   /* pin globe/mic row to the tray bottom in both states */
+
+    /* toolbar pills (敬語 …) — ref: pills y182-290 h108, 敬語 x17-168 w151, … w108, gap18 */
+    .toolbar { display: flex; align-items: center; gap: 16px; padding: 26px 8px 26px; }
+    .pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 100px; padding: 0 30px; border-radius: 22px;
+      background: var(--key); box-shadow: 0 1px 0 var(--key-shadow);
+      font-size: 38px; font-weight: 560; color: var(--ink);
+    }
+    .pill.primary { border: 3px solid var(--purple); }          /* pressed / active 敬語 */
+    body.state-pressed .keigo { border: 3px solid var(--purple); } /* tap frame: keyboard visible, 敬語 pressed */
+    .pill.more { padding: 0 34px; letter-spacing: .06em; }
+
+    /* key rows */
+    .keys { padding: 0 7px; }
+    .krow { display: flex; justify-content: center; gap: 16.5px; margin-bottom: 28px; }
+    .krow:last-child { margin-bottom: 6px; }
+    .key {
+      flex: 1 1 0; min-width: 0; height: 122px;
+      display: grid; place-items: center; border-radius: 16px;
+      background: var(--key); box-shadow: 0 1px 0 var(--key-shadow);
+      font-size: 64px; font-weight: 400; color: var(--ink);
+    }
+    .key.special { background: var(--key-special); flex: 0 0 124px; }
+    .key.gap-l { margin-left: 22.5px; }   /* extra gap shift→z  (39 total − 16.5 base) */
+    .key.gap-r { margin-right: 22.5px; }  /* extra gap m→backspace */
+    .key.digits { background: var(--key-special); flex: 0 0 116px; font-size: 44px; font-weight: 500; }
+    .key.globe  { background: var(--key-special); flex: 0 0 116px; }
+    .key.space  { flex: 1 1 0; font-size: 44px; font-weight: 500; }   /* fills the row so 空白/改行 never overflow */
+    .key.return { background: var(--key-special); flex: 0 0 253px; font-size: 44px; font-weight: 500; }
+    .key svg { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .key.special svg, .key.globe svg { width: 62px; height: 62px; }
+
+    /* bottom utility row (globe left, mic right) — ref y1001-1081, padding tightened to fund the card */
+    .kbottom { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px 0; }
+    .kbottom svg { fill: none; stroke: #2a2d33; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .home-indicator { width: 350px; height: 10px; margin: 14px auto 4px; border-radius: 999px; background: #1c1c1e; }
+
+    /* =====================================================================
+       RESULT OVERLAY — geometry from result.jpg × (1080/1169)
+       ===================================================================== */
+    .overlay { display: none; }
+    body.state-result .keys, body.state-result .toolbar { display: none; }
+    body.state-result .overlay { display: block; }
+    /* composer stays visible in result state: the real overlay covers only the
+       keyboard, the host field with the draft remains above it */
+
+    .overlay-top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 12px 12px;
+    }
+    .close svg { width: 52px; height: 52px; stroke: #2a2d33; stroke-width: 3.4; stroke-linecap: round; }
+
+    /* card: reference dims divided by the tray zoom, so the card and its 40 px
+       text render UNSHRUNK even though the keys around it are scaled down.
+       Horizontally centered; next candidate peeks as a clipped card edge on the right */
+    .carousel { position: relative; padding: 0; overflow: hidden; }
+    .cand {
+      width: calc(890px / var(--tz)); height: var(--card-h); margin: 0 auto;
+      padding: calc(34px / var(--tz)) calc(40px / var(--tz));
+      border-radius: calc(40px / var(--tz)); background: var(--card);
+      border: calc(3px / var(--tz)) solid var(--purple-border);
+      font-size: calc(40px / var(--tz)); line-height: 1.5; font-weight: 400; color: var(--ink);
+    }
+    .cand.peek {
+      position: absolute; top: 0; left: calc(100% - 58px / var(--tz)); margin: 0;
+      color: transparent; border-color: rgba(155, 144, 230, .5);
+    }
+
+    /* refine pills: ref y808-892 h84; 再作成 w265, より丁寧に w350, より詳しく w355, gap28 */
+    .refine { display: flex; gap: 26px; padding: 24px 8px 0; overflow: hidden; }
+    .rpill {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 16px;
+      height: 78px; padding: 0 40px; border-radius: 39px;
+      background: var(--key); box-shadow: 0 1px 0 var(--key-shadow);
+      font-size: 40px; font-weight: 600; color: var(--ink);
+    }
+    .rpill svg { width: 44px; height: 44px; fill: none; stroke: var(--ink); stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ---------- Instagram 4:5 ----------
+       Same compression as line-chat.html plus a smaller composer, so the chat
+       stays readable above the (already zoomed-down) keyboard. */
+    body.instagram .phone { height: 1350px; }
+    body.instagram .status-bar { height: 56px; padding-top: 13px; font-size: 25px; }
+    body.instagram .navigation { min-height: 101px; padding-top: 9px; padding-bottom: 11px; }
+    body.instagram .profile-name { font-size: 34px; }
+    body.instagram .profile-members { font-size: 20px; }
+    body.instagram .chat { padding-top: 18px; padding-bottom: 20px; }
+    body.instagram .conversation { gap: 16px; }
+    body.instagram .bubble { padding: 15px 20px 16px; font-size: 31px; }
+    body.instagram .avatar { width: 56px; height: 56px; }
+    body.instagram .composer { padding: 10px 26px 12px; gap: 13px; }
+    body.instagram .circle-button { width: 44px; height: 44px; margin-bottom: 12px; font-size: 30px; }
+    body.instagram .input-shell { min-height: 74px; padding: 12px 18px 12px 22px; font-size: 32px; }
+    body.instagram .caret { height: 34px; vertical-align: -6px; }
+  </style>
+</head>
+<body class="state-toolbar tiktok">
+  <main class="phone" aria-label="敬語ボタン プロダクト画面">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons" aria-hidden="true">
+        <svg width="32" height="24" viewBox="0 0 32 24"><path d="M2 20h4V14H2v6Zm8 0h4V10h-4v10Zm8 0h4V6h-4v14Zm8 0h4V2h-4v18Z" fill="#1c1c1e"/></svg>
+        <svg width="30" height="24" viewBox="0 0 30 24"><path d="M2 8c7.4-6.2 18.6-6.2 26 0M6 13c5.2-4.4 12.8-4.4 18 0m-13.5 5c2.6-2.2 6.4-2.2 9 0M15 22h.01" fill="none" stroke="#1c1c1e" stroke-width="3.1" stroke-linecap="round"/></svg>
+        <span class="battery"><span class="battery-level"></span></span>
+      </div>
+    </div>
+
+    <header class="navigation" aria-hidden="true">
+      <div class="back">
+        <svg viewBox="0 0 32 54"><path d="M25 5 6 27l19 22" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>4</span>
+      </div>
+      <div class="profile">
+        <div class="profile-name">上司</div>
+        <div class="profile-members">社内チャット</div>
+      </div>
+      <div class="nav-actions">
+        <svg viewBox="0 0 48 48"><circle cx="21" cy="21" r="13"/><path d="m31 31 11 11"/></svg>
+        <svg viewBox="0 0 48 48"><path d="M12 7c2-2 7-1 8 2l3 8c1 2 0 4-2 5l-4 2c3 7 7 11 14 14l2-4c1-2 3-3 5-2l8 3c3 1 4 6 2 8l-3 3c-3 3-8 4-12 2C17 42 6 31 1 16c-1-4 0-8 3-11l2-2"/></svg>
+        <svg viewBox="0 0 48 48"><path d="M8 13h32M8 24h32M8 35h32"/></svg>
+      </div>
+    </header>
+
+    <!-- chat context (conversation up to the reply moment) -->
+    <section class="chat" id="chat">
+      <div class="caption hidden" id="caption"></div>
+      <div class="conversation" id="conversation"></div>
+    </section>
+
+    <!-- composer: what you're typing -->
+    <footer class="composer" aria-hidden="true">
+      <span class="circle-button">＋</span>
+      <div class="input-shell"><span class="field"><span class="draft" id="draft">本日中は無理です。明日やります。</span><span class="caret"></span></span><span class="smile">⌣</span></div>
+    </footer>
+
+    <!-- keyboard tray -->
+    <section class="tray">
+      <!-- STATE A toolbar (敬語 = plain key; purple only when pressed) -->
+      <div class="toolbar" aria-hidden="true">
+        <span class="pill keigo">敬語</span>
+        <span class="pill more">…</span>
+      </div>
+
+      <div class="keys" aria-hidden="true">
+        <div class="krow">
+          <span class="key">q</span><span class="key">w</span><span class="key">e</span><span class="key">r</span><span class="key">t</span><span class="key">y</span><span class="key">u</span><span class="key">i</span><span class="key">o</span><span class="key">p</span>
+        </div>
+        <div class="krow">
+          <span class="key">a</span><span class="key">s</span><span class="key">d</span><span class="key">f</span><span class="key">g</span><span class="key">h</span><span class="key">j</span><span class="key">k</span><span class="key">l</span><span class="key">−</span>
+        </div>
+        <div class="krow">
+          <span class="key special gap-r"><svg viewBox="0 0 48 48"><path d="M24 8 8 26h9v14h14V26h9L24 8Z"/></svg></span>
+          <span class="key">z</span><span class="key">x</span><span class="key">c</span><span class="key">v</span><span class="key">b</span><span class="key">n</span><span class="key">m</span>
+          <span class="key special gap-l"><svg viewBox="0 0 48 48"><path d="M18 12h20a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H18L6 24 18 12Z"/><path d="m24 19 10 10M34 19 24 29"/></svg></span>
+        </div>
+        <div class="krow">
+          <span class="key digits">123</span>
+          <span class="key globe"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><path d="M6 24h36M24 6c6 5 6 31 0 36M24 6c-6 5-6 31 0 36"/></svg></span>
+          <span class="key space">空白</span>
+          <span class="key return">改行</span>
+        </div>
+      </div>
+
+      <!-- STATE B result overlay -->
+      <div class="overlay">
+        <div class="overlay-top" aria-hidden="true">
+          <span class="pill primary">敬語</span>
+          <span class="close"><svg viewBox="0 0 48 48"><path d="M12 12 36 36M36 12 12 36"/></svg></span>
+        </div>
+        <div class="carousel">
+          <div class="cand" id="result">申し訳ありません。本日中の完了が難しいため、明日午前までお時間をいただけますでしょうか。</div>
+          <div class="cand peek">次候補</div>
+        </div>
+        <div class="refine" aria-hidden="true">
+          <span class="rpill"><svg viewBox="0 0 48 48"><path d="M40 24a16 16 0 1 1-5-11.6M40 8v10H30"/></svg>再作成</span>
+          <span class="rpill"><svg viewBox="0 0 48 48"><rect x="8" y="16" width="32" height="24" rx="4"/><path d="M18 16v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/></svg>より丁寧に</span>
+          <span class="rpill"><svg viewBox="0 0 48 48"><path d="M14 12v24M14 12l-6 7M14 12l6 7M26 15h16M26 24h16M26 33h10"/></svg>より詳しく</span>
+        </div>
+      </div>
+
+      <!-- shared bottom row -->
+      <div class="kbottom" aria-hidden="true">
+        <svg width="74" height="74" viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><path d="M6 24h36M24 6c6 5 6 31 0 36M24 6c-6 5-6 31 0 36"/></svg>
+        <svg width="64" height="64" viewBox="0 0 48 48"><rect x="17" y="5" width="14" height="25" rx="7"/><path d="M11 25c0 8 5 13 13 13s13-5 13-13M24 38v6M17 44h14"/></svg>
+      </div>
+      <div class="home-indicator" aria-hidden="true"></div>
+    </section>
+  </main>
+
+  <script src="../scenes.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const state = ["result", "pressed"].includes(params.get("state")) ? params.get("state") : "toolbar";
+    const format = params.get("format") === "instagram" ? "instagram" : "tiktok";
+    document.body.className = `state-${state} ${format}`;
+
+    const setText = (id, key) => { const v = params.get(key); if (v !== null) document.querySelector(id).textContent = v; };
+    setText("#draft", "draft");
+    setText("#result", "result");
+
+    // conversation context above the raised keyboard — same messages as the story frames
+    const avatarSvg = `<div class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>`;
+    const bubble = (m) => {
+      const meta = m.side === "me" ? `<span>${m.read || "既読"}</span><span>${m.time}</span>` : `<span>${m.time}</span>`;
+      return `<div class="message ${m.side}">${m.side === "boss" ? avatarSvg : ""}<div class="bubble-group"><div class="bubble">${m.text}</div><div class="metadata">${meta}</div></div></div>`;
+    };
+    const conv = document.querySelector("#conversation");
+    const scene = sceneFromParams(params);
+    if (scene) {
+      document.querySelector(".profile-name").textContent = scene.name;
+      const requested = Number(params.get("step"));
+      const step = Number.isFinite(requested) && requested >= 0 ? Math.min(requested, scene.messages.length) : scene.messages.length;
+      conv.innerHTML = `<div class="day">${scene.day}</div>` + scene.messages.slice(0, step).map(bubble).join("");
+    } else {
+      // legacy fallback: a single incoming bubble via ?incoming=
+      conv.innerHTML = bubble({ side: "boss", text: params.get("incoming") || "進捗どうなってる？", time: "16:41" });
+    }
+    if (params.get("chat") === "off") document.querySelector("#chat").classList.add("hidden");
+    const caption = params.get("caption");
+    if (caption) { const c = document.querySelector("#caption"); c.textContent = caption; c.classList.remove("hidden"); }
+
+    const phone = document.querySelector(".phone");
+    const designWidth = 1080;
+    const designHeight = format === "instagram" ? 1350 : 1920;
+    const fit = () => phone.style.setProperty("--canvas-scale", Math.min(innerWidth / designWidth, innerHeight / designHeight));
+    fit(); addEventListener("resize", fit); window.visualViewport?.addEventListener("resize", fit);
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "note": "Library of app cards. A post picks which ids to show, and in what order, in its post.json. 敬語ボタン appears in every post; every other app should appear in only one, so each post introduces something new.",
+  "crop": {
+    "why": "The *.webp shots are Mobbin-sourced and carry a 'curated by Mobbin' bar across the bottom 120 px. It is clipped in CSS via naturalWidth / (naturalHeight - cropBottomPx); the original files are never modified.",
+    "measured": "120 px on every webp shot (2026-07-30, re-confirmed for duolingo.webp 2026-07-31)"
+  },
+  "apps": {
+    "ahead": {
+      "name": "Ahead",
+      "tagline": "感情のコントロールを鍛える",
+      "detail": "イラッとした瞬間に何を言うかを、練習で変えられるアプリ。1日3分のレッスンと、自分がどんな場面でキレやすいかの記録がセットになっている。怒りを我慢するのではなく、伝え方を選べるようにするのが目的。",
+      "image": "Ahead.webp",
+      "naturalWidth": 720,
+      "naturalHeight": 1680,
+      "cropBottomPx": 120,
+      "accent": "#c9a7ff"
+    },
+    "stoic": {
+      "name": "stoic.",
+      "tagline": "気分の記録とジャーナリング",
+      "detail": "朝と夜に、気分と行動を記録するだけ。続けると「寝不足の翌日は機嫌が悪い」みたいな自分のパターンが数字で見えてくる。書くことが思いつかない日は、質問を出してくれる。",
+      "image": "stoic.webp",
+      "naturalWidth": 720,
+      "naturalHeight": 1680,
+      "cropBottomPx": 120,
+      "accent": "#9fb4c7"
+    },
+    "clubhouse": {
+      "name": "Clubhouse",
+      "tagline": "音声だけで会話に参加する",
+      "detail": "知らない人同士が話しているルームを、聞くだけで覗ける音声SNS。移動中や作業中にラジオみたいに流しておける。話したくなったら手を挙げて、その場で会話に入れる。",
+      "image": "clubhouse.webp",
+      "naturalWidth": 720,
+      "naturalHeight": 1681,
+      "cropBottomPx": 120,
+      "accent": "#e8c86a"
+    },
+    "duolingo": {
+      "name": "Duolingo",
+      "tagline": "語学を習慣にする",
+      "detail": "1日5分のレッスンをゲームみたいに進める語学アプリ。連続記録が切れるのが惜しくなって続いてしまうのが、いちばんの機能。英語をやり直したい人の、最初の一歩として軽い。",
+      "image": "duolingo.webp",
+      "naturalWidth": 720,
+      "naturalHeight": 1680,
+      "cropBottomPx": 120,
+      "accent": "#8fd07a"
+    },
+    "keigobutton": {
+      "name": "敬語ボタン",
+      "tagline": "キーボードからAIを呼べる",
+      "detail": "打った文章を選んでボタンを押すと、AIがその場で書き直す。敬語だけでなく、ビジネスメール、英訳、自然な日本語まで1タップ。ChatGPTに移動してコピペして戻る往復がいらない。よく使う指示は自分で登録もできる。",
+      "image": "keigobutton.jpeg",
+      "naturalWidth": 1170,
+      "naturalHeight": 2532,
+      "cropBottomPx": 0,
+      "accent": "#b3a4f7",
+      "ours": true
+    }
+  }
+}

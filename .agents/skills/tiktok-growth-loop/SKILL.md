@@ -63,7 +63,7 @@ sample count. Do not optimize on views alone.
 3. Prefer approved remaining stock in `spicy-content-bank.md`. When stock is
    exhausted, generate a new episode spec from proven structures, but leave it
    unapproved unless the source concept is already explicitly approved.
-4. Copy `docs/marketing/content/014-sick-day-pressure/episode.json` as the
+4. Copy `docs/marketing/content/line-story/episodes/014-sick-day-pressure/episode.json` as the
    structural reference. Give each new episode its own content directory and
    `episode.json`.
 5. Test every displayed rewrite with the shipping product. Set

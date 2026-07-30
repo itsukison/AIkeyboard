@@ -40,7 +40,7 @@ From the repository root, run:
 
 ```bash
 python3 scripts/marketing/upload_buffer_slides.py \
-  docs/marketing/content/<episode-folder>
+  docs/marketing/content/line-story/episodes/<episode-folder>
 ```
 
 The helper validates the file count and 1080 × 1350 dimensions, uploads
@@ -88,4 +88,4 @@ After `sent`:
 - judge repetition on qualified engagement and product outcomes, not views alone.
 
 Episode 014 is the reference implementation:
-`docs/marketing/content/014-sick-day-pressure/`.
+`docs/marketing/content/line-story/episodes/014-sick-day-pressure/`.

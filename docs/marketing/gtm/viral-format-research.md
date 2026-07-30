@@ -214,6 +214,44 @@ and wrapper show promise, separately test:
 Do not declare the strongest CTA from views alone; compare the downstream action
 that the CTA actually requests.
 
+## Running experiment: app-curation slideshow (app-intro)
+
+Built 2026-07-30, **rendered but not published**. Lives in
+`../content/app-intro/`; that directory's README owns the production detail.
+
+This is the serial-curation row of the table above ("favorite iPhone apps, part
+N") turned into a controlled hook test. It is a second track alongside the
+screen-recording hypothesis, not a replacement for it, and it is deliberately
+kept out of the LINE-slideshow pipeline.
+
+How it satisfies the mass-production rule: card copy lives in a reusable
+`apps.json` library, the slide template is fixed, and a post supplies only a hook
+line, a hook image, and which app ids to show. No per-post product capture is
+required — 敬語ボタン's card is authored once and reappears in every post.
+
+The format carries **no CTA slide**. Our app is card ④ of five, so a closing
+download slide would retroactively mark the list as an ad and cost the curation
+framing that earns the swipe. The single ask lives in the caption as a comment
+prompt, which also sources the apps for the next post.
+
+Its cost driver is different from the screen-recording track: each post needs a
+**new set of app screenshots**, because every post must introduce different apps
+(only 敬語ボタン repeats). That is the constraint to watch when judging whether
+this format can scale — not editing effort.
+
+One post exists so far, `001-identity-callout`, testing the identity/aspiration
+mechanism. Four more hooks are written and line-broken but unrendered, waiting on
+new screenshots: loss aversion, contrarian replacement, social judgment at work,
+and secret/exclusivity. Because the app set has to change between posts, hooks
+cannot be compared over a byte-identical body — treat cross-post comparisons as
+directional, not controlled.
+
+Nothing here is validated: no 72-hour evidence, no comparison against the
+LINE-story baseline. Judge it by the winner policy in `tiktok-autopilot.md`. Note
+that the secret/exclusivity hook is a save-rate hypothesis rather than a reach
+one, and that the social-judgment hook is the one closest to the product's real
+positioning.
+
 ## Boundaries for the next session
 
 The next idea-generation session may use this file to create a bounded test

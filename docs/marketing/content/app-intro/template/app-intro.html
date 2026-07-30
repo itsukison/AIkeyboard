@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>アプリ紹介</title>
+  <style>
+    :root {
+      --bg: #0d1014;
+      --ink: #ffffff;
+      --sub-ink: rgba(255, 255, 255, .66);
+      --hairline: rgba(255, 255, 255, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #05070a;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-feature-settings: "palt" 1;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Fixed 1080 x 1350 design frame, uniformly scaled to the viewport — same
+       approach as the line-story templates, so type never reflows. Instagram
+       sizing only; TikTok's 1080 x 1920 is not produced for this format yet. */
+    .frame {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      background: var(--bg);
+      transform: translate(-50%, -50%) scale(var(--canvas-scale, .8333333));
+      transform-origin: center;
+    }
+
+    .pill {
+      padding: 12px 36px;
+      border-radius: 999px;
+      border: 3px solid rgba(255, 255, 255, .5);
+      color: #fff;
+      font-size: 32px;
+      font-weight: 720;
+      letter-spacing: .18em;
+      white-space: nowrap;
+    }
+    .pill:empty { display: none; }
+
+    /* ---------- hook slide ---------- */
+    .hook { position: absolute; inset: 0; display: none; }
+    body[data-slide="hook"] .hook { display: block; }
+    .hook .shot { position: absolute; inset: 0; }
+    .hook .shot img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+    .hook .scrim {
+      position: absolute; inset: 0;
+      background: linear-gradient(rgba(5, 7, 10, .34) 0%, rgba(5, 7, 10, .5) 42%, rgba(5, 7, 10, .93) 100%);
+    }
+    .hook .stack {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center;
+      /* pill pinned top, hook text and swipe cue anchored bottom, so the pill
+         never lands on the subject of the photo */
+      justify-content: space-between;
+      padding: 70px 64px 92px;
+      text-align: center;
+    }
+    .hook .bottom { display: flex; flex-direction: column; align-items: center; gap: 26px; }
+    .hook .line {
+      font-size: 82px; line-height: 1.24; font-weight: 900;
+      letter-spacing: -.02em;
+      text-shadow: 0 8px 40px rgba(0, 0, 0, .68);
+      white-space: pre-wrap;
+    }
+    .hook .swipe {
+      font-size: 33px; font-weight: 700; color: rgba(255, 255, 255, .8);
+      letter-spacing: .04em;
+    }
+
+    /* ---------- app card slide: screenshot left, copy right ---------- */
+    .app { position: absolute; inset: 0; display: none; }
+    body[data-slide="app"] .app {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 52px 56px 56px;
+    }
+    .app .row {
+      flex: 1;
+      display: flex; align-items: center; gap: 44px;
+      width: 100%;
+      min-height: 0;
+    }
+    .app .shot {
+      width: 400px;
+      aspect-ratio: var(--ratio, .4615);
+      overflow: hidden;
+      border-radius: 38px;
+      border: 3px solid var(--hairline);
+      background: #000;
+      box-shadow: 0 28px 64px rgba(0, 0, 0, .55);
+      flex-shrink: 0;
+    }
+    .app .shot img { width: 100%; display: block; }
+    .app .copy {
+      flex: 1;
+      display: flex; flex-direction: column;
+      gap: 18px;
+      min-width: 0;
+    }
+    .app .idx {
+      width: 62px; height: 62px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent, #b3a4f7); color: #0d1014;
+      font-size: 36px; font-weight: 900;
+    }
+    .app .name {
+      font-size: 62px; font-weight: 900; letter-spacing: -.02em; line-height: 1.1;
+    }
+    .app .tagline {
+      font-size: 33px; font-weight: 760; line-height: 1.35;
+      color: var(--accent, #b3a4f7);
+    }
+    .app .rule { height: 3px; background: var(--hairline); margin: 6px 0; }
+    .app .detail {
+      font-size: 29px; line-height: 1.78; font-weight: 600;
+      color: var(--sub-ink);
+    }
+    /* loud, deliberately ugly marker: this slide is showing a stand-in
+       screenshot for a different app and must never be published */
+    .app .placeholder {
+      position: absolute; top: 50%; left: 0; right: 0;
+      transform: rotate(-8deg);
+      background: #ff2d55; color: #fff;
+      padding: 18px 0; text-align: center;
+      font-size: 48px; font-weight: 900; letter-spacing: .06em;
+    }
+    .app .placeholder:empty { display: none; }
+
+  </style>
+</head>
+<body>
+  <div class="frame" id="frame">
+
+    <section class="hook">
+      <div class="shot"><img id="hook-img" alt=""></div>
+      <div class="scrim"></div>
+      <div class="stack">
+        <span class="pill" id="hook-pill"></span>
+        <span class="bottom">
+          <span class="line" id="hook-line"></span>
+          <span class="swipe" id="hook-swipe"></span>
+        </span>
+      </div>
+    </section>
+
+    <section class="app">
+      <span class="pill" id="app-pill"></span>
+      <div class="row">
+        <div class="shot" id="app-shot"><img id="app-img" alt=""></div>
+        <div class="copy">
+          <span class="idx" id="app-idx"></span>
+          <span class="name" id="app-name"></span>
+          <span class="tagline" id="app-tagline"></span>
+          <span class="rule"></span>
+          <span class="detail" id="app-detail"></span>
+        </div>
+      </div>
+      <span class="placeholder" id="app-placeholder"></span>
+    </section>
+
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const get = (key, fallback = "") => params.get(key) ?? fallback;
+
+    const slide = get("slide", "hook");
+    document.body.dataset.slide = slide;
+
+    const pill = get("pill");
+    for (const id of ["hook-pill", "app-pill"]) {
+      document.getElementById(id).textContent = pill;
+    }
+
+    if (slide === "hook") {
+      document.getElementById("hook-img").src = get("img");
+      document.getElementById("hook-line").textContent = get("hook").replace(/\\n/g, "\n");
+      document.getElementById("hook-swipe").textContent = get("swipe");
+    }
+
+    if (slide === "app") {
+      document.getElementById("app-idx").textContent = get("idx");
+      document.getElementById("app-name").textContent = get("name");
+      document.getElementById("app-tagline").textContent = get("tagline");
+      document.getElementById("app-detail").textContent = get("detail");
+      document.getElementById("app-img").src = get("img");
+      // ratio is width / cropped height — the container clips the bottom of a
+      // top-aligned screenshot, which is how the Mobbin bar is removed.
+      document.getElementById("app-shot").style.setProperty("--ratio", get("ratio", ".4615"));
+      const accent = get("accent");
+      if (accent) document.querySelector(".app").style.setProperty("--accent", accent);
+      if (get("pending") === "1") {
+        document.getElementById("app-placeholder").textContent = "スクショ差し替え前 / 投稿不可";
+      }
+    }
+
+    function fit() {
+      const frame = document.getElementById("frame");
+      const scale = Math.min(
+        window.innerWidth / frame.offsetWidth,
+        window.innerHeight / frame.offsetHeight,
+      );
+      frame.style.setProperty("--canvas-scale", scale);
+    }
+    fit();
+    window.addEventListener("resize", fit);
+  </script>
+</body>
+</html>

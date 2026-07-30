@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "slug": "001-identity-callout",
+  "mechanism": "identity / aspiration callout",
+  "hook": "頭よく見える人の\\niPhoneに入ってる\\nアプリ、5個",
+  "thumbnail": "🐰.jpeg",
+  "swipe": "→ 4個目、意外と知られてない",
+  "apps": ["ahead", "stoic", "clubhouse", "keigobutton", "duolingo"],
+  "hypothesis": "An aspirational in-group claim ('the people who come across as sharp') should pull harder than a feature claim, mirroring the 'This is how students…' identity reference in viral-format-research.md.",
+  "approved": false
+}

@@ -44,7 +44,9 @@ References inside a routed file are not instructions to preload them.
 | General organic-content strategy | `content-strategy.md` | Metrics detail and research; the important constraints are summarized there |
 | Viral-format research, hook testing, or winning-formula exploration — including provocative hooks for a new scalable format | `viral-format-research.md` | The existing LINE-story bank and production/publishing files unless moving an approved experiment into production |
 | New episode for the existing funny/spicy LINE-style workplace slideshow series | `spicy-content-bank.md` only | `viral-format-research.md` and `content-strategy.md` unless changing the format or overall portfolio |
-| Produce an approved chat mockup | The approved episode in `spicy-content-bank.md` + the relevant template README under `../content/templates/` | All other GTM files |
+| Produce an approved chat mockup | The approved episode in `spicy-content-bank.md` + the relevant template README under `../content/line-story/templates/` | All other GTM files |
+| New post for the app-curation slideshow (app-intro) | `../content/app-intro/README.md` only — it owns the slide spec, the `apps.json`/`post.json` model, the written-but-unrendered hook queue, and the caption | `spicy-content-bank.md` and the LINE-story templates; this is a different format |
+| Starting a brand-new content format | `../content/README.md` §Adding a third format, then `viral-format-research.md` for the mass-production eligibility rule | The existing content banks |
 | Publish or schedule approved social content through Buffer | `buffer-publishing.md`, then the owning content bank + relevant episode/template README | Metrics and research unless evaluating results |
 | Run or configure the autonomous TikTok loop | `tiktok-autopilot.md`, then only the files it routes to | Unrelated GTM research and outreach |
 | Website SEO / GEO, keyword targeting, llms.txt | `seo-geo.md` | Content and metrics files unless a number is needed |
@@ -73,6 +75,8 @@ detail elsewhere.
 | `buffer-publishing.md` | Rendering, media upload, Buffer publishing, monitoring, result recording |
 | `tiktok-autopilot.md` | Autonomous TikTok cadence, gates, feedback policy, and scheduled-task prompts |
 | `research/*.md` | Point-in-time external evidence; read only for its named question |
+| `../content/README.md` | Which content formats exist, their directory layout, and the code paths bound to each |
+| `../content/app-intro/README.md` | The app-curation slideshow format: slide spec, card-copy library, hook queue, caption, publish blockers |
 
 ## Operating cadence
 
