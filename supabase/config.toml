@@ -15,3 +15,16 @@ verify_jwt = true
 # Liveness probe only — returns `{ ok: true }`, reads no auth and no data.
 [functions.keyboard-rewrite-health]
 verify_jwt = false
+
+# Onboarding preset generator. Runs before the user has an account, so it must
+# accept the publishable key. It reads no auth and touches no user data — its
+# only effect is one LLM call, guarded by a strict input cap + output schema.
+[functions.generate-prompt-preset]
+verify_jwt = false
+
+# Free browser tools on keigobutton.com. Called from a public web page with no
+# account and no key, so it cannot require a JWT. It reads no auth and touches
+# no user data; its guards are the origin allowlist, a 300-char input cap, a
+# small output-token budget, and a per-IP daily counter (see index.ts).
+[functions.web-rewrite]
+verify_jwt = false

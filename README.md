@@ -1,11 +1,11 @@
-# AIキーボード
+# 敬語ボタン
 
 A Japanese iOS keyboard with an optional AI rewrite mode. Pure local
 kana-to-kanji conversion by default; AI rewrites only when the user
 explicitly taps a prompt button.
 
-User-facing product name is `AIキーボード`. Some internal targets, schemes,
-and project files still use the legacy name `BikeyJP`.
+User-facing product name is `敬語ボタン`. Internal targets, schemes,
+and project files use `KeigoButton`.
 
 **New here? Read [`AGENTS.md`](./AGENTS.md) first.** Everything else
 under `docs/` is reference material that `AGENTS.md` indexes.
@@ -15,10 +15,10 @@ under `docs/` is reference material that `AGENTS.md` indexes.
 ```bash
 brew install xcodegen
 xcodegen generate
-open BikeyJP.xcodeproj
+open KeigoButton.xcodeproj
 ```
 
-Build and run the `BikeyJP` scheme. See [`docs/development.md`](./docs/development.md)
+Build and run the `KeigoButton` scheme. See [`docs/development.md`](./docs/development.md)
 for simulator setup and the keyboard-enable walkthrough.
 
 ```bash
@@ -30,11 +30,16 @@ Runs the SPM unit tests for the IME core.
 ## Repository map
 
 - `Sources/JapaneseKeyboardCore/` — IME state machine (romaji → kana → kanji)
-- `Sources/JapaneseKeyboardUI/` — SwiftUI keyboard views + AI domain models
+- `Sources/JapaneseKeyboardUI/` — SwiftUI keyboard views
+- `Sources/JapaneseKeyboardAI/` — AI rewrite capture, replacement, and service domain
 - `Sources/KeyboardPreferences/` — App Group settings, prompts, auth token cache
 - `iOS/Container/` — main app (Bikey Design System, onboarding, settings)
+- `iOS/Container/Resources/Images/` — app-bundled container PNGs
 - `iOS/KeyboardExtension/` — `UIInputViewController` subclass + AI glue
 - `supabase/functions/keyboard-rewrite/` — Edge Function backing Cloud AI
+- `docs/assets/` — reference screenshots and non-bundled visuals
+- `docs/marketing/` — GTM, ad, and demo-planning docs
+- `archive/` — dormant/restorable code excluded from builds
 
 ## Docs
 

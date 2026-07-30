@@ -19,10 +19,12 @@ let package = Package(
         // binaryTarget is a CPU-only (GGML_METAL=OFF) xcframework — the stock
         // build's Metal backend aborts in the keyboard extension
         // (ggml_metal_init → kernel_get_rows_bf16 nil). See the fork's
-        // BUILDING.md before touching the pin.
+        // BUILDING.md before touching the pin. cpu.2 adds
+        // evaluateZenzaiContinuations (batched zenz candidate scoring for
+        // next-word rescoring).
         .package(
             url: "https://github.com/itsukison/AzooKeyKanaKanjiConverter",
-            exact: "0.11.2-cpu.1",
+            exact: "0.11.2-cpu.2",
             traits: ["ZenzaiCPU"]
         ),
         .package(

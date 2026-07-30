@@ -93,4 +93,11 @@ supabase/.temp/
 supabase/.branch/
 .env
 .agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/buffer-publish-content/
+!.agents/skills/buffer-publish-content/**
+!.agents/skills/tiktok-growth-loop/
+!.agents/skills/tiktok-growth-loop/**
+docs/marketing/automation/*.lock
 .claude/*

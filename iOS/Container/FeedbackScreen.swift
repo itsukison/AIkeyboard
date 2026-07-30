@@ -177,7 +177,7 @@ struct FeedbackScreen: View {
     private func submit() {
         guard canSubmit, phase != .sending else { return }
         guard session.profile != nil else {
-            phase = .failed("送信するにはサインインが必要です。")
+            phase = .failed(localizedAppString("送信するにはサインインが必要です。"))
             return
         }
         messageFocused = false
@@ -196,7 +196,7 @@ struct FeedbackScreen: View {
                 try? await Task.sleep(nanoseconds: 1_600_000_000)
                 dismiss()
             } catch {
-                phase = .failed("送信できませんでした。通信環境を確認して、もう一度お試しください。")
+                phase = .failed(localizedAppString("送信できませんでした。通信環境を確認して、もう一度お試しください。"))
             }
         }
     }

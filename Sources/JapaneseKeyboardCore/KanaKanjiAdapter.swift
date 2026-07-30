@@ -11,6 +11,9 @@ public actor KanaKanjiAdapter {
     /// `Candidate` only carries text + reading, which isn't enough context for
     /// `requestPostCompositionPredictionCandidates`.
     private var lastConversion: ConversionResult?
+    /// The kana `lastConversion` was requested for, so the full-list read
+    /// below can label its candidates and let the caller detect staleness.
+    private var lastConversionKana: String?
     /// Whether Zenzai is currently active (weight bundled, user-enabled,
     /// enough jetsam headroom at init, and the latency gate hasn't tripped).
     private var zenzaiEnabled: Bool
@@ -107,6 +110,73 @@ public actor KanaKanjiAdapter {
             zenzaiMode: zenzai,
             metadata: .init(versionString: "KeigoButton/1.0")
         )
+        // Before the first conversion: the user-dictionary LOUDS is loaded
+        // lazily and then cached for the life of the converter.
+        Self.installGapFillDictionary(into: supportURL)
+    }
+
+    /// Builds the bundled gap-fill entries (readings the default dictionary
+    /// can't compose, e.g. なんごうしゃ → 何号車) into the converter's user
+    /// dictionary (user.louds in `sharedContainerURL`). Real LOUDS files —
+    /// unlike `importDynamicUserDictionary`, whose entries only match at the
+    /// very end of the input — so the words also compose mid-sentence
+    /// (何号車に乗る). Rebuilt on every init: the build is microseconds for a
+    /// list this size, and it keeps an updated TSV effective immediately.
+    private static func installGapFillDictionary(into directoryURL: URL) {
+        guard let tsvURL = Bundle.module.url(forResource: "conversion_gapfill", withExtension: "tsv"),
+              let tsv = try? String(contentsOf: tsvURL, encoding: .utf8),
+              let charIDURL = defaultDictionaryCharIDURL else {
+            #if DEBUG
+            NSLog("%@", "📗 GAPFILL skipped — tsv or charID.chid not found")
+            #endif
+            return
+        }
+        let entries: [DicdataElement] = tsv.split(separator: "\n").compactMap { line in
+            let columns = line.split(separator: "\t")
+            guard columns.count >= 2 else { return nil }
+            return DicdataElement(
+                word: String(columns[1]),
+                ruby: String(columns[0]),
+                cid: CIDData.一般名詞.cid,
+                mid: MIDData.一般.mid,
+                value: -9
+            )
+        }
+        guard !entries.isEmpty else { return }
+        do {
+            try DictionaryBuilder.exportDictionary(
+                entries: entries,
+                to: directoryURL,
+                baseName: "user",
+                shardByFirstCharacter: false,
+                charIDFileURL: charIDURL
+            )
+            #if DEBUG
+            NSLog("%@", "📗 GAPFILL installed \(entries.count) entries into \(directoryURL.lastPathComponent)/user.louds")
+            #endif
+        } catch {
+            #if DEBUG
+            NSLog("%@", "📗 GAPFILL export failed: \(error)")
+            #endif
+        }
+    }
+
+    /// charID.chid of the bundled azooKey dictionary, so the exported LOUDS
+    /// uses the same character IDs the converter searches with. Resolved by
+    /// locating the converter package's resource bundle next to wherever the
+    /// converter class itself is loaded from (appex bundle when statically
+    /// linked, framework bundle otherwise).
+    private static var defaultDictionaryCharIDURL: URL? {
+        let converterBundle = Bundle(for: KanaKanjiConverter.self)
+        let resourceBundleName = "AzooKeyKanaKanjiConverter_KanaKanjiConverterModuleWithDefaultDictionary.bundle"
+        let roots = [converterBundle.resourceURL, converterBundle.bundleURL]
+        for root in roots.compactMap({ $0 }) {
+            let url = root
+                .appendingPathComponent(resourceBundleName, isDirectory: true)
+                .appendingPathComponent("Dictionary/louds/charID.chid", isDirectory: false)
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+        }
+        return nil
     }
 
     public func convert(kana: String, maxCandidates: Int = 10, leftContext: String? = nil) -> [Candidate] {
@@ -122,12 +192,15 @@ public actor KanaKanjiAdapter {
 
         options.N_best = maxCandidates
         let conversionStart: ContinuousClock.Instant? = zenzaiEnabled ? .now : nil
-        let results = converter.requestCandidates(composingText, options: options)
+        let results = InputLatencyProbe.measure("convert") {
+            converter.requestCandidates(composingText, options: options)
+        }
         if let conversionStart {
             zenzaiPrewarmed = true
             recordZenzaiLatency(since: conversionStart)
         }
         lastConversion = results
+        lastConversionKana = kana
 
         let texts = Array(results.mainResults.prefix(maxCandidates).map(\.text))
         var candidates = texts.map { Candidate(text: $0, reading: kana) }
@@ -135,6 +208,25 @@ public actor KanaKanjiAdapter {
             candidates.append(Candidate(text: kana, reading: kana))
         }
         return candidates
+    }
+
+    /// Every candidate of the most recent conversion — the full `mainResults`
+    /// the bar's `maxCandidates` slice was cut from (whole-sentence and
+    /// first-clause conversions plus the unbounded single-word/variant tail).
+    /// Runs no new conversion: the result was already computed per keystroke
+    /// and retained for prediction. Returns the kana it was converted from so
+    /// the caller can discard a stale expansion.
+    public func allCandidatesFromLastConversion() -> (kana: String, candidates: [Candidate])? {
+        guard let lastConversion, let kana = lastConversionKana else { return nil }
+        var seen = Set<String>()
+        var candidates: [Candidate] = []
+        for text in lastConversion.mainResults.map(\.text) where seen.insert(text).inserted {
+            candidates.append(Candidate(text: text, reading: kana))
+        }
+        if !seen.contains(kana) {
+            candidates.append(Candidate(text: kana, reading: kana))
+        }
+        return (kana, candidates)
     }
 
     /// Bake the text left of the composition into Zenzai's conversion prompt
@@ -202,13 +294,63 @@ public actor KanaKanjiAdapter {
         lastPredictionBase = leftSideCandidate
         lastPredictions = predictions
         var seen = Set<String>()
-        var result: [Candidate] = []
+        var texts: [String] = []
         for text in orderedTexts {
             guard !text.isEmpty, seen.insert(text).inserted else { continue }
-            result.append(Candidate(text: text, reading: ""))
-            if result.count == maxCandidates { break }
+            texts.append(text)
+            if texts.count == maxCandidates { break }
         }
-        return result
+        texts = rescorePredictionHead(texts, committed: leftSideCandidate?.text ?? committedText)
+        return texts.map { Candidate(text: $0, reading: "") }
+    }
+
+    /// How many prediction candidates the zenz rescoring pass reorders. The
+    /// n-gram/dictionary merge above is context-blind beyond two morphemes;
+    /// scoring its head against the real left context fixes what it cannot see
+    /// (+16pp top-1 on the contrastive probe, scripts/rescore-probe). Five keeps
+    /// the single batched decode ~60-80 ms on A15-class devices.
+    private static let rescoreHeadCount = 5
+    /// Process-local speed valve, same philosophy as `ZenzaiLatencyGate` but
+    /// not persisted: two consecutive unthrottled rescores over 150 ms stop
+    /// rescoring until the next launch. Not fed into the conversion gate —
+    /// slow rescoring should cost the reorder, not neural conversion.
+    private var rescoreSlowStrikes = 0
+    private var rescoreTripped = false
+
+    /// Reorders the head of the merged prediction list by zenz log-probability
+    /// under `leftContext + committed`. The prompt reuses conversion's
+    /// `\u{EE02}<context>` prefix so the llama KV cache is shared in both
+    /// directions. Returns the input unchanged whenever the model isn't warm,
+    /// Zenzai is off/tripped, or scoring fails.
+    private func rescorePredictionHead(_ texts: [String], committed: String) -> [String] {
+        guard zenzaiEnabled, zenzaiPrewarmed, !rescoreTripped, texts.count > 1 else { return texts }
+        let context = String(((currentLeftContext ?? "") + committed).suffix(20))
+        let head = Array(texts.prefix(Self.rescoreHeadCount))
+        let start = ContinuousClock.now
+        guard let scores = converter.evaluateZenzaiContinuations(head, prompt: "\u{EE02}" + context, options: options) else {
+            return texts
+        }
+        let duration = start.duration(to: .now)
+        let milliseconds = Double(duration.components.seconds) * 1000
+            + Double(duration.components.attoseconds) / 1e15
+        #if DEBUG
+        NSLog("%@", String(format: "📈 ZENZ-RESCORE %.1f ms ctx=%@", milliseconds, context))
+        #endif
+        let info = ProcessInfo.processInfo
+        if !info.isLowPowerModeEnabled, info.thermalState == .nominal {
+            rescoreSlowStrikes = milliseconds > 150 ? rescoreSlowStrikes + 1 : 0
+            if rescoreSlowStrikes >= 2 {
+                rescoreTripped = true
+                #if DEBUG
+                NSLog("%@", "📈 ZENZ-RESCORE tripped — n-gram order for the rest of this process")
+                #endif
+            }
+        }
+        let reordered = zip(head, scores).enumerated()
+            .map { (index: $0.offset, text: $0.element.0, score: $0.element.1.isNaN ? -Float.infinity : $0.element.1) }
+            .sorted { $0.score != $1.score ? $0.score > $1.score : $0.index < $1.index }
+            .map(\.text)
+        return reordered + texts.dropFirst(head.count)
     }
 
     /// Learn a tapped next-word prediction and extend the chain: feeds the

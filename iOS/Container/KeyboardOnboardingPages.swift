@@ -9,6 +9,7 @@ struct KeyboardInputStylePage: View {
     let progress: Double
     let onBack: (() -> Void)?
     @Binding var selectedStyle: KeyboardPreferences.KeyboardStyle
+    var onSkip: (() -> Void)? = nil
     let onContinue: () -> Void
 
     var body: some View {
@@ -16,29 +17,18 @@ struct KeyboardInputStylePage: View {
             progress: progress,
             canGoBack: onBack != nil,
             onBack: onBack,
-            onSkip: nil,
+            onSkip: onSkip,
             ctaTitle: "次へ",
             isCtaEnabled: true,
             onCta: onContinue
         ) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 24) {
-                    VStack(spacing: 14) {
-                        Text("入力方式を選ぶ")
-                            .font(.system(size: 31, weight: .medium))
-                            .foregroundStyle(OnboardingPalette.ink)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("ふだん使っているキーボードに合わせて選べます。あとから設定でいつでも変更できます。")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(OnboardingPalette.subInk)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 4)
-                    }
-                    .padding(.top, 28)
+                    OnboardingTitleBlock(
+                        title: "入力方式を\n選びましょう",
+                        subtitle: "ふだん使っているキーボードに合わせて選べます。あとから設定でいつでも変更できます。"
+                    )
+                    .padding(.top, 24)
 
                     HStack(spacing: 12) {
                         ForEach(InputStyleOption.selectable, id: \.self) { style in
@@ -84,26 +74,14 @@ struct KeyboardSetupPage: View {
         ) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 24) {
-                    VStack(spacing: 14) {
-                        Text("敬語ボタンを\nキーボードに追加")
-                            .font(.system(size: 31, weight: .medium))
-                            .foregroundStyle(OnboardingPalette.ink)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("一度追加すると、LINEやメールの入力中にそのまま使えます。AIはボタンを押した時だけ、今の文章を書き直します。")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(OnboardingPalette.subInk)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 4)
-                    }
-                    .padding(.top, 28)
+                    OnboardingTitleBlock(
+                        title: "敬語ボタンを\nキーボードに追加",
+                        subtitle: "一度追加すると、LINEやメールの入力中にそのまま使えます。AIはボタンを押した時だけ、今の文章を書き直します。"
+                    )
+                    .padding(.top, 24)
 
                     SettingsMockCard()
-                        .padding(.top, 8)
+                        .padding(.top, 4)
 
                     if showNotEnabledHint {
                         Text("まだ追加されていないようです。「設定を開く」→「キーボード」から「敬語ボタン」をオンにしてください。")
@@ -227,13 +205,13 @@ private struct SettingsKeyboardsMock: View {
             // Toggle rows
             VStack(spacing: 0) {
                 SettingsToggleRow(label: "敬語ボタン", isOn: true, showDivider: true)
-                SettingsToggleRow(label: "フルアクセスを許可", isOn: true, showDivider: false, iconName: "keyboard")
+                SettingsToggleRow(label: localizedAppString("フルアクセスを許可"), isOn: true, showDivider: false, iconName: "keyboard")
             }
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .padding(.horizontal, 14)
 
-            Text(verbatim: "AIで書き直すために必要です。通常の入力中に勝手に送信されることはありません。")
+            Text("AIで書き直すために必要です。通常の入力中に勝手に送信されることはありません。")
                 .font(.system(size: 9, weight: .regular))
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .padding(.horizontal, 22)
@@ -242,11 +220,11 @@ private struct SettingsKeyboardsMock: View {
 
             // Permission dialog
             VStack(alignment: .leading, spacing: 6) {
-                Text(verbatim: "“敬語ボタン”に\nフルアクセスを許可しますか？")
+                Text("“敬語ボタン”に\nフルアクセスを許可しますか？")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color(uiColor: .label))
                     .lineSpacing(1)
-                Text(verbatim: "AIボタンを押した時だけ、今の文章を敬語に書き直します。")
+                Text("AIボタンを押した時だけ、今の文章を敬語に書き直します。")
                     .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .lineSpacing(1)
@@ -519,38 +497,28 @@ private func onboardingNormalizedPrompts(_ ordered: [UserPrompt]) -> [UserPrompt
 struct KeyboardPromptsPage: View {
     let progress: Double
     let onBack: () -> Void
+    var onSkip: (() -> Void)? = nil
     let onContinue: () -> Void
 
     @State private var entries: [UserPrompt] = OnboardingPromptSetup.load()
     @State private var editorEntry: UserPrompt?
+    @State private var hasOpenedEditor = false
 
     var body: some View {
         OnboardingScaffold(
             progress: progress,
             canGoBack: true,
             onBack: onBack,
-            onSkip: nil,
+            onSkip: onSkip,
             ctaTitle: "次へ",
             isCtaEnabled: true,
             onCta: onContinue
         ) {
             VStack(spacing: 16) {
-                VStack(spacing: 14) {
-                    Text("ボタンは自由に\nカスタマイズできる。")
-                        .font(.system(size: 30, weight: .medium))
-                        .foregroundStyle(OnboardingPalette.ink)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text("すべてのボタンを編集できます。一番上がメインボタンになり、長押しで並び替えできます。")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundStyle(OnboardingPalette.subInk)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 4)
-                }
+                OnboardingTitleBlock(
+                    title: "あなた専用の\nボタンができました",
+                    subtitle: "タップすると名前や指示を自由に書き換えられます。長押しで並び替え、一番上がメインボタンです。"
+                )
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
 
@@ -560,7 +528,11 @@ struct KeyboardPromptsPage: View {
                             OnboardingPromptRow(
                                 entry: entry,
                                 isMain: entry.id == entries.first?.id,
-                                onTap: { editorEntry = entry }
+                                showsEditHint: entry.id == entries.first?.id && !hasOpenedEditor,
+                                onTap: {
+                                    hasOpenedEditor = true
+                                    editorEntry = entry
+                                }
                             )
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(AppColor.surface)
@@ -614,7 +586,7 @@ struct KeyboardPromptsPage: View {
 /// Guest-local read/write for onboarding prompt edits. The keyboard reads the
 /// same App Group prompt cache immediately, and `UserSession.signUp` carries
 /// this pending set up to the new account before the server cache refresh.
-private enum OnboardingPromptSetup {
+enum OnboardingPromptSetup {
     static func load() -> [UserPrompt] {
         if let pending = KeyboardSettingsStore.readPendingOnboardingPromptEntries(), !pending.isEmpty {
             return onboardingOrderedPrompts(pending)
@@ -671,11 +643,19 @@ private enum OnboardingPromptSetup {
     }
 }
 
-/// Prompt row rendered like the real Prompts screen, with a drag affordance.
+/// Prompt row rendered like the real Prompts screen, with an explicit edit
+/// affordance and a drag handle. The main row carries a repeating shimmer +
+/// pencil pulse (until the user opens the editor once) so "tap to customize"
+/// is shown, not just told.
 private struct OnboardingPromptRow: View {
     let entry: UserPrompt
     let isMain: Bool
+    var showsEditHint: Bool = false
     let onTap: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shimmerPhase: CGFloat = 0
+    @State private var hintPulse = false
 
     var body: some View {
         Button(action: onTap) {
@@ -703,16 +683,61 @@ private struct OnboardingPromptRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AppColor.softText)
+                ZStack {
+                    Circle()
+                        .fill(hintPulse ? AppColor.purple.opacity(0.22) : AppColor.lavenderMist.opacity(0.9))
+                        .frame(width: 32, height: 32)
+                    Circle()
+                        .stroke(AppColor.purple.opacity(hintPulse ? 0.58 : 0.18), lineWidth: hintPulse ? 2 : 1)
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppColor.purple)
+                }
+                .scaleEffect(hintPulse ? 1.28 : 1)
             }
             .padding(.horizontal, BikeyMetrics.Spacing.m + 4)
             .padding(.vertical, BikeyMetrics.Spacing.m - 2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(OnboardingPromptPressStyle())
+        .overlay {
+            if showsEditHint {
+                GeometryReader { geo in
+                    LinearGradient(
+                        colors: [.clear, AppColor.purple.opacity(0.20), .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geo.size.width * 0.55)
+                    .offset(x: -0.55 * geo.size.width + shimmerPhase * 1.55 * geo.size.width)
+                }
+                .allowsHitTesting(false)
+                .clipped()
+            }
+        }
+        .task(id: showsEditHint) {
+            guard showsEditHint, !reduceMotion else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 0.78)) { shimmerPhase = 1 }
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.6)) { hintPulse = true }
+                try? await Task.sleep(nanoseconds: 650_000_000)
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) { hintPulse = false }
+                try? await Task.sleep(nanoseconds: 650_000_000)
+                shimmerPhase = 0
+            }
+        }
+    }
+}
+
+private struct OnboardingPromptPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -769,7 +794,7 @@ private struct OnboardingPromptEditorSheet: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(verbatim: "「\(entry.title)」ボタン")
+                    Text("「\(entry.title)」ボタン")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(OnboardingPalette.ink)
                         .padding(.top, 8)
@@ -831,9 +856,9 @@ private struct OnboardingPromptEditorSheet: View {
     }
 
     @ViewBuilder
-    private func field<Content: View>(label: String, @ViewBuilder _ content: () -> Content) -> some View {
+    private func field<Content: View>(label: LocalizedStringKey, @ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(verbatim: label)
+            Text(label)
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(OnboardingPalette.subInk)
             content()
@@ -967,6 +992,7 @@ private struct MockPromptRow: View {
 struct KeyboardConsentPage: View {
     let progress: Double
     let onBack: () -> Void
+    var onSkip: (() -> Void)? = nil
     let onAgree: (Bool) -> Void
     let onDecline: () -> Void
 
@@ -979,7 +1005,7 @@ struct KeyboardConsentPage: View {
             progress: progress,
             canGoBack: true,
             onBack: onBack,
-            onSkip: nil,
+            onSkip: onSkip,
             ctaTitle: "同意してはじめる",
             isCtaEnabled: agreedToPolicy,
             onCta: { onAgree(commercialOptIn) },
@@ -989,23 +1015,11 @@ struct KeyboardConsentPage: View {
             VStack(spacing: 0) {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 24) {
-                        VStack(spacing: 14) {
-                            Text("AIに送る前に\n確認してください")
-                                .font(.system(size: 31, weight: .medium))
-                                .foregroundStyle(OnboardingPalette.ink)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(2)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Text("敬語ボタンを押した時だけ、その文章がAIサービスに送信されます。通常の入力が送信されることはありません。")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundStyle(OnboardingPalette.subInk)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(4)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 4)
-                        }
-                        .padding(.top, 28)
+                        OnboardingTitleBlock(
+                            title: "AIに送る前に\n確認してください",
+                            subtitle: "敬語ボタンを押した時だけ、その文章がAIサービスに送信されます。通常の入力が送信されることはありません。"
+                        )
+                        .padding(.top, 24)
 
                         ConsentDataCard()
                     }
@@ -1139,7 +1153,7 @@ private struct ConsentAgreementCheckbox: View {
             .accessibilityLabel("プライバシーポリシーの内容に同意する")
             .accessibilityAddTraits(isOn ? [.isSelected] : [])
 
-            Text(.init("[プライバシーポリシー](\(LegalLinks.privacy.absoluteString))の内容に同意します"))
+            Text(.init(localizedAppString("[プライバシーポリシー](\(LegalLinks.privacy.absoluteString))の内容に同意します")))
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(OnboardingPalette.ink)
                 .tint(AppColor.purple)
@@ -1174,13 +1188,13 @@ private struct ConsentDataRow: View {
     }
 }
 
-private enum NativeKeyboardSurfaceMode {
+enum NativeKeyboardSurfaceMode {
     case toolbar
     case result
     case reply
 }
 
-private struct NativeKeyboardSurfaceMock: View {
+struct NativeKeyboardSurfaceMock: View {
     let mode: NativeKeyboardSurfaceMode
     var style: KeyboardPreferences.KeyboardStyle = .japaneseRomaji
 

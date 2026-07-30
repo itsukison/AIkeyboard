@@ -43,10 +43,25 @@ type RewriteResult = {
   language: "ja" | "en" | "ko" | "zh" | "mixed";
 };
 
-type ProviderName = "azure" | "cerebras" | "groq";
+type ProviderRewriteResult = {
+  candidates: unknown;
+  language: unknown;
+};
+
+type ProviderName = "openai" | "azure" | "cerebras" | "groq";
+
+type ProviderUsage = {
+  inputTokens: number | null;
+  cachedInputTokens: number | null;
+  outputTokens: number | null;
+  reasoningTokens: number | null;
+};
 
 type ProviderResult = {
   provider: ProviderName;
+  model: string;
+  serviceTier: string | null;
+  usage: ProviderUsage;
   result: RewriteResult;
 };
 
@@ -182,12 +197,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const rewrite = await rewriteWithProviders(providers, request);
+    const rewrite = await rewriteWithProviders(providers, request, userId);
     const result = rewrite.result;
     const latencyMs = Date.now() - startedAt;
     console.log(JSON.stringify({
       event: "keyboard_rewrite",
       provider: rewrite.provider,
+      model: rewrite.model,
+      serviceTier: rewrite.serviceTier,
       userId,
       commandKey: request.commandKey,
       refinement: request.refinement,
@@ -199,6 +216,10 @@ Deno.serve(async (req) => {
         0,
       ),
       latencyMs,
+      inputTokens: rewrite.usage.inputTokens,
+      cachedInputTokens: rewrite.usage.cachedInputTokens,
+      outputTokens: rewrite.usage.outputTokens,
+      reasoningTokens: rewrite.usage.reasoningTokens,
       status: "ok",
     }));
     const eventId = crypto.randomUUID();
@@ -211,6 +232,9 @@ Deno.serve(async (req) => {
         request,
         result,
         provider: rewrite.provider,
+        model: rewrite.model,
+        serviceTier: rewrite.serviceTier,
+        usage: rewrite.usage,
         latencyMs,
       }),
       captureRewriteAnalytics(eventId, {
@@ -218,6 +242,9 @@ Deno.serve(async (req) => {
         request,
         result,
         provider: rewrite.provider,
+        model: rewrite.model,
+        serviceTier: rewrite.serviceTier,
+        usage: rewrite.usage,
         latencyMs,
       }),
     ]));
@@ -611,6 +638,9 @@ async function logRewriteEvent(
     request: RewriteRequest;
     result: RewriteResult;
     provider: ProviderName;
+    model: string;
+    serviceTier: string | null;
+    usage: ProviderUsage;
     latencyMs: number;
   },
 ): Promise<void> {
@@ -639,6 +669,8 @@ async function logRewriteEvent(
     app_version: input.request.appVersion ?? null,
     candidate_count: input.request.candidateCount ?? DEFAULT_CANDIDATES,
     provider: input.provider,
+    model: input.model,
+    service_tier: input.serviceTier,
     is_reply: typeof input.request.replyTo === "string" &&
       input.request.replyTo.trim().length > 0,
     // Selection mode: lengths only. The context text itself is prompt-only and
@@ -656,6 +688,10 @@ async function logRewriteEvent(
       (sum, c) => sum + [...c.replacement].length,
       0,
     ),
+    input_tokens: input.usage.inputTokens,
+    cached_input_tokens: input.usage.cachedInputTokens,
+    output_tokens: input.usage.outputTokens,
+    reasoning_tokens: input.usage.reasoningTokens,
     latency_ms: input.latencyMs,
   };
 
@@ -795,6 +831,9 @@ async function captureRewriteAnalytics(
     request: RewriteRequest;
     result: RewriteResult;
     provider: ProviderName;
+    model: string;
+    serviceTier: string | null;
+    usage: ProviderUsage;
     latencyMs: number;
   },
 ): Promise<void> {
@@ -804,6 +843,8 @@ async function captureRewriteAnalytics(
     title: input.request.title ?? null,
     refinement: input.request.refinement ?? null,
     provider: input.provider,
+    model: input.model,
+    service_tier: input.serviceTier,
     language: input.result.language,
     locale: input.request.locale ?? null,
     app_version: input.request.appVersion ?? null,
@@ -816,6 +857,10 @@ async function captureRewriteAnalytics(
       (sum, c) => sum + [...c.replacement].length,
       0,
     ),
+    input_tokens: input.usage.inputTokens,
+    cached_input_tokens: input.usage.cachedInputTokens,
+    output_tokens: input.usage.outputTokens,
+    reasoning_tokens: input.usage.reasoningTokens,
     latency_ms: input.latencyMs,
   };
   await Promise.all([
@@ -922,8 +967,13 @@ async function captureGoogleAnalyticsEvent(
             ...googleAnalyticsParameters(properties),
             // Without engagement_time_msec, GA4 records the event but does
             // not mark the user active, so retention/DAU miss keyboard-only
-            // users.
+            // users. session_id is the other half: GA4 only builds an
+            // engaged session when both are present, and without a session
+            // the user stays absent from the retention report. Bucketing by
+            // 30 minutes matches GA4's own session timeout, so a burst of
+            // rewrites lands in one session instead of one session each.
             engagement_time_msec: 100,
+            session_id: googleAnalyticsSessionId(),
           },
         }],
       }),
@@ -943,6 +993,11 @@ async function captureGoogleAnalyticsEvent(
       message: error instanceof Error ? error.message : "unknown error",
     }));
   }
+}
+
+function googleAnalyticsSessionId(): string {
+  const thirtyMinutes = 30 * 60 * 1000;
+  return String(Math.floor(Date.now() / thirtyMinutes) * thirtyMinutes);
 }
 
 function googleAnalyticsParameters(
@@ -968,10 +1023,12 @@ function optionalAnalyticsAppInstanceId(value: unknown): string | undefined {
   return identifier.length > 0 && identifier.length <= 100 ? identifier : undefined;
 }
 
-const ALL_PROVIDERS: ProviderName[] = ["azure", "cerebras", "groq"];
+const ALL_PROVIDERS: ProviderName[] = ["openai", "cerebras", "azure", "groq"];
 
 function providerHasKey(provider: ProviderName): boolean {
   switch (provider) {
+    case "openai":
+      return !!Deno.env.get("OPENAI_API_KEY");
     case "azure":
       return !!Deno.env.get("AZURE_OPENAI_API_KEY") && !!Deno.env.get("AZURE_OPENAI_ENDPOINT");
     case "cerebras":
@@ -983,11 +1040,13 @@ function providerHasKey(provider: ProviderName): boolean {
 
 function configuredProviders(): ProviderName[] {
   const requested = Deno.env.get("REWRITE_PROVIDER");
-  const primary: ProviderName = requested === "azure"
+  const primary: ProviderName = requested === "openai"
+    ? "openai"
+    : requested === "azure"
     ? "azure"
     : requested === "groq"
     ? "groq"
-    : "cerebras";
+    : "openai";
   const fallbackEnabled = (Deno.env.get("REWRITE_PROVIDER_FALLBACK") ?? "true") !== "false";
   const ordered: ProviderName[] = [primary, ...ALL_PROVIDERS.filter((p) => p !== primary)];
   return ordered.filter((provider, index) => {
@@ -999,13 +1058,31 @@ function configuredProviders(): ProviderName[] {
 async function rewriteWithProviders(
   providers: ProviderName[],
   request: RewriteRequest,
+  userId: string,
 ): Promise<ProviderResult> {
   let lastError: unknown;
+  const deadlineAt = Date.now() + envInt("REWRITE_TOTAL_TIMEOUT_MS", 18000);
+  const safetyIdentifier = await hashUserId(userId);
   for (const provider of providers) {
     try {
+      const remainingMs = deadlineAt - Date.now();
+      if (remainingMs <= 0) {
+        throw new ProviderError(
+          provider,
+          "provider_error",
+          "AIの処理に失敗しました。少し待ってからもう一度お試しください。",
+          "rewrite provider deadline exhausted",
+        );
+      }
+      const output = await rewriteWithProvider(
+        provider,
+        request,
+        remainingMs,
+        safetyIdentifier,
+      );
       return {
         provider,
-        result: await rewriteWithProvider(provider, request),
+        ...output,
       };
     } catch (error) {
       lastError = error;
@@ -1032,6 +1109,7 @@ type ProviderConfig = {
   timeoutMs: number;
   baseTokens: number;
   reasoningEffort: string | undefined;
+  serviceTier?: string;
 };
 
 // Azure OpenAI differs from the OpenAI-shaped Cerebras/Groq endpoints in two
@@ -1039,6 +1117,20 @@ type ProviderConfig = {
 // auth is the `api-key` header, not `Authorization: Bearer`. The api-version is
 // a secret so it can be bumped without a redeploy if a model needs a newer one.
 function resolveProviderConfig(provider: ProviderName): ProviderConfig {
+  if (provider === "openai") {
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    return {
+      apiKey,
+      model: Deno.env.get("OPENAI_MODEL") ?? "gpt-5.6-terra",
+      endpoint: Deno.env.get("OPENAI_CHAT_COMPLETIONS_URL") ??
+        "https://api.openai.com/v1/chat/completions",
+      authHeaders: { "Authorization": `Bearer ${apiKey ?? ""}` },
+      timeoutMs: envInt("OPENAI_TIMEOUT_MS", 11000),
+      baseTokens: envInt("OPENAI_MAX_OUTPUT_TOKENS", 600),
+      reasoningEffort: Deno.env.get("OPENAI_REASONING_EFFORT") ?? "low",
+      serviceTier: Deno.env.get("OPENAI_SERVICE_TIER") || undefined,
+    };
+  }
   if (provider === "azure") {
     const base = (Deno.env.get("AZURE_OPENAI_ENDPOINT") ?? "").replace(/\/+$/, "");
     const deployment = Deno.env.get("AZURE_OPENAI_DEPLOYMENT") ?? "gpt-4.1";
@@ -1081,7 +1173,9 @@ function resolveProviderConfig(provider: ProviderName): ProviderConfig {
 async function rewriteWithProvider(
   provider: ProviderName,
   request: RewriteRequest,
-): Promise<RewriteResult> {
+  remainingMs: number,
+  safetyIdentifier: string | null,
+): Promise<Omit<ProviderResult, "provider">> {
   const config = resolveProviderConfig(provider);
   if (!config.apiKey) {
     throw new ProviderError(
@@ -1094,7 +1188,10 @@ async function rewriteWithProvider(
 
   const candidateCount = request.candidateCount ?? DEFAULT_CANDIDATES;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Math.min(config.timeoutMs, remainingMs),
+  );
 
   const maxCompletionTokens = config.baseTokens * candidateCount;
   const reasoningEffort = config.reasoningEffort;
@@ -1119,13 +1216,22 @@ async function rewriteWithProvider(
       json_schema: {
         name: "keyboard_rewrite_response",
         strict: true,
-        schema: rewriteSchema(candidateCount),
+        schema: rewriteSchema(),
       },
     },
   };
 
   if (reasoningEffort) {
     body.reasoning_effort = reasoningEffort;
+  }
+  if (provider === "openai") {
+    body.store = false;
+    if (config.serviceTier) {
+      body.service_tier = config.serviceTier;
+    }
+    if (safetyIdentifier) {
+      body.safety_identifier = safetyIdentifier;
+    }
   }
 
   let response: Response;
@@ -1157,18 +1263,48 @@ async function rewriteWithProvider(
 
   const payload = await response.json();
   const finishReason = payload?.choices?.[0]?.finish_reason;
-  if (finishReason === "content_filter") {
+  const refusal = payload?.choices?.[0]?.message?.refusal;
+  if (
+    finishReason === "content_filter" ||
+    (typeof refusal === "string" && refusal.trim().length > 0)
+  ) {
     throw new ProviderError(
       provider,
       "content_blocked",
       "この内容はAIで書き換えできません。内容を変えてもう一度お試しください。",
-      `${provider} content_filter`,
+      `${provider} content_filter or refusal`,
       422,
     );
   }
   const text = extractMessageContent(payload, provider);
-  const result = JSON.parse(text) as RewriteResult;
-  return normalizeResult(result, request);
+  const result = JSON.parse(text) as ProviderRewriteResult;
+  return {
+    model: typeof payload?.model === "string" ? payload.model : config.model,
+    serviceTier: typeof payload?.service_tier === "string"
+      ? payload.service_tier
+      : null,
+    usage: extractProviderUsage(payload),
+    result: normalizeResult(result, request),
+  };
+}
+
+function extractProviderUsage(payload: any): ProviderUsage {
+  return {
+    inputTokens: optionalTokenCount(payload?.usage?.prompt_tokens),
+    cachedInputTokens: optionalTokenCount(
+      payload?.usage?.prompt_tokens_details?.cached_tokens,
+    ),
+    outputTokens: optionalTokenCount(payload?.usage?.completion_tokens),
+    reasoningTokens: optionalTokenCount(
+      payload?.usage?.completion_tokens_details?.reasoning_tokens,
+    ),
+  };
+}
+
+function optionalTokenCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : null;
 }
 
 function providerErrorFromResponse(provider: ProviderName, status: number, body: string): ProviderError {
@@ -1232,21 +1368,25 @@ function extractMessageContent(payload: any, provider: ProviderName): string {
   );
 }
 
-function normalizeResult(result: RewriteResult, request: RewriteRequest): RewriteResult {
+function normalizeResult(
+  result: ProviderRewriteResult,
+  request: RewriteRequest,
+): RewriteResult {
   if (!result || !Array.isArray(result.candidates) || result.candidates.length === 0) {
     throw new Error("Invalid provider JSON.");
   }
 
   const allowedLanguages: Array<RewriteResult["language"]> = ["ja", "en", "ko", "zh", "mixed"];
-  const language = allowedLanguages.includes(result.language)
-    ? result.language
+  const language = typeof result.language === "string" &&
+      allowedLanguages.includes(result.language as RewriteResult["language"])
+    ? result.language as RewriteResult["language"]
     : "ja";
 
   const candidates: RewriteCandidate[] = result.candidates
-    .filter((c): c is RewriteCandidate => !!c && typeof c.replacement === "string")
-    .map((c) => ({
-      replacement: c.replacement,
-      changed: typeof c.changed === "boolean" ? c.changed : c.replacement !== request.text,
+    .filter((candidate): candidate is string => typeof candidate === "string")
+    .map((replacement) => ({
+      replacement,
+      changed: replacement !== request.text,
     }));
 
   if (candidates.length === 0) {
@@ -1367,7 +1507,7 @@ function refinementInstruction(intent: RefinementIntent): string {
   }
 }
 
-function rewriteSchema(candidateCount: number): Record<string, unknown> {
+function rewriteSchema(): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
@@ -1375,15 +1515,7 @@ function rewriteSchema(candidateCount: number): Record<string, unknown> {
     properties: {
       candidates: {
         type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["replacement", "changed"],
-          properties: {
-            replacement: { type: "string" },
-            changed: { type: "boolean" },
-          },
-        },
+        items: { type: "string" },
       },
       language: { type: "string", enum: ["ja", "en", "ko", "zh", "mixed"] },
     },

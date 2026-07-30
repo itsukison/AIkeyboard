@@ -17,6 +17,13 @@ public final class InputManager: ObservableObject {
             if candidates.isEmpty && isCandidateListExpanded {
                 NSLog("🔼 auto-collapse: candidates emptied while expanded")
                 isCandidateListExpanded = false
+            } else if isCandidateListExpanded {
+                // Typing while the grid is open published a new conversion;
+                // the retained full list is stale. Drop it (the grid falls
+                // back to the fresh `candidates`) and reload — native keeps
+                // the expanded view open and updates it.
+                expandedCandidates = []
+                loadExpandedCandidates()
             }
         }
     }
@@ -24,7 +31,20 @@ public final class InputManager: ObservableObject {
     /// Whether the full "show all candidates" grid (native ∧ expander) is open.
     /// Owned here so both the candidate bar (expand button) and the grid overlay
     /// observe one source of truth.
-    @Published public private(set) var isCandidateListExpanded: Bool = false
+    @Published public private(set) var isCandidateListExpanded: Bool = false {
+        didSet {
+            if !isCandidateListExpanded {
+                expandedCandidates = []
+            }
+        }
+    }
+
+    /// Full candidate list for the expanded grid: the complete result of the
+    /// conversion behind `candidates` (which the bar truncates to 20). Loaded
+    /// only when the grid opens — publishing hundreds of rows per keystroke
+    /// would rebuild the bar's ForEach for nothing — and cleared on collapse.
+    /// Empty while loading; the grid falls back to `candidates` until then.
+    @Published public private(set) var expandedCandidates: [Candidate] = []
 
     /// Next-word (予測変換) suggestions shown after a commit, while nothing is
     /// being composed. Cleared the moment the user starts the next word.
@@ -137,6 +157,23 @@ public final class InputManager: ObservableObject {
         NSLog("%@", "🔽 expandCandidateList: candidates=\(candidates.count) expanded=\(isCandidateListExpanded)")
         guard !candidates.isEmpty, !isCandidateListExpanded else { return }
         isCandidateListExpanded = true
+        loadExpandedCandidates()
+    }
+
+    /// Fetch the full candidate list (the bar's `candidates` is a 20-item
+    /// slice of it) from the adapter's retained last conversion. Async but
+    /// near-free — no conversion runs, the list is just re-mapped.
+    private func loadExpandedCandidates() {
+        guard let adapter else { return }
+        Task { [weak self] in
+            guard let full = await adapter.allCandidatesFromLastConversion() else { return }
+            guard let self, self.isCandidateListExpanded else { return }
+            // A newer conversion may have superseded the one we read; showing
+            // it would desync the grid from the bar. The reload triggered by
+            // that conversion's own publish supplies the fresh list.
+            guard full.kana == self.convertiblePrefix(of: self.displayKana) else { return }
+            self.expandedCandidates = full.candidates
+        }
     }
 
     /// Close the full-candidate grid (native ∨ / selecting a candidate).

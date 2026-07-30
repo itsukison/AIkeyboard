@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "episode": {
+    "id": "014",
+    "slug": "sick-day-pressure",
+    "series": "丁寧にキレる。",
+    "bankReference": "spicy-content-bank.md §4",
+    "hypothesis": "A familiar sick-day boundary with an early product reveal can earn qualified workplace engagement."
+  },
+  "approval": {
+    "status": "approved",
+    "rewriteVerified": true,
+    "visualQA": true
+  },
+  "scene": {
+    "name": "上司",
+    "day": "今日",
+    "messages": [
+      {
+        "side": "boss",
+        "text": "37.8度？それくらいなら来れるよね？",
+        "time": "8:04"
+      },
+      {
+        "side": "me",
+        "text": "発熱があり、感染拡大を防ぐため、本日は休ませていただきます。受診後、今後の勤務について改めてご報告いたします。",
+        "time": "8:11",
+        "read": "既読"
+      },
+      {
+        "side": "boss",
+        "text": "人手足りないんだけど。午前だけでも無理？",
+        "time": "8:12"
+      },
+      {
+        "side": "me",
+        "text": "申し訳ありませんが、本日は出社いたしかねます。受診後、今後の勤務について改めてご報告いたします。",
+        "time": "8:18",
+        "read": "既読"
+      }
+    ]
+  },
+  "slides": [
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "0",
+        "hook": "37.8度でも\n出社しろと言う上司",
+        "hooktag": "丁寧にキレる。"
+      }
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "1"
+      },
+      "caption": "37.8度で「来れるよね？」"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "1",
+        "innervoice": "じゃあお前の隣で\n一日中咳してやるよ"
+      }
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "toolbar",
+        "step": "1",
+        "draft": "体調が悪いので今日は休みます。出社は無理です。"
+      },
+      "caption": "「休んでもいいですか？」ではなく「本日は休みます」"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "result",
+        "step": "1",
+        "draft": "体調が悪いので今日は休みます。出社は無理です。",
+        "result": "発熱があり、感染拡大を防ぐため、本日は休ませていただきます。受診後、今後の勤務について改めてご報告いたします。"
+      },
+      "caption": "体調と対応を、丁寧にはっきり伝える"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "3"
+      },
+      "caption": "それでも「午前だけでも無理？」"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "toolbar",
+        "step": "3",
+        "draft": "人手不足でも今日は出社しません。受診後に連絡します。"
+      },
+      "caption": "人手不足でも、発熱は消えない"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "result",
+        "step": "3",
+        "draft": "人手不足でも今日は出社しません。受診後に連絡します。",
+        "result": "申し訳ありませんが、本日は出社いたしかねます。受診後、今後の勤務について改めてご報告いたします。"
+      },
+      "caption": "言い方は丁寧。欠勤は撤回しない"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "4"
+      },
+      "caption": "37.8度で「来れる？」普通？アウト？"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "4",
+        "cta": "1",
+        "ctatag": "丁寧にキレる。"
+      }
+    }
+  ],
+  "publish": {
+    "title": "37.8度でも来いと言う上司に、丁寧にキレる。",
+    "hashtags": [
+      "#上司と部下",
+      "#敬語",
+      "#仕事辞めたい",
+      "#社会人",
+      "#新卒"
+    ],
+    "experiment": {
+      "allocation": "exploit",
+      "hookFamily": "workplace-boundary",
+      "productRevealSlide": 4
+    }
+  }
+}

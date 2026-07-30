@@ -9,7 +9,7 @@ enum WelcomeAuthRoute: Hashable {
 /// welcome → keyboard onboarding → account choice (create / sign in).
 /// Auth is deferred to the end so the keyboard's purpose is shown first.
 struct FirstRunFlow: View {
-    @State private var phase: Phase = .welcome
+    @State private var phase: Phase
 
     private enum Phase {
         case welcome
@@ -17,14 +17,34 @@ struct FirstRunFlow: View {
         case auth
     }
 
+    init() {
+        let initialPhase: Phase
+        if InteractiveOnboardingState.isAuthRequired() {
+            initialPhase = .auth
+        } else if InteractiveOnboardingState.shouldResume() {
+            initialPhase = .onboarding
+        } else {
+            initialPhase = .welcome
+        }
+        _phase = State(initialValue: initialPhase)
+    }
+
     var body: some View {
         Group {
             switch phase {
             case .welcome:
-                WelcomePage(onStart: { withAnimation(.easeInOut(duration: 0.2)) { phase = .onboarding } })
+                WelcomePage(onStart: {
+                    InteractiveOnboardingState.markStarted()
+                    AppAnalytics.capture("onboarding_started", properties: [
+                        "onboarding_version": InteractiveOnboardingState.version,
+                    ])
+                    withAnimation(.easeInOut(duration: 0.2)) { phase = .onboarding }
+                })
                     .environment(\.colorScheme, .light)
             case .onboarding:
-                OnboardingFlow(onFinish: { withAnimation(.easeInOut(duration: 0.2)) { phase = .auth } })
+                InteractiveOnboardingFlow(
+                    onFinish: { withAnimation(.easeInOut(duration: 0.2)) { phase = .auth } }
+                )
             case .auth:
                 AuthChoiceScreen()
             }
@@ -125,6 +145,8 @@ private struct AuthChoicePage: View {
     let onSignIn: () -> Void
     var onClose: (() -> Void)? = nil
 
+    @State private var appleError: String?
+
     var body: some View {
         OnboardingScaffold(
             progress: 1.0,
@@ -137,33 +159,56 @@ private struct AuthChoicePage: View {
             secondaryTitle: "すでにアカウントをお持ちの方はサインイン",
             onSecondary: onSignIn
         ) {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 24) {
-                    VStack(spacing: 14) {
-                        Text("プロンプトを保存して\nどの端末でも")
-                            .font(.system(size: 30, weight: .medium))
-                            .foregroundStyle(OnboardingPalette.ink)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 0) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        OnboardingTitleBlock(
+                            title: "あと一歩で\nAIが使えます",
+                            subtitle: "アカウントを作成すると、AI書き直しと、カスタムボタンの保存・同期が使えるようになります。"
+                        )
+                        .padding(.top, 32)
 
-                        Text("アカウントを作成すると、AI書き直しやカスタムプロンプトの保存・同期が使えます。")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(OnboardingPalette.subInk)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 4)
+                        AuthBenefitCard()
+                            .padding(.top, 8)
                     }
-                    .padding(.top, 40)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                }
 
-                    AuthBenefitCard()
-                        .padding(.top, 8)
+                VStack(spacing: 10) {
+                    AppleSignInButton(onError: { appleError = $0 })
+                    if let appleError {
+                        Text(appleError)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(OnboardingPalette.danger)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .transition(.opacity)
+                    }
+                    OrDivider()
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 16)
+                .padding(.bottom, 12)
             }
         }
+    }
+}
+
+private struct OrDivider: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            line
+            Text("または")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(OnboardingPalette.subInk)
+            line
+        }
+    }
+
+    private var line: some View {
+        Rectangle()
+            .fill(OnboardingPalette.fieldStroke)
+            .frame(height: 1)
     }
 }
 

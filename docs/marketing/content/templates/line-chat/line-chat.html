@@ -535,7 +535,7 @@
     const scenes = SCENES;
 
     const params = new URLSearchParams(location.search);
-    const scene = scenes[params.get("scene")] || scenes.progress;
+    const scene = sceneFromParams(params, scenes.progress);
     const animate = params.get("animate") === "1";
     const requestedStep = Number(params.get("step"));
     const step = Number.isFinite(requestedStep) && requestedStep >= 0

@@ -181,7 +181,10 @@ final class CandidateTapSurfaceView: UIView {
         self.label = label
         self.onTap = onTap
         super.init(frame: .zero)
-        backgroundColor = .clear
+        // Not .clear: keyboard extensions have been observed dropping touches
+        // on fully-transparent UIKit views (Apple forums 702798). A just-barely
+        // opaque fill is invisible but keeps the view in the hit-test path.
+        backgroundColor = UIColor.white.withAlphaComponent(0.01)
         isMultipleTouchEnabled = false
     }
 

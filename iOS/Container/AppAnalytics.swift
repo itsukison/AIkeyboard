@@ -3,8 +3,12 @@ import KeyboardPreferences
 import PostHog
 
 enum AppAnalytics {
-    static func capture(_ name: String, properties: [String: Any] = [:]) {
-        PostHogSDK.shared.capture(name, properties: properties)
+    /// `timestamp` backdates the event to when it actually happened, for
+    /// counters the keyboard accrued offline and the container only relays
+    /// later. PostHog accepts it; Firebase has no equivalent on `logEvent`,
+    /// so the Google mirror stays stamped at relay time.
+    static func capture(_ name: String, properties: [String: Any] = [:], timestamp: Date? = nil) {
+        PostHogSDK.shared.capture(name, properties: properties, timestamp: timestamp)
         Analytics.logEvent(googleEventName(for: name), parameters: googleParameters(properties))
     }
 

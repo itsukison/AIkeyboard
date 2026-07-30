@@ -34,7 +34,23 @@ Install → acceptance funnel, Jun 26–Jul 18 cohort (acceptance tracking exist
 
 **The biggest measurable drop with product meaning: 58% of users who run an AI rewrite never accept a single candidate** (772/1,855 = 41.6% accept). This is hard evidence for the quality/UX hypothesis, independent of the small-n emails. Second gap: 30% of installers finish onboarding but never run a rewrite — currently can't split "never enabled the keyboard" from "enabled but no trigger"; the `keyboard_enabled` + `full_access_granted` events (in code, ship with next release) will split it.
 
-Still unmeasured: enable-rate step (next release), acceptance → retention correlation (run at next weekly review).
+**Confirmed and promoted 2026-07-30.** Re-run at 90d scale (n = 3,710 installers, ≥14d mature):
+2,322 tried a rewrite → 908 kept one (**39.1%**), matching the 41.6% above. This is now the
+**#1 Phase 0 item** and the binding gate, because the acceptance → retention correlation below
+turned out to be strong: retention measured on users who *kept* a rewrite and returned for a 2nd
+rewrite day is ~30% W1 / ~16% W2, vs 5–18% install-anchored. In other words the users who get past
+this gap are fine; the gap itself is the churn. Full definition and funnel in
+`metrics-baseline.md` → *Retention definition v2*.
+
+Also settled: **the onboarding practice rewrite never contaminated any of these numbers** —
+practice mode answers locally with canned candidates and emits no `ai_rewrite`. But 85% of first
+*real* rewrites happen within 5 minutes of `onboarding_completed`, so "ran ≥1 ai_rewrite" is a
+setup-completion signal, not evidence of value.
+
+Still unmeasured: enable-rate step (next release); *why* a candidate gets discarded — split
+`ai_rewrite_action` into dismissed / regenerated / replace_failed, and check whether
+`replace_failed` (the replacement engine bailing when proxy context moved) is a real bug inflating
+the gap.
 
 ## 🔑 Persona discovery
 

@@ -80,6 +80,13 @@ final class AIKeyboardController: ObservableObject {
         AIAuthStore.readAccessToken() != nil
     }
 
+    /// Onboarding practice mode: armed by the container while the user is on
+    /// the guided practice pages. The toolbar shows the AI buttons before
+    /// sign-in and `fire` answers with local practice candidates — no network.
+    var isPracticeModeActive: Bool {
+        KeyboardSettingsStore.readOnboardingPracticeActive()
+    }
+
     func close() {
         if case .result = state {
             reportAction("dismissed")
@@ -144,6 +151,13 @@ final class AIKeyboardController: ObservableObject {
     /// here triggers the iOS paste permission prompt. (A `UIPasteControl`-based
     /// path that avoids the prompt is deferred — see docs/ai-rewrite.md.)
     func runReplyFromClipboard() {
+        // Practice mode answers with canned replies that don't use the copied
+        // text, so skip the pasteboard read — it would hit the iOS paste
+        // permission prompt, and a denial would dead-end the exercise.
+        if isPracticeModeActive {
+            runReply(withCopiedText: "練習")
+            return
+        }
         runReply(withCopiedText: UIPasteboard.general.string ?? "")
     }
 
@@ -255,6 +269,7 @@ final class AIKeyboardController: ObservableObject {
                     guard let self else { return }
                     self.isMovingCursorInternally = false
                     KeyboardUsageStatsStore.recordAcceptedRewrite()
+                    Self.reportPracticeAcceptedIfNeeded()
                     self.submitSelectionFeedback(for: selectedIndex)
                     self.replaceTask = nil
                     self.state = .hidden
@@ -276,12 +291,22 @@ final class AIKeyboardController: ObservableObject {
                 proxy: controller.textDocumentProxy.ai
             )
             KeyboardUsageStatsStore.recordAcceptedRewrite()
+            Self.reportPracticeAcceptedIfNeeded()
             submitSelectionFeedback(for: selectedIndex)
             state = .hidden
         } catch {
             reportAction("replace_failed")
             state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")
         }
+    }
+
+    /// Practice-mode completion signal for the onboarding rewrite / reply
+    /// exercises: an accepted replacement is the exact moment they're done.
+    private static func reportPracticeAcceptedIfNeeded() {
+        guard KeyboardSettingsStore.readOnboardingPracticeActive() else { return }
+        KeyboardSettingsStore.writeOnboardingPracticeSignal(
+            KeyboardSettingsStore.onboardingPracticeAcceptedAtKey
+        )
     }
 
     /// Reports the accepted candidate back to its originating rewrite event.
@@ -429,6 +454,9 @@ final class AIKeyboardController: ObservableObject {
     /// again (idempotently) from `fire`.
     private func passGates(prompt: UserPrompt) -> Bool {
         guard let controller else { return false }
+        // Practice mode never touches the network, so the consent / cloud /
+        // full-access / sign-in gates don't apply to it.
+        if isPracticeModeActive { return true }
         guard KeyboardSettingsStore.readAIConsentGranted() else {
             state = .consentRequired(prompt: prompt)
             return false
@@ -465,6 +493,11 @@ final class AIKeyboardController: ObservableObject {
         }
 
         guard passGates(prompt: prompt) else { return }
+
+        if isPracticeModeActive {
+            firePractice(prompt: prompt, capture: capture, inputText: inputText)
+            return
+        }
 
         let configuration = CloudRewriteConfiguration(appVersion: Self.appVersion)
         let isSelection = capture.mode == .selection
@@ -513,6 +546,32 @@ final class AIKeyboardController: ObservableObject {
                     self?.state = .error(prompt: prompt, message: Self.message(for: error))
                     self?.rewriteTask = nil
                 }
+            }
+        }
+    }
+
+    /// Practice-mode generation: shows the real generating → result flow with
+    /// the container-provided candidates after a short beat, entirely offline.
+    /// `generationSegments` stays empty, so selection/action feedback no-ops.
+    private func firePractice(prompt: UserPrompt, capture: WholeInputCapture, inputText: String) {
+        let stored = KeyboardSettingsStore.readOnboardingPracticeCandidates()
+        let replacements = stored.isEmpty
+            ? [
+                "ご確認のほど、よろしくお願いいたします。",
+                "お手数ですが、ご確認いただけますと幸いです。",
+                inputText,
+            ]
+            : stored
+        let candidates = replacements.map { RewriteCandidate(replacement: $0, changed: $0 != inputText) }
+
+        state = .generating(prompt: prompt, capture: capture, refinement: nil, existing: [])
+        rewriteTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self?.state = .result(prompt: prompt, capture: capture, candidates: candidates, selectedIndex: 0)
+                self?.resultShownAt = Date()
+                self?.rewriteTask = nil
             }
         }
     }

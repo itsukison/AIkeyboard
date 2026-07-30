@@ -49,7 +49,7 @@ who run and accept a rewrite.
 
 | Priority | Series | Format and recurring hook | Audience | Effort | Reach | Qualified impact | Retention value | Main risk / rule |
 |---|---|---|---|---:|---:|---:|---:|---|
-| A | **上司チャット救命室** | Fictional chat comedy. A boss sends an ambiguous or stressful message; the junior first misunderstands it, then rewrites the real reply with 敬語ボタン. | New grads, junior workers | 2 | 5 | 5 | 4 | Keep the app action on-screen, not only the final logo. Use a familiar but generic chat UI, label it fiction, and do not copy LINE branding exactly. |
+| A | **上司チャット救命室** | Fictional chat comedy. A boss sends an ambiguous or stressful message; the junior first misunderstands it, then rewrites the real reply with 敬語ボタン. | New grads, junior workers | 2 | 5 | 5 | 4 | Keep the app action on-screen, not only the final logo. Use a familiar but generic chat UI and do not copy LINE branding exactly. |
 | A | **この返信、どうする？** | Show one incoming boss/client message, pause for the viewer's answer, then copy it and use the shipped `返信` button to produce three reply choices. | Anyone who freezes before replying | 2 | 4 | 5 | 5 | This is also feature education. Do not imply the keyboard invisibly reads other apps: show the copy-and-tap flow honestly. |
 | A | **3秒で送れる文に** | Raw 9:16 screen recording: type a blunt intent, tap 敬語, swipe candidates, replace. Hook is the bad draft and the entire payoff is visible in 10–20 seconds. | High-intent App Store searchers and skeptical viewers | 1 | 3 | 5 | 5 | Product proof must be readable without sound. Never hide required taps or present a curated result as instant magic. |
 | A | **仕事の地雷文レスキュー** | One painful situation per post: deadline slip, sick leave, reminder, reschedule, asking again, correcting a mistake, declining overtime, or asking for clarification. | New grads and client-facing workers | 2 | 4 | 5 | 5 | Phrase lists become useful only when tied to a specific situation and a sendable full message. |
@@ -212,8 +212,9 @@ then, annotate posting dates and treat install spikes only as directional.
   Chinese keyboard mode.
 - Normal typing is local; text goes to Cloud AI only after an explicit AI tap.
   This can become a trust post, but do not imply Cloud AI itself is on-device.
-- Label invented chats as fiction and never expose real names, employers, or
-  private messages without permission.
+- Keep invented chats generic and never expose real names, employers, or private
+  messages without permission. For TikTok Photo Mode, do not add a fiction
+  disclosure or prose description: use a funny title plus hashtags only.
 - Say 「この場面なら送れる例」 rather than presenting context-dependent
   business Japanese as the only universally correct answer.
 - Quality-check every published rewrite. Current data says 58% of users who run

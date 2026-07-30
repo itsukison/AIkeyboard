@@ -39,6 +39,49 @@ final class RomajiTests: XCTestCase {
         XCTAssertEqual(Romaji.toKana("cyannto"), "ちゃんと")
     }
 
+    // Lenient romanizations accepted by native iOS / MS-IME / Google 日本語入力.
+    // Without table entries the unmatched letters leak into the kana as raw
+    // ASCII (e.g. "nanngoushya" → なんごうsひゃ) and poison the conversion.
+    func testLenientYoonVariants() {
+        XCTAssertEqual(Romaji.toKana("shya"), "しゃ")
+        XCTAssertEqual(Romaji.toKana("shyu"), "しゅ")
+        XCTAssertEqual(Romaji.toKana("shyo"), "しょ")
+        XCTAssertEqual(Romaji.toKana("chya"), "ちゃ")
+        XCTAssertEqual(Romaji.toKana("chyu"), "ちゅ")
+        XCTAssertEqual(Romaji.toKana("chyo"), "ちょ")
+        XCTAssertEqual(Romaji.toKana("dya"), "ぢゃ")
+    }
+
+    func testLenientShyaWord() {
+        XCTAssertEqual(Romaji.toKana("nanngoushya"), "なんごうしゃ")
+    }
+
+    func testLenientCRow() {
+        XCTAssertEqual(Romaji.toKana("cacicuceco"), "かしくせこ")
+        // Longer matches must still win over the new single-c entries.
+        XCTAssertEqual(Romaji.toKana("cha"), "ちゃ")
+        XCTAssertEqual(Romaji.toKana("che"), "ちぇ")
+    }
+
+    func testLenientWuYe() {
+        XCTAssertEqual(Romaji.toKana("wu"), "う")
+        XCTAssertEqual(Romaji.toKana("ye"), "いぇ")
+    }
+
+    func testTchSokuon() {
+        XCTAssertEqual(Romaji.toKana("matcha"), "まっちゃ")
+        XCTAssertEqual(Romaji.toKana("tchi"), "っち")
+    }
+
+    // New multi-char sequences must be held as pending latin in the live
+    // preview, not flushed as literals mid-syllable.
+    func testLiveKanaHoldsLenientPrefixes() {
+        XCTAssertEqual(Romaji.toLiveKana("shy"), "shy")
+        XCTAssertEqual(Romaji.toLiveKana("shya"), "しゃ")
+        XCTAssertEqual(Romaji.toLiveKana("matc"), "まtc")
+        XCTAssertEqual(Romaji.toLiveKana("matcha"), "まっちゃ")
+    }
+
     func testSmallChars() {
         XCTAssertEqual(Romaji.toKana("xa"), "ぁ")
         XCTAssertEqual(Romaji.toKana("xtu"), "っ")

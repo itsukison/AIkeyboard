@@ -32,6 +32,16 @@ public enum Romaji {
         "pya": "ぴゃ", "pyu": "ぴゅ", "pyo": "ぴょ",
         "fa": "ふぁ", "fi": "ふぃ", "fe": "ふぇ", "fo": "ふぉ",
 
+        // Lenient variants accepted by native iOS / MS-IME / Google 日本語入力.
+        // Without them the unmatched letters leak into the kana as raw ASCII
+        // (e.g. "shya" → sひゃ) and poison the whole conversion.
+        "shya": "しゃ", "shyu": "しゅ", "shye": "しぇ", "shyo": "しょ",
+        "chya": "ちゃ", "chyu": "ちゅ", "chye": "ちぇ", "chyo": "ちょ",
+        "dya": "ぢゃ", "dyu": "ぢゅ", "dyo": "ぢょ",
+        "wu": "う", "ye": "いぇ",
+        "ca": "か", "ci": "し", "cu": "く", "ce": "せ", "co": "こ",
+        "tcha": "っちゃ", "tchi": "っち", "tchu": "っちゅ", "tche": "っちぇ", "tcho": "っちょ",
+
         // Small characters via x- / l- prefix (Mozc / AzooKey convention)
         "xa": "ぁ", "xi": "ぃ", "xu": "ぅ", "xe": "ぇ", "xo": "ぉ",
         "la": "ぁ", "li": "ぃ", "lu": "ぅ", "le": "ぇ", "lo": "ぉ",

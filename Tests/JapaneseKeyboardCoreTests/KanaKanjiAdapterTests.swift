@@ -54,6 +54,90 @@ final class KanaKanjiAdapterTests: XCTestCase {
         )
     }
 
+    // The expanded grid's data source: the full mainResults of the last
+    // conversion, which the bar's maxCandidates slice was cut from. Must be
+    // strictly deeper than the slice, deduplicated, include the raw kana,
+    // and report the kana it was converted from (staleness check).
+    func testAllCandidatesFromLastConversionExceedsBarSlice() async {
+        let barResults = await Self.adapter.convert(kana: "きょう", maxCandidates: 20)
+        let full = await Self.adapter.allCandidatesFromLastConversion()
+        XCTAssertNotNil(full)
+        guard let full else { return }
+        XCTAssertEqual(full.kana, "きょう")
+        XCTAssertGreaterThan(
+            full.candidates.count, barResults.count,
+            "Full list should be deeper than the bar's slice"
+        )
+        let texts = full.candidates.map(\.text)
+        XCTAssertEqual(texts.count, Set(texts).count, "Full list must be deduplicated")
+        XCTAssertTrue(texts.contains("きょう"), "Raw kana must be reachable in the grid")
+    }
+
+    func testAllCandidatesFromLastConversionIsNilBeforeAnyConversion() async {
+        let freshAdapter = KanaKanjiAdapter()
+        let full = await freshAdapter.allCandidatesFromLastConversion()
+        XCTAssertNil(full)
+    }
+
+    // Gap-fill user dictionary (conversion_gapfill.tsv → user.louds): words
+    // the bundled azooKey dictionary can't compose on its own. Also guards the
+    // charID.chid bundle lookup — if that silently fails, these fail with it.
+    func testGapFillWordConverts() async {
+        let results = await Self.adapter.convert(kana: "なんごうしゃ", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("何号車"),
+            "Expected gap-fill entry 何号車 in candidates: \(results.map(\.text))"
+        )
+    }
+
+    func testGapFillWordComposesMidSentence() async {
+        let results = await Self.adapter.convert(kana: "なんごうしゃにのる", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("何号車に乗る"),
+            "Gap-fill entries must compose as lattice words: \(results.map(\.text))"
+        )
+    }
+
+    func testGapFillStationNameConverts() async {
+        let results = await Self.adapter.convert(kana: "きんしちょう", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("錦糸町"),
+            "Expected gap-fill station 錦糸町 in candidates: \(results.map(\.text))"
+        )
+    }
+
+    func testGapFillLexicalWordConverts() async {
+        let results = await Self.adapter.convert(kana: "かんこん", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("冠婚"),
+            "Expected gap-fill entry 冠婚 in candidates: \(results.map(\.text))"
+        )
+    }
+
+    func testGapFillLowRankedCommonWordConverts() async {
+        let results = await Self.adapter.convert(kana: "はつもう", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("発毛"),
+            "Expected promoted common word 発毛 in candidates: \(results.map(\.text))"
+        )
+    }
+
+    func testGapFillPopularStationConverts() async {
+        let results = await Self.adapter.convert(kana: "かみとばぐち", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("上鳥羽口"),
+            "Expected gap-fill station 上鳥羽口 in candidates: \(results.map(\.text))"
+        )
+    }
+
+    func testGapFillCorrectedReadingConverts() async {
+        let results = await Self.adapter.convert(kana: "こんかんちりょう", maxCandidates: 20)
+        XCTAssertTrue(
+            results.map(\.text).contains("根管治療"),
+            "Expected corrected reading for 根管治療 in candidates: \(results.map(\.text))"
+        )
+    }
+
     func testConvertWithLeftContextProducesCandidates() async {
         let results = await Self.adapter.convert(kana: "きょう", maxCandidates: 10, leftContext: "明日は雨だが、")
         XCTAssertTrue(results.map(\.text).contains("今日"), "Left context must not break conversion")

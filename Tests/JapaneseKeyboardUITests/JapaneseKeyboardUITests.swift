@@ -10,6 +10,93 @@ final class JapaneseKeyboardUITests: XCTestCase {
         _ = QwertyKeyboardView.self
     }
 
+    func testFlickTouchStartsPressedWithoutShowingPopup() {
+        var state = FlickInteractionState()
+
+        state.touchDown()
+
+        XCTAssertTrue(state.isPressed)
+        XCTAssertEqual(state.phase, .hidden)
+        XCTAssertFalse(state.showsPopup)
+    }
+
+    func testFastFlickShowsQuickPreviewAndLocksOutGuide() {
+        var state = FlickInteractionState()
+        state.touchDown()
+
+        XCTAssertTrue(state.move(to: .left))
+        XCTAssertEqual(state.phase, .quick(.left))
+        XCTAssertTrue(state.hidesBaseKey)
+
+        state.longPressElapsed()
+
+        XCTAssertEqual(state.phase, .quick(.left))
+    }
+
+    func testQuickFlickCanReturnToCenterWithoutBecomingGuide() {
+        var state = FlickInteractionState()
+        state.touchDown()
+        state.move(to: .top)
+
+        XCTAssertFalse(state.move(to: nil))
+        XCTAssertEqual(state.phase, .quick(nil))
+        XCTAssertFalse(state.hidesBaseKey)
+
+        state.longPressElapsed()
+
+        XCTAssertEqual(state.phase, .quick(nil))
+    }
+
+    func testStationaryHoldShowsGuideAndTracksDirection() {
+        var state = FlickInteractionState()
+        state.touchDown()
+
+        state.longPressElapsed()
+        XCTAssertEqual(state.phase, .guide(nil))
+
+        XCTAssertFalse(state.move(to: .right))
+        XCTAssertEqual(state.phase, .guide(.right))
+    }
+
+    func testFlickResetClearsPressedAndPopupState() {
+        var state = FlickInteractionState()
+        state.touchDown()
+        state.move(to: .bottom)
+
+        state.reset()
+
+        XCTAssertFalse(state.isPressed)
+        XCTAssertEqual(state.phase, .hidden)
+        XCTAssertFalse(state.showsPopup)
+    }
+
+    func testQuickPreviewMetricsMatchNativeRatios() {
+        let capSize = CGSize(width: 72, height: 48)
+
+        let horizontal = FlickQuickPreviewMetrics.size(for: capSize, direction: .left)
+        XCTAssertEqual(horizontal.width, 106.56, accuracy: 0.001)
+        XCTAssertEqual(horizontal.height, 68.16, accuracy: 0.001)
+
+        let vertical = FlickQuickPreviewMetrics.size(for: capSize, direction: .top)
+        XCTAssertEqual(vertical.width, 102.24, accuracy: 0.001)
+        XCTAssertEqual(vertical.height, 71.04, accuracy: 0.001)
+    }
+
+    func testQuickPreviewCentersMirrorAroundKeyCap() {
+        let frame = CGRect(x: 100, y: 200, width: 72, height: 48)
+        let left = FlickQuickPreviewMetrics.center(for: frame, direction: .left)
+        let right = FlickQuickPreviewMetrics.center(for: frame, direction: .right)
+        let top = FlickQuickPreviewMetrics.center(for: frame, direction: .top)
+        let bottom = FlickQuickPreviewMetrics.center(for: frame, direction: .bottom)
+
+        XCTAssertEqual(left.x + right.x, frame.midX * 2, accuracy: 0.001)
+        XCTAssertEqual(left.y, frame.midY, accuracy: 0.001)
+        XCTAssertEqual(right.y, frame.midY, accuracy: 0.001)
+        XCTAssertEqual(top.y + bottom.y, frame.midY * 2, accuracy: 0.001)
+        XCTAssertEqual(top.x, frame.midX, accuracy: 0.001)
+        XCTAssertEqual(bottom.x, frame.midX, accuracy: 0.001)
+    }
+
     /// The tap surface must not interfere with the candidate bar's scroll:
     /// a delegate that gated the scroll view's pan on the tap's failure made
     /// horizontal scrolling unresponsive, and recognizer arbitration in the

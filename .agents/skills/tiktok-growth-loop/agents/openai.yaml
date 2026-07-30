@@ -1,0 +1,4 @@
+interface:
+  display_name: "TikTok Growth Loop"
+  short_description: "Run the autonomous TikTok content feedback loop"
+  default_prompt: "Use $tiktok-growth-loop to analyze TikTok results and safely fill the next Buffer posting slots."

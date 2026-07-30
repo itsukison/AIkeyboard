@@ -63,11 +63,20 @@ public struct ExpandedCandidateView: View {
         .frame(width: Self.controlRailWidth)
     }
 
+    /// The full list of the last conversion once it loads (hundreds of rows,
+    /// like the native grid); the bar's 20-item slice until then, so the grid
+    /// never opens empty.
+    private var gridCandidates: [Candidate] {
+        inputManager.expandedCandidates.isEmpty
+            ? inputManager.candidates
+            : inputManager.expandedCandidates
+    }
+
     private var grid: some View {
         GeometryReader { geo in
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 0) {
-                    let rows = Self.packRows(inputManager.candidates, width: geo.size.width)
+                    let rows = Self.packRows(gridCandidates, width: geo.size.width)
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                         HStack(spacing: 0) {
                             ForEach(row) { candidate in
@@ -90,9 +99,13 @@ public struct ExpandedCandidateView: View {
             .padding(.horizontal, Self.cellHorizontalPadding)
             .frame(height: KeyboardChromeMetrics.toolbarHeight)
             .contentShape(Rectangle())
-            .onTapGesture {
-                onTriggerHaptic()
-                onSelect(candidate)
+            // UIKit tap surface, not onTapGesture — same dropped-press failure
+            // as the bar's SwiftUI Buttons (see CandidateTapSurface).
+            .overlay {
+                CandidateTapSurface(label: "grid-cell", onTap: {
+                    onTriggerHaptic()
+                    onSelect(candidate)
+                })
             }
     }
 

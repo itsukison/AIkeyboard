@@ -95,18 +95,36 @@ public struct FlickKeyboardView: View {
         .coordinateSpace(name: FlickPopupKey.space)
         .overlayPreferenceValue(FlickPopupKey.self) { popup in
             if let popup {
-                // The focused flick cross is slightly larger than the base key,
-                // like native. (topMargin is sized to keep the enlarged top tile
-                // from clipping at the keyboard's top edge.)
-                let scale: CGFloat = 1.1
-                FlickSuggestView(
-                    key: popup.key,
-                    selectedDirection: popup.direction,
-                    tileWidth: popup.frame.width * scale,
-                    tileHeight: popup.frame.height * scale
-                )
-                .position(x: popup.frame.midX, y: popup.frame.midY)
-                .allowsHitTesting(false)
+                switch popup.phase {
+                case .hidden:
+                    EmptyView()
+                case .quick(let direction):
+                    if let direction {
+                        let center = FlickQuickPreviewMetrics.center(
+                            for: popup.frame,
+                            direction: direction
+                        )
+                        FlickQuickPreviewView(
+                            key: popup.key,
+                            direction: direction,
+                            capSize: popup.frame.size
+                        )
+                        .position(center)
+                        .allowsHitTesting(false)
+                    }
+                case .guide(let direction):
+                    // The focused flick cross is slightly larger than the base
+                    // key, like native. topMargin keeps its top tile in bounds.
+                    let scale: CGFloat = 1.1
+                    FlickSuggestView(
+                        key: popup.key,
+                        selectedDirection: direction,
+                        tileWidth: popup.frame.width * scale,
+                        tileHeight: popup.frame.height * scale
+                    )
+                    .position(x: popup.frame.midX, y: popup.frame.midY)
+                    .allowsHitTesting(false)
+                }
             }
         }
         .environment(\.flickKeyCapInset, keyCapInset)

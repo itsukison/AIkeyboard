@@ -374,7 +374,7 @@
       return `<div class="message ${m.side}">${m.side === "boss" ? avatarSvg : ""}<div class="bubble-group"><div class="bubble">${m.text}</div><div class="metadata">${meta}</div></div></div>`;
     };
     const conv = document.querySelector("#conversation");
-    const scene = (typeof SCENES !== "undefined" && SCENES[params.get("scene")]) || null;
+    const scene = sceneFromParams(params);
     if (scene) {
       document.querySelector(".profile-name").textContent = scene.name;
       const requested = Number(params.get("step"));

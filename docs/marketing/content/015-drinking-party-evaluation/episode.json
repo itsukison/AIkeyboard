@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "episode": {
+    "id": "015",
+    "slug": "drinking-party-evaluation",
+    "series": "丁寧にキレる。",
+    "bankReference": "spicy-content-bank.md §5",
+    "hypothesis": "A familiar coercive drinking-party message will extend the workplace-boundary format into a high-disagreement topic without making a legal claim."
+  },
+  "approval": {
+    "status": "approved",
+    "rewriteVerified": true,
+    "rewriteVerificationMethod": "manual-copy-labelled",
+    "visualQA": true
+  },
+  "scene": {
+    "name": "上司",
+    "day": "今日",
+    "messages": [
+      { "side": "boss", "text": "新人なんだから飲み会には来た方がいいよ", "time": "17:42" },
+      { "side": "boss", "text": "こういうところも評価に関わるからね", "time": "17:42" },
+      { "side": "me", "text": "今回の飲み会は欠席いたします。業務外の任意参加の場と認識しておりますので、参加の有無と業務評価は分けてご判断いただけますと幸いです。", "time": "17:50", "read": "既読" },
+      { "side": "boss", "text": "別に強制してないけど？", "time": "17:51" },
+      { "side": "me", "text": "承知しました。任意参加とのことですので、今回は欠席いたします。", "time": "17:55", "read": "既読" }
+    ]
+  },
+  "slides": [
+    { "template": "line-chat", "params": { "step": "0", "hook": "飲み会に来ないと\n評価が下がる？", "hooktag": "丁寧にキレる。" } },
+    { "template": "line-chat", "params": { "step": "2" }, "caption": "『任意』なのに、評価には関わるらしい" },
+    { "template": "line-chat", "params": { "step": "2", "innervoice": "酒を飲まないと\n仕事を評価できないんですか？" } },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "2", "draft": "飲み会には参加しません。仕事の評価とは関係ないと思います。" }, "caption": "断りたい。でも、喧嘩にはしたくない" },
+    { "template": "product-ui", "params": { "state": "result", "step": "2", "draft": "飲み会には参加しません。仕事の評価とは関係ないと思います。", "result": "今回の飲み会は欠席いたします。業務外の任意参加の場と認識しておりますので、参加の有無と業務評価は分けてご判断いただけますと幸いです。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "4" }, "caption": "すると『別に強制してないけど？』" },
+    { "template": "product-ui", "params": { "state": "toolbar", "step": "4", "draft": "強制じゃないなら欠席します。" }, "caption": "その言葉、保存しました" },
+    { "template": "product-ui", "params": { "state": "result", "step": "4", "draft": "強制じゃないなら欠席します。", "result": "承知しました。任意参加とのことですので、今回は欠席いたします。" }, "caption": "投稿用に作成した返信例" },
+    { "template": "line-chat", "params": { "step": "5" }, "caption": "『強制じゃない』は本当に強制じゃない？" },
+    { "template": "line-chat", "params": { "step": "5", "cta": "1", "ctatag": "丁寧にキレる。" } }
+  ],
+  "publish": {
+    "title": "『飲み会も評価』と言う上司に、丁寧にキレる。",
+    "hashtags": ["#上司と部下", "#敬語", "#仕事辞めたい", "#社会人", "#新卒"],
+    "experiment": { "allocation": "exploit", "hookFamily": "workplace-boundary", "productRevealSlide": 4 }
+  }
+}

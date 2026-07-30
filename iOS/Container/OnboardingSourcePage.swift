@@ -79,9 +79,10 @@ private struct OnboardingTopBar: View {
                 ZStack {
                     Circle()
                         .fill(OnboardingPalette.fieldFill)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
+                        .shadow(color: .black.opacity(0.07), radius: 14, x: 0, y: 7)
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(OnboardingPalette.ink)
                 }
             }
@@ -96,8 +97,9 @@ private struct OnboardingTopBar: View {
 
             Button(action: { onSkip?() }) {
                 Text("スキップ")
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundStyle(OnboardingPalette.ink)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(OnboardingPalette.subInk.opacity(0.72))
+                    .frame(minWidth: 52, minHeight: 44, alignment: .trailing)
             }
             .buttonStyle(.plain)
             .opacity(onSkip == nil ? 0.0 : 1.0)
@@ -147,6 +149,12 @@ struct OnboardingPrimaryButton: View {
                 Capsule()
                     .fill((isEnabled && !isLoading) ? OnboardingPalette.primaryActionFill : OnboardingPalette.ctaDisabled)
             )
+            .shadow(
+                color: (isEnabled && !isLoading) ? .black.opacity(0.12) : .clear,
+                radius: 16,
+                x: 0,
+                y: 8
+            )
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled || isLoading)
@@ -155,11 +163,41 @@ struct OnboardingPrimaryButton: View {
     }
 }
 
+/// The reference-style page header: large centered display title in the
+/// onboarding ink, optional one-to-two-line supporting text underneath.
+struct OnboardingTitleBlock: View {
+    let title: LocalizedStringKey
+    var subtitle: LocalizedStringKey? = nil
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Text(title)
+                .font(.system(size: 32, weight: .semibold))
+                .tracking(-0.3)
+                .foregroundStyle(OnboardingPalette.ink)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(OnboardingPalette.subInk)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+            }
+        }
+    }
+}
+
 // MARK: - Source page (1:1 replication template)
 
 struct OnboardingSourcePage: View {
     let progress: Double
     let onBack: (() -> Void)?
+    var onSkip: (() -> Void)? = nil
     let onContinue: (SourceOption?) -> Void
 
     @State private var selected: SourceOption? = nil
@@ -169,19 +207,15 @@ struct OnboardingSourcePage: View {
             progress: progress,
             canGoBack: onBack != nil,
             onBack: onBack,
-            onSkip: nil,
+            onSkip: onSkip,
             ctaTitle: "次へ",
             isCtaEnabled: selected != nil,
             onCta: { onContinue(selected) }
         ) {
             VStack(alignment: .center, spacing: 0) {
-                Text("敬語ボタンを\nどこで知りましたか？")
-                    .font(.system(size: 31, weight: .medium))
-                    .foregroundStyle(OnboardingPalette.ink)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 52)
+                OnboardingTitleBlock(title: "敬語ボタンを\nどこで知りましたか？")
+                    .padding(.top, 44)
                     .padding(.horizontal, 24)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 LazyVGrid(
                     columns: [
@@ -299,10 +333,21 @@ private struct SourceCardPressStyle: ButtonStyle {
 // MARK: - Palette
 
 enum OnboardingPalette {
+    // Onboarding-only palette: the reference's deep-indigo display type on the
+    // app's own white canvas (deliberately not the reference's cream). Dark
+    // mode falls back to the app's standard canvas/ink.
     static let background = AppColor.canvas
-    static let ink = AppColor.ink
+    static let ink = adaptive(
+        light: Color(red: 0.173, green: 0.153, blue: 0.322),
+        dark: Color(red: 0.945, green: 0.945, blue: 0.961)
+    )
     static let subInk = AppColor.muted
     static let progressTrack = AppColor.rule.opacity(0.55)
+    // The soft gray card the reference floats its product mockups on.
+    static let heroFill = adaptive(
+        light: Color(red: 0.941, green: 0.937, blue: 0.929),
+        dark: Color(red: 0.137, green: 0.137, blue: 0.157)
+    )
     // A dimmed version of the enabled charcoal so the disabled state always reads
     // as a faded form of the real button — and never ends up *lighter* than the
     // enabled fill on the dark canvas (which made "enabled" look inactive).

@@ -640,6 +640,6 @@ private enum BundledImage {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("public/\(name).png").path)
+        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("iOS/Container/Resources/Images/\(name).png").path)
     }
 }

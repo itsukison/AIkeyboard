@@ -31,6 +31,16 @@ const SCENES = {
       { side: "me", text: "承知いたしました。ご迷惑をおかけして申し訳ありません。本日は休暇をいただき、回復に努めます。", time: "8:10", read: "既読" }
     ]
   },
+  "sick-day-spicy": {
+    name: "上司",
+    day: "今日",
+    messages: [
+      { side: "boss", text: "37.8度？それくらいなら来れるよね？", time: "8:04" },
+      { side: "me", text: "発熱があり、感染拡大を防ぐため、本日は休ませていただきます。受診後、今後の勤務について改めてご報告いたします。", time: "8:11", read: "既読" },
+      { side: "boss", text: "人手足りないんだけど。午前だけでも無理？", time: "8:12" },
+      { side: "me", text: "申し訳ありませんが、本日は出社いたしかねます。受診後、今後の勤務について改めてご報告いたします。", time: "8:18", read: "既読" }
+    ]
+  },
   "creepy-boss": {
     name: "上司",
     day: "今日",
@@ -160,3 +170,15 @@ const SCENES = {
     ]
   }
 };
+
+function sceneFromParams(params, fallback = null) {
+  const raw = params.get("scenejson");
+  if (raw !== null) {
+    const scene = JSON.parse(raw);
+    if (!scene || typeof scene.name !== "string" || typeof scene.day !== "string" || !Array.isArray(scene.messages)) {
+      throw new Error("Invalid scenejson");
+    }
+    return scene;
+  }
+  return SCENES[params.get("scene")] || fallback;
+}

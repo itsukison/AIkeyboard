@@ -60,11 +60,33 @@ struct AboutScreen: View {
                     .foregroundStyle(AppColor.muted)
                     .padding(.top, BikeyMetrics.Spacing.xl)
 
-                // CC BY-SA 4.0 attribution for the bundled conversion model.
+                // Attribution for bundled conversion resources.
                 Button {
                     activeURL = IdentifiedURL(url: URL(string: "https://huggingface.co/Miwa-Keita/zenz-v3.1-xsmall-gguf")!)
                 } label: {
                     Text("かな漢字変換モデル: zenz by Miwa-Keita (CC BY-SA 4.0)")
+                        .bikeyFont(11, weight: .regular, relativeTo: .caption)
+                        .foregroundStyle(AppColor.muted.opacity(0.8))
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+
+                Button {
+                    activeURL = IdentifiedURL(url: URL(string: "https://repository.ninjal.ac.jp/records/3683")!)
+                } label: {
+                    Text("語彙データ: 国立国語研究所 NWJC (CC BY 4.0)")
+                        .bikeyFont(11, weight: .regular, relativeTo: .caption)
+                        .foregroundStyle(AppColor.muted.opacity(0.8))
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+
+                Button {
+                    activeURL = IdentifiedURL(url: URL(string: "https://github.com/Seo-4d696b75/station_database")!)
+                } label: {
+                    Text("駅名データ: station_database (CC BY 4.0)")
                         .bikeyFont(11, weight: .regular, relativeTo: .caption)
                         .foregroundStyle(AppColor.muted.opacity(0.8))
                         .underline()
@@ -111,7 +133,7 @@ private struct AboutHeader: View {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "1.0"
         let build = info?["CFBundleVersion"] as? String ?? "1"
-        return "バージョン \(version) (\(build))"
+        return localizedAppString("バージョン \(version) (\(build))")
     }
 
     var body: some View {
@@ -159,7 +181,7 @@ private enum AboutBundledImage {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("public/\(name).png").path)
+        return UIImage(contentsOfFile: repoRoot.appendingPathComponent("iOS/Container/Resources/Images/\(name).png").path)
     }
 }
 

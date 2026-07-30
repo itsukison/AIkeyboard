@@ -86,6 +86,33 @@ enum UserPromptRemoteStore {
         }
     }
 
+    /// Replaces the account's entire prompt set with `entries`. Used to carry an
+    /// onboarding-chosen preset (which may add, drop, or reorder buttons and
+    /// include custom `builtin_key = nil` rows) up to a brand-new account, since
+    /// the trigger only ever seeds the four keigo built-ins.
+    static func replaceAll(_ entries: [UserPrompt], userId: UUID) async throws {
+        try await supabase
+            .from("user_prompts")
+            .delete()
+            .eq("user_id", value: userId)
+            .execute()
+        let rows = entries.map { entry in
+            InsertRow(
+                user_id: userId,
+                slot: entry.slot.rawValue,
+                builtin_key: entry.builtinKey,
+                title: entry.title,
+                prompt: entry.prompt,
+                is_enabled: entry.isEnabled,
+                sort_order: entry.sortOrder
+            )
+        }
+        try await supabase
+            .from("user_prompts")
+            .insert(rows)
+            .execute()
+    }
+
     static func resetToDefaults(userId: UUID) async throws {
         try await supabase
             .from("user_prompts")
