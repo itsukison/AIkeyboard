@@ -1,9 +1,10 @@
 // generate-prompt-preset
 //
-// Onboarding-time helper for the "その他（AIにおまかせ）" use case. Takes a
-// short free-text description of what the user wants the keyboard for and
-// returns exactly 4 keyboard buttons (1 main + 3 complementary), each with a
-// short Japanese title and a full rewrite instruction in the house style.
+// Onboarding-time button builder. Takes a short description of what the user
+// wants the keyboard for — composed by the client from the builder's slot
+// selections, or typed freehand — and returns exactly 4 keyboard buttons
+// (1 main + 3 complementary) plus a worked example for the main button that the
+// offline practice page replays.
 //
 // Called during onboarding, BEFORE the user has an account, so it must work
 // with only the publishable key — `verify_jwt = false` in config.toml. It never
@@ -19,11 +20,21 @@ const corsHeaders = {
 
 const MAX_DESCRIPTION_LENGTH = 200;
 const BUTTON_COUNT = 4;
+const PRACTICE_OUTPUT_COUNT = 3;
 const RATE_LIMIT_PER_HOUR = 30;
 
 interface PresetButton {
   title: string;
   prompt: string;
+}
+
+/// The worked example the onboarding practice page replays for the main button.
+/// Generated here, at button-creation time, because practice mode runs offline
+/// and pre-auth (the container writes canned candidates into the App Group and
+/// the keyboard replays them) — there is no way to produce this later.
+interface PresetPractice {
+  input: string;
+  outputs: string[];
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -40,7 +51,7 @@ function errorResponse(message: string, status: number): Response {
 const presetSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["buttons"],
+  required: ["buttons", "practice"],
   properties: {
     buttons: {
       type: "array",
@@ -51,12 +62,29 @@ const presetSchema = {
         properties: {
           title: {
             type: "string",
-            description: "ボタンの短い日本語ラベル（2〜6文字程度）",
+            description: "ツールバーに表示する短いラベル。全角4文字以内。",
           },
           prompt: {
             type: "string",
-            description: "AIへの日本語の指示文",
+            description: "このボタンを他と区別する書き換え指示だけを書いた日本語の文",
           },
+        },
+      },
+    },
+    practice: {
+      type: "object",
+      additionalProperties: false,
+      required: ["input", "outputs"],
+      description: "1つ目（メイン）のボタンの動作例",
+      properties: {
+        input: {
+          type: "string",
+          description: "メインボタンを使いたくなる20〜40文字程度の日本語の文章",
+        },
+        outputs: {
+          type: "array",
+          description: "inputにメインボタンのpromptを適用した結果を3つ",
+          items: { type: "string" },
         },
       },
     },
@@ -104,62 +132,125 @@ async function underRateLimit(ipHash: string): Promise<boolean> {
   }
 }
 
+// Outcome-first, and each rule stated exactly once — the buttons this produces
+// are consumed by `keyboard-rewrite`, whose own system prompt already fixes the
+// invariants (preserve meaning/names/numbers/emoji, no markdown or commentary,
+// return the rewritten text alone). Restating those here made every generated
+// button repeat them, which per OpenAI's GPT-5.6 guidance costs tokens and
+// degrades adherence. The explicit "do not write these" list below is load-
+// bearing: without it the model reproduces them by habit.
 function systemInstructions(): string {
   return [
     "あなたは日本語キーボードアプリの設定アシスタントです。",
-    "ユーザーが入力した「用途」に合わせて、キーボードのAIボタンを4つ設計してください。",
-    "1つ目はその用途の中心となるメインボタン、残り3つは相性の良い補助ボタンにしてください。",
-    "各ボタンには、短い日本語のラベル（title、2〜6文字程度）と、AIへの指示文（prompt）を付けてください。",
-    "指示文（prompt）は日本語で書き、次のルールに従ってください:",
-    "- 入力された文章に対する変換・書き換えの指示として書く。",
-    "- 原文の意味・意図を保ち、事実を勝手に足したり省いたりしない。固有名詞・数字・日付・URL・絵文字は保つ。",
-    "- 解説やマークダウンを付けず、出力は変換後の文章だけにするよう明記する。",
+    // "ちょうど4つ" is emphatic because it has to be: a production fix added
+    // the same emphasis after the model returned short presets, which the
+    // BUTTON_COUNT check then rejected as a hard failure.
+    "ユーザーの用途から、キーボードのAIボタンを必ずちょうど4つ設計してください。1つ目がメイン、残り3つは併用しそうな補助ボタンです。",
+    "",
+    "title: ツールバーに表示される短いラベル。全角4文字以内。長いと隣のボタンを押しつぶします。",
+    "prompt: そのボタンを押したときの書き換え指示。そのボタンを他と区別する内容だけを日本語で書いてください。",
+    "",
+    "promptに書かないでください（書き換え側で既に指定済みのため、繰り返すと精度が落ちます）:",
+    "- 意味・意図・固有名詞・数字・日付・URL・絵文字を保つこと",
+    "- 解説やマークダウンを付けないこと",
+    "- 出力を変換後の文章だけにすること",
+    "",
+    "promptは「丁寧に」のような形容詞ではなく、「文末を〜です/ますにする」のような動作で書いてください。",
+    "",
+    "practiceは1つ目（メイン）のボタンの動作例です。outputsは、inputにメインボタンのpromptを適用した結果にしてください。メインボタンの指示に必ず従ってください（例: 敬語をやめる指示なら、outputsで敬語を使わない）。",
+    "",
     "不適切・危険な用途には応じず、その場合は一般的な文章整形ボタン（敬語・自然に・要約・翻訳など）を返してください。",
-    "厳密にスキーマに従ったJSONだけを返してください。",
   ].join("\n");
 }
 
-function userPrompt(description: string): string {
-  return `用途:\n${description}`;
+function userPrompt(description: string, useCase: string | null): string {
+  const lines = [`用途:\n${description}`];
+  if (useCase) {
+    lines.push(`選んだカテゴリ: ${useCase}`);
+  }
+  return lines.join("\n\n");
 }
 
-async function generatePreset(description: string): Promise<PresetButton[]> {
-  const apiKey = Deno.env.get("CEREBRAS_API_KEY");
-  if (!apiKey) {
-    throw new Error("CEREBRAS_API_KEY is not configured.");
+// The buttons this produces are the strongest observed predictor of long-term
+// retention, so this call runs on the same model as the rewrite path rather
+// than the cheap one. It is once per user, behind a rate limit, and the client
+// shows a spinner, so latency here is affordable. Cerebras stays as a fallback
+// for when no OpenAI key is configured.
+function providerConfig(): {
+  name: "openai" | "cerebras";
+  apiKey: string;
+  model: string;
+  endpoint: string;
+  reasoningEffort: string | undefined;
+} {
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  if (openaiKey) {
+    return {
+      name: "openai",
+      apiKey: openaiKey,
+      model: Deno.env.get("PRESET_GEN_MODEL") ?? Deno.env.get("OPENAI_MODEL") ?? "gpt-5.6-terra",
+      endpoint: Deno.env.get("OPENAI_CHAT_COMPLETIONS_URL") ??
+        "https://api.openai.com/v1/chat/completions",
+      reasoningEffort: Deno.env.get("PRESET_GEN_REASONING_EFFORT") ?? "low",
+    };
   }
-  const model = Deno.env.get("CEREBRAS_MODEL") ?? "gpt-oss-120b";
-  const endpoint = Deno.env.get("CEREBRAS_CHAT_COMPLETIONS_URL") ??
-    "https://api.cerebras.ai/v1/chat/completions";
+
+  const cerebrasKey = Deno.env.get("CEREBRAS_API_KEY");
+  if (!cerebrasKey) {
+    throw new Error("No preset-generation provider is configured.");
+  }
+  return {
+    name: "cerebras",
+    apiKey: cerebrasKey,
+    model: Deno.env.get("CEREBRAS_MODEL") ?? "gpt-oss-120b",
+    endpoint: Deno.env.get("CEREBRAS_CHAT_COMPLETIONS_URL") ??
+      "https://api.cerebras.ai/v1/chat/completions",
+    reasoningEffort: undefined,
+  };
+}
+
+async function generatePreset(
+  description: string,
+  useCase: string | null,
+): Promise<{ buttons: PresetButton[]; practice: PresetPractice | null }> {
+  const config = providerConfig();
+
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages: [
+      { role: "system", content: systemInstructions() },
+      { role: "user", content: userPrompt(description, useCase) },
+    ],
+    max_completion_tokens: 1600,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "prompt_preset",
+        strict: true,
+        schema: presetSchema,
+      },
+    },
+  };
+  if (config.reasoningEffort) {
+    body.reasoning_effort = config.reasoningEffort;
+  }
+  if (config.name === "openai") {
+    body.store = false;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
 
   let response: Response;
   try {
-    response = await fetch(endpoint, {
+    response = await fetch(config.endpoint, {
       method: "POST",
       signal: controller.signal,
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemInstructions() },
-          { role: "user", content: userPrompt(description) },
-        ],
-        max_completion_tokens: 1200,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "prompt_preset",
-            strict: true,
-            schema: presetSchema,
-          },
-        },
-      }),
+      body: JSON.stringify(body),
     });
   } finally {
     clearTimeout(timeout);
@@ -176,7 +267,11 @@ async function generatePreset(description: string): Promise<PresetButton[]> {
     throw new Error("provider returned no content");
   }
 
-  const parsed = JSON.parse(content) as { buttons?: PresetButton[] };
+  const parsed = JSON.parse(content) as {
+    buttons?: PresetButton[];
+    practice?: { input?: unknown; outputs?: unknown };
+  };
+
   const buttons = (parsed.buttons ?? [])
     .filter(
       (b): b is PresetButton =>
@@ -188,7 +283,25 @@ async function generatePreset(description: string): Promise<PresetButton[]> {
   if (buttons.length !== BUTTON_COUNT) {
     throw new Error("provider returned an incomplete preset");
   }
-  return buttons;
+
+  const practiceInput = typeof parsed.practice?.input === "string"
+    ? parsed.practice.input.trim()
+    : "";
+  const practiceOutputs = Array.isArray(parsed.practice?.outputs)
+    ? (parsed.practice.outputs as unknown[])
+      .filter((o): o is string => typeof o === "string" && o.trim().length > 0)
+      .slice(0, PRACTICE_OUTPUT_COUNT)
+    : [];
+
+  // A missing or short example is not fatal. Builds shipped before the practice
+  // field existed call this endpoint and only read `buttons`, so failing the
+  // whole request over it would break them; the current client falls back to its
+  // built-in practice scenarios when the field is absent.
+  const practice = practiceInput.length > 0 && practiceOutputs.length === PRACTICE_OUTPUT_COUNT
+    ? { input: practiceInput, outputs: practiceOutputs }
+    : null;
+
+  return { buttons, practice };
 }
 
 Deno.serve(async (req) => {
@@ -200,9 +313,13 @@ Deno.serve(async (req) => {
   }
 
   let description: string;
+  let useCase: string | null;
   try {
     const body = await req.json();
     description = typeof body?.description === "string" ? body.description.trim() : "";
+    useCase = typeof body?.useCase === "string" && body.useCase.trim().length > 0
+      ? body.useCase.trim().slice(0, 40)
+      : null;
   } catch {
     return errorResponse("Invalid request body.", 400);
   }
@@ -221,8 +338,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const buttons = await generatePreset(description);
-    return jsonResponse({ buttons });
+    const { buttons, practice } = await generatePreset(description, useCase);
+    return jsonResponse({ buttons, practice });
   } catch (error) {
     console.error("generate-prompt-preset failed:", error instanceof Error ? error.message : error);
     return errorResponse("ボタンを作成できませんでした。少し待ってからもう一度お試しください。", 502);

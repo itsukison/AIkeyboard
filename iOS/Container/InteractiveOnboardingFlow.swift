@@ -4,7 +4,10 @@ import SwiftUI
 import UIKit
 
 enum InteractiveOnboardingState {
-    static let version = "interactive_v2"
+    /// Bumped for the button builder. `shouldResume` compares this against the
+    /// stored value, so an onboarding started on v2 restarts rather than
+    /// resuming at a page index that now points somewhere else.
+    static let version = "interactive_v3"
     static let startedKey = "aikJP.interactiveOnboardingStarted"
     static let authRequiredKey = "aikJP.interactiveOnboardingAuthRequired"
     static let pageIndexKey = "aikJP.interactiveOnboardingPageIndex"
@@ -77,6 +80,22 @@ struct OnboardingPracticeScenario {
     ]
 
     static func make(for prompt: UserPrompt) -> OnboardingPracticeScenario {
+        // A button the builder made carries its own worked example, so the
+        // exercise demonstrates the button the user actually made. Everything
+        // below is the fallback for seeded built-ins and for the case where the
+        // example is missing — a built button has no `builtinKey` and an
+        // arbitrary title, so without this it would land on the generic default.
+        if prompt.origin == .onboardingBuilder,
+           let generated = KeyboardSettingsStore.readOnboardingGeneratedPractice(),
+           generated.buttonId == prompt.id.uuidString,
+           !generated.input.isEmpty,
+           !generated.outputs.isEmpty {
+            return OnboardingPracticeScenario(
+                text: generated.input,
+                candidates: generated.outputs
+            )
+        }
+
         switch prompt.builtinKey {
         case UserPromptDefaults.emailKey:
             return OnboardingPracticeScenario(
@@ -187,7 +206,22 @@ struct InteractiveOnboardingFlow: View {
     @AppStorage("aikJP.seenPromptOrganizeFeature") private var seenPromptOrganizeFeature = false
     @AppStorage("aikJP.seenCommercialConsentFeature") private var seenCommercialConsentFeature = false
 
-    private static let totalPages = 9
+    /// The use case picked on page 2, which drives the builder's questions.
+    @State private var selectedUseCase: OnboardingUseCase?
+    /// The builder's in-progress answers. Cleared between buttons when the user
+    /// chooses "もう1つ作る".
+    @State private var builderSelections = BuilderSelections()
+    /// The button the current builder pass produced. Stepping back from the
+    /// review page and committing again updates it instead of adding a second
+    /// copy; "もう1つ作る" clears it so the next pass really does add one.
+    @State private var builtButtonId: UUID?
+    /// True while pages 2–4 are being replayed for an extra button. Without it
+    /// the second pass is pixel-identical to the first, and 戻る on the use-case
+    /// page walks back to keyboard setup instead of returning to the list the
+    /// user came from.
+    @State private var isAddingAnother = false
+
+    private static let totalPages = 11
 
     init(onFinish: @escaping () -> Void) {
         self.onFinish = onFinish
@@ -222,44 +256,109 @@ struct InteractiveOnboardingFlow: View {
             case 2:
                 KeyboardUseCasePage(
                     progress: progress(for: 2),
-                    onBack: goBack,
-                    onSkip: { skip("use_case") },
-                    onContinue: advance
+                    existingButtonTitles: useCasePageExistingTitles,
+                    onBack: { backFromUseCasePage() },
+                    onSkip: { skipUseCasePage() },
+                    onContinue: { useCase in
+                        selectedUseCase = useCase
+                        builderSelections = BuilderSelections()
+                        builtButtonId = nil
+                        if OnboardingButtonBuilder.spec(for: useCase) == nil {
+                            // `.custom` collected its description on the
+                            // use-case page and already built its button, so it
+                            // has nothing to ask on 3–4.
+                            isAddingAnother = false
+                            jump(to: 5)
+                        } else {
+                            AppAnalytics.capture("onboarding_button_builder_started", properties: [
+                                "use_case": useCase.rawValue,
+                                "onboarding_version": InteractiveOnboardingState.version,
+                            ])
+                            advance()
+                        }
+                    }
                 )
             case 3:
-                KeyboardPromptsPage(
-                    progress: progress(for: 3),
-                    onBack: goBack,
-                    onSkip: { skip("prompt_setup") },
-                    onContinue: advance
-                )
+                if let spec = builderSpec {
+                    ButtonBuilderSlotsPage(
+                        progress: progress(for: 3),
+                        spec: spec,
+                        isAdditional: isAddingAnother,
+                        selections: $builderSelections,
+                        onBack: goBack,
+                        onSkip: { skipBuilder(page: "slots") },
+                        onContinue: advance
+                    )
+                } else {
+                    Color.clear.onAppear { jump(to: 5) }
+                }
             case 4:
+                if let useCase = selectedUseCase, let spec = builderSpec {
+                    ButtonBuilderResultPage(
+                        progress: progress(for: 4),
+                        spec: spec,
+                        useCase: useCase,
+                        selections: $builderSelections,
+                        builtButtonId: $builtButtonId,
+                        onBack: goBack,
+                        onSkip: { skipBuilder(page: "result") },
+                        onFinish: {
+                            isAddingAnother = false
+                            advance()
+                        }
+                    )
+                } else {
+                    Color.clear.onAppear { jump(to: 5) }
+                }
+            case 5:
+                // One button is a single editable card — a list of one is a list
+                // that looks broken. Past that, ordering and removal start to
+                // matter, so it becomes the real list: drag to pick the main
+                // button, swipe to delete, tap to edit.
+                if builtButtonCount == 1 {
+                    ButtonBuilderReviewPage(
+                        progress: progress(for: 5),
+                        onBack: backFromPromptPage,
+                        onSkip: { skip("button_review") },
+                        onAddAnother: startAddAnother,
+                        onContinue: advance
+                    )
+                } else {
+                    KeyboardPromptsPage(
+                        progress: progress(for: 5),
+                        onAddAnother: addAnotherAction,
+                        onBack: backFromPromptPage,
+                        onSkip: { skip("prompt_setup") },
+                        onContinue: advance
+                    )
+                }
+            case 6:
                 KeyboardSwitchPracticePage(
-                    progress: progress(for: 4),
+                    progress: progress(for: 6),
                     style: selectedStyle,
                     onBack: goBack,
                     onSkip: { skip("keyboard_switch_practice") },
                     onContinue: advance
                 )
-            case 5:
+            case 7:
                 RewritePracticePage(
-                    progress: progress(for: 5),
+                    progress: progress(for: 7),
                     style: selectedStyle,
                     prompt: OnboardingPromptSetup.load().first ?? UserPromptDefaults.seedEntries()[0],
                     onBack: goBack,
                     onSkip: { skip("rewrite_practice") },
                     onContinue: advance
                 )
-            case 6:
+            case 8:
                 ReplyPracticePage(
-                    progress: progress(for: 6),
+                    progress: progress(for: 8),
                     onBack: goBack,
                     onSkip: { skip("reply_practice") },
                     onContinue: advance
                 )
-            case 7:
+            case 9:
                 OnboardingSourcePage(
-                    progress: progress(for: 7),
+                    progress: progress(for: 9),
                     onBack: goBack,
                     onSkip: { skip("source") },
                     onContinue: { source in
@@ -275,7 +374,7 @@ struct InteractiveOnboardingFlow: View {
                 )
             default:
                 KeyboardConsentPage(
-                    progress: progress(for: 8),
+                    progress: progress(for: 10),
                     onBack: goBack,
                     onSkip: { completePreAuth(consentGranted: false, commercialOptIn: false, skipped: true) },
                     onAgree: { commercialOptIn in
@@ -352,33 +451,137 @@ struct InteractiveOnboardingFlow: View {
         }
     }
 
-    private func progress(for index: Int) -> Double {
-        Double(index + 1) / Double(Self.totalPages)
+    /// Read from the stored prompts rather than tracked in state, so it survives
+    /// the app being backgrounded partway through onboarding.
+    private var builtButtons: [UserPrompt] {
+        OnboardingPromptSetup.load().filter { $0.origin == .onboardingBuilder }
     }
 
+    private var builtButtonCount: Int { builtButtons.count }
+
+    private var useCasePageExistingTitles: [String] {
+        isAddingAnother ? builtButtons.map(\.title) : []
+    }
+
+    /// Offered only to people who actually built something: committing a button
+    /// discards everything that is not builder-made, which would silently wipe a
+    /// skipper's seeded defaults.
+    private var addAnotherAction: (() -> Void)? {
+        guard builtButtonCount > 1 else { return nil }
+        return startAddAnother
+    }
+
+    /// Non-nil only when pages 3–4 are part of this user's route — `.custom`
+    /// jumps straight to 5, and without this, pressing 戻る there would walk
+    /// them into a builder that has nothing to ask.
+    private var builderSpec: ButtonBuilderSpec? {
+        guard let selectedUseCase else { return nil }
+        return OnboardingButtonBuilder.spec(for: selectedUseCase)
+    }
+
+    /// Page 5 is reached either by stepping through the builder or by jumping
+    /// over it, so "back" has two different meanings.
+    private func backFromPromptPage() {
+        if builderSpec == nil {
+            jump(to: 2)
+        } else {
+            goBack()
+        }
+    }
+
+    private func jump(to page: Int) {
+        let target = min(Self.totalPages - 1, max(0, page))
+        InteractiveOnboardingState.writePageIndex(target)
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+            pageIndex = target
+        }
+    }
+
+    /// Skipping any builder page leaves whatever is already stored alone, so
+    /// jump past the rest of the builder rather than stepping through it.
+    private func skipBuilder(page: String) {
+        AppAnalytics.capture("onboarding_button_builder_skipped", properties: [
+            "page": page,
+            "use_case": selectedUseCase?.rawValue ?? "unknown",
+            "is_additional": isAddingAnother,
+            "onboarding_version": InteractiveOnboardingState.version,
+        ])
+        isAddingAnother = false
+        jump(to: 5)
+    }
+
+    /// Replays the use-case page for an extra button. Back to page 2 rather than
+    /// the slot page: a second button is usually a second job (敬語 then 英訳),
+    /// and resuming mid-builder would lock it to the first button's use case.
+    private func startAddAnother() {
+        builderSelections = BuilderSelections()
+        builtButtonId = nil
+        isAddingAnother = true
+        jump(to: 2)
+    }
+
+    /// Backing out of an extra button returns to the list it was started from,
+    /// not to keyboard setup. Nothing was committed yet, so there is nothing to
+    /// undo — only the in-progress selections are dropped.
+    private func backFromUseCasePage() {
+        guard isAddingAnother else {
+            goBack()
+            return
+        }
+        builderSelections = BuilderSelections()
+        builtButtonId = nil
+        isAddingAnother = false
+        jump(to: 5)
+    }
+
+    /// スキップ on an add-another pass abandons the extra button rather than
+    /// skipping the whole step — the step was already completed once.
+    private func skipUseCasePage() {
+        guard isAddingAnother else {
+            skip("use_case")
+            return
+        }
+        backFromUseCasePage()
+    }
+
+    /// The bar would otherwise rewind from 6/11 to 3/11 when someone chooses to
+    /// add a second button, reading as lost progress when the extra button is
+    /// optional and additive. Hold it at the page the loop returns to.
+    private func progress(for index: Int) -> Double {
+        let effective = isAddingAnother ? max(index, 5) : index
+        return Double(effective + 1) / Double(Self.totalPages)
+    }
+
+    /// Practice mode stays armed for the whole keyboard section (pages 1–8), not
+    /// just the three exercise pages. Disarming in between made arming a race
+    /// against the keyboard's own appearance: the extension reads the flag when
+    /// it appears, and an appearance that ran before the container's write was
+    /// visible in that process skipped the progress signals for the entire
+    /// presentation — the page then sat there unresponsive. Arming once removes
+    /// the race; the exercise pages only swap in their own candidates.
     private func configurePractice(for index: Int) {
-        switch index {
-        case 4, 5:
-            let prompt = OnboardingPromptSetup.load().first ?? UserPromptDefaults.seedEntries()[0]
-            InteractiveOnboardingState.armPractice(
-                candidates: OnboardingPracticeScenario.make(for: prompt).candidates
-            )
-        case 6:
+        guard (1...8).contains(index) else {
+            InteractiveOnboardingState.disarmPractice()
+            return
+        }
+        if index == 8 {
             InteractiveOnboardingState.armPractice(
                 candidates: OnboardingPracticeScenario.replyCandidates
             )
-        default:
-            InteractiveOnboardingState.disarmPractice()
+            return
         }
+        let prompt = OnboardingPromptSetup.load().first ?? UserPromptDefaults.seedEntries()[0]
+        InteractiveOnboardingState.armPractice(
+            candidates: OnboardingPracticeScenario.make(for: prompt).candidates
+        )
     }
 }
 
 // MARK: - Switch practice
 
 /// Guided exercise 1: switch to 敬語ボタン with the globe key and type a short
-/// phrase. Completion is detected from the App Group (keyboard open count and
-/// the field's text), so the page reacts to the real keyboard, not taps on
-/// fake UI.
+/// phrase. Completion is detected from the real keyboard — the active input mode
+/// plus the App Group progress signals — never from taps on fake UI.
 private struct KeyboardSwitchPracticePage: View {
     let progress: Double
     let style: KeyboardPreferences.KeyboardStyle
@@ -387,6 +590,7 @@ private struct KeyboardSwitchPracticePage: View {
     let onContinue: () -> Void
 
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
     @State private var text = ""
     @State private var pageOpenedAt = Date()
     @State private var initialOpenCount: Int?
@@ -395,6 +599,7 @@ private struct KeyboardSwitchPracticePage: View {
     @State private var isShowingSwitchSuccess = false
     @State private var reportedKeyboardOpen = false
     @State private var reportedTyped = false
+    @State private var isUnlockedByTimeout = false
     @FocusState private var isEditorFocused: Bool
 
     private let practicePhrase = "よろしくおねがいします"
@@ -420,44 +625,47 @@ private struct KeyboardSwitchPracticePage: View {
                 onSkip()
             },
             ctaTitle: "次へ",
-            isCtaEnabled: isComplete,
+            isCtaEnabled: isComplete || isUnlockedByTimeout,
             onCta: {
                 isEditorFocused = false
                 AppAnalytics.capture("onboarding_keyboard_practice_completed", properties: [
                     "input_style": style.rawValue,
+                    "detected": isComplete,
                     "onboarding_version": InteractiveOnboardingState.version,
                 ])
                 onContinue()
-            }
+            },
+            ctaAvoidsKeyboard: true
         ) {
-            VStack(spacing: 0) {
-                OnboardingTitleBlock(
-                    title: "敬語ボタンに\n切り替えてみましょう",
-                    subtitle: "キーボード左下の地球儀キーを長押しして、「敬語ボタン」を選びます。"
-                )
-                .padding(.top, 24)
-                .padding(.horizontal, 20)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    OnboardingTitleBlock(
+                        title: "敬語ボタンに\n切り替えてみましょう",
+                        subtitle: "キーボード左下の地球儀キーを長押しして、「敬語ボタン」を選びます。",
+                        isCompact: isEditorFocused
+                    )
+                    .padding(.top, isEditorFocused ? 12 : 24)
 
-                OnboardingPracticeField(
-                    text: $text,
-                    isFocused: $isEditorFocused,
-                    placeholder: LocalizedStringKey("ここに「\(practicePhrase)」と入力")
-                )
-                .padding(.top, 28)
-                .padding(.horizontal, 20)
+                    OnboardingPracticeField(
+                        text: $text,
+                        isFocused: $isEditorFocused,
+                        placeholder: LocalizedStringKey("ここに「\(practicePhrase)」と入力"),
+                        isCompact: isEditorFocused
+                    )
+                    .padding(.top, isEditorFocused ? 16 : 28)
 
-                OnboardingPracticeStatus(
-                    symbol: statusSymbol,
-                    text: statusText,
-                    isComplete: isComplete || isShowingSwitchSuccess
-                )
-                .padding(.top, 18)
+                    OnboardingPracticeStatus(
+                        symbol: statusSymbol,
+                        text: statusText,
+                        hint: statusHint,
+                        isComplete: isComplete || isShowingSwitchSuccess
+                    )
+                    .padding(.top, isEditorFocused ? 12 : 18)
+                }
                 .padding(.horizontal, 20)
-
-                Spacer(minLength: 12)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
-        .practiceKeyboardDoneButton(isFocused: $isEditorFocused)
         .onAppear {
             refreshStatus(initialize: true)
             Task { @MainActor in
@@ -467,6 +675,7 @@ private struct KeyboardSwitchPracticePage: View {
         }
         .onChange(of: scenePhase) { phase in
             guard phase == .active else { return }
+            keyboardStatus.refresh()
             refreshStatus(initialize: false)
             if !isComplete {
                 Task { @MainActor in
@@ -476,8 +685,22 @@ private struct KeyboardSwitchPracticePage: View {
             }
         }
         .task {
+            var tick = 0
             while !Task.isCancelled {
+                // `refresh()` publishes on every call, and a re-render during
+                // composition corrupts marked text (see the rewrite page). So the
+                // active-keyboard probe runs on a slow cadence, stops the moment
+                // the switch is detected, and in the worst case stops at the
+                // timeout — a bounded handful of publishes in the first seconds,
+                // never a poll that runs while the user is mid-phrase.
+                if !didOpenKeyboard, !isUnlockedByTimeout, tick % 4 == 0 {
+                    keyboardStatus.refresh()
+                    #if DEBUG
+                    logKeyboardStatusProbe()
+                    #endif
+                }
                 refreshStatus(initialize: false)
+                tick += 1
                 try? await Task.sleep(nanoseconds: 350_000_000)
             }
         }
@@ -504,6 +727,12 @@ private struct KeyboardSwitchPracticePage: View {
         if didOpenKeyboard {
             return "次は、「\(practicePhrase)」と入力してみましょう。"
         }
+        // With the keyboard already up the first step is done, and this line is
+        // the only instruction on screen (the subtitle collapses), so it must not
+        // still be asking for a tap.
+        if isEditorFocused {
+            return "キーボード左下の地球儀キーを長押し →「敬語ボタン」を選択"
+        }
         return "入力欄をタップ → 地球儀キーを長押し →「敬語ボタン」を選択"
     }
 
@@ -512,6 +741,43 @@ private struct KeyboardSwitchPracticePage: View {
         if didOpenKeyboard { return "text.cursor" }
         return "globe"
     }
+
+    /// Surfaced once the timeout has opened the CTA, so the escape is visible
+    /// instead of the user having to notice that 次へ went from grey to dark.
+    private var statusHint: LocalizedStringKey? {
+        guard isUnlockedByTimeout, !isComplete else { return nil }
+        return "うまく反応しないときは、このまま「次へ」で進めます。"
+    }
+
+    /// Signals are accepted from shortly before the page opened, not strictly
+    /// after it. The extension stamps them on its own schedule, and a switch made
+    /// during the page transition landed just outside a strict comparison.
+    private var signalCutoff: Date {
+        pageOpenedAt.addingTimeInterval(-30)
+    }
+
+    #if DEBUG
+    /// TEMPORARY (2026-08-04): verifies on iOS 26 that KeyboardKit's status probe
+    /// still resolves input-mode identifiers — it reads them via private KVC, so a
+    /// hardened OS would silently report "not active" forever. Remove once
+    /// confirmed on a real device.
+    private func logKeyboardStatusProbe() {
+        let modes = UITextInputMode.activeInputModes.map { mode -> String in
+            (mode.value(forKey: "identifier") as? String) ?? "nil(\(mode.primaryLanguage ?? "?"))"
+        }
+        let seenAt = KeyboardSettingsStore.readOnboardingPracticeSignal(
+            KeyboardSettingsStore.onboardingPracticeKeyboardSeenAtKey
+        )
+        NSLog(
+            "%@",
+            "🔎 [switch-probe] active=\(keyboardStatus.isKeyboardActive) "
+                + "enabled=\(keyboardStatus.isKeyboardEnabled) "
+                + "seenAt=\(seenAt.map { String(format: "%.1fs", Date().timeIntervalSince($0)) } ?? "nil") "
+                + "practiceArmed=\(KeyboardSettingsStore.readOnboardingPracticeActive()) "
+                + "modes=\(modes)"
+        )
+    }
+    #endif
 
     private func refreshStatus(initialize: Bool) {
         if initialize {
@@ -522,15 +788,18 @@ private struct KeyboardSwitchPracticePage: View {
             initialOpenCount = usage.opens
         }
 
-        // Two independent proofs of "the user switched to our keyboard": the
-        // explicit practice signal the extension stamps on appearance, and the
-        // daily open counter moving past the page-entry baseline.
+        // Three independent proofs of "the user is on our keyboard". The first is
+        // a state, not an event, and is the one that matters: the other two only
+        // fire on a fresh keyboard appearance, so a user who was already on
+        // 敬語ボタン when this page opened produced no evidence at all and could
+        // never finish the exercise.
+        let openedViaActiveMode = keyboardStatus.isKeyboardActive
         let seenAt = KeyboardSettingsStore.readOnboardingPracticeSignal(
             KeyboardSettingsStore.onboardingPracticeKeyboardSeenAtKey
         )
-        let openedViaSignal = (seenAt ?? .distantPast) > pageOpenedAt
+        let openedViaSignal = (seenAt ?? .distantPast) > signalCutoff
         let openedViaCount = initialOpenCount.map { usage.opens > $0 } ?? false
-        if !initialize, !didOpenKeyboard, openedViaSignal || openedViaCount {
+        if !initialize, !didOpenKeyboard, openedViaActiveMode || openedViaSignal || openedViaCount {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 didOpenKeyboard = true
                 isShowingSwitchSuccess = true
@@ -549,7 +818,7 @@ private struct KeyboardSwitchPracticePage: View {
         let typedAt = KeyboardSettingsStore.readOnboardingPracticeSignal(
             KeyboardSettingsStore.onboardingPracticeTypedAtKey
         )
-        if !initialize, !didTypeWithKeyboard, (typedAt ?? .distantPast) > pageOpenedAt {
+        if !initialize, !didTypeWithKeyboard, (typedAt ?? .distantPast) > signalCutoff {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 didTypeWithKeyboard = true
             }
@@ -559,6 +828,23 @@ private struct KeyboardSwitchPracticePage: View {
             reportedKeyboardOpen = true
             AppAnalytics.capture("onboarding_keyboard_selected", properties: [
                 "input_style": style.rawValue,
+                "onboarding_version": InteractiveOnboardingState.version,
+            ])
+        }
+
+        // Last line of defence: detection must never be the only way forward.
+        // Whatever else failed, the CTA opens after 20 s and the miss is reported
+        // with the sub-signals, so the gap is measurable instead of invisible.
+        if !initialize, !isComplete, !isUnlockedByTimeout,
+           Date().timeIntervalSince(pageOpenedAt) > 20 {
+            isUnlockedByTimeout = true
+            AppAnalytics.capture("onboarding_practice_stalled", properties: [
+                "page": "keyboard_switch",
+                "input_style": style.rawValue,
+                "opened": didOpenKeyboard,
+                "typed": didType,
+                "keyboard_active": keyboardStatus.isKeyboardActive,
+                "keyboard_enabled": keyboardStatus.isKeyboardEnabled,
                 "onboarding_version": InteractiveOnboardingState.version,
             ])
         }
@@ -587,6 +873,7 @@ private struct RewritePracticePage: View {
     @State private var baselineConversions: Int?
     @State private var didAcceptRewrite = false
     @State private var reportedCompletion = false
+    @State private var isUnlockedByTimeout = false
     @FocusState private var isEditorFocused: Bool
 
     private let scenario: OnboardingPracticeScenario
@@ -614,6 +901,14 @@ private struct RewritePracticePage: View {
         !keyboardStatus.isKeyboardEnabled
     }
 
+    /// The timeout unlock ignores `needsKeyboard` on purpose: that flag comes from
+    /// the system's active-input-mode list, and when it reads wrong there is no
+    /// action the user can take that clears it — 「設定を開く」 forever is the
+    /// worst dead end of the three pages.
+    private var canAdvance: Bool {
+        didAcceptRewrite || isUnlockedByTimeout
+    }
+
     var body: some View {
         OnboardingScaffold(
             progress: progress,
@@ -626,40 +921,47 @@ private struct RewritePracticePage: View {
                 isEditorFocused = false
                 onSkip()
             },
-            ctaTitle: needsKeyboard && !didAcceptRewrite ? "設定を開く" : "次へ",
-            isCtaEnabled: didAcceptRewrite || needsKeyboard,
-            onCta: handleCTA
+            ctaTitle: !canAdvance && needsKeyboard ? "設定を開く" : "次へ",
+            isCtaEnabled: canAdvance || needsKeyboard,
+            onCta: handleCTA,
+            ctaAvoidsKeyboard: true
         ) {
-            VStack(spacing: 0) {
-                OnboardingTitleBlock(
-                    title: "AIボタンで\n書き換えてみましょう",
-                    subtitle: "キーボード上の「\(prompt.title)」を押すと、候補が3つ出ます。好きな候補で「置き換え」してください。"
-                )
-                .padding(.top, 24)
-                .padding(.horizontal, 20)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    OnboardingTitleBlock(
+                        title: "AIボタンで\n書き換えてみましょう",
+                        subtitle: "キーボード上の「\(prompt.title)」を押すと、候補が3つ出ます。気に入った候補をタップすると、その文章に置き換わります。",
+                        isCompact: isEditorFocused
+                    )
+                    .padding(.top, isEditorFocused ? 12 : 24)
 
-                OnboardingPracticeField(
-                    text: $text,
-                    isFocused: $isEditorFocused,
-                    placeholder: nil
-                )
-                .padding(.top, 28)
-                .padding(.horizontal, 20)
+                    OnboardingPracticeField(
+                        text: $text,
+                        isFocused: $isEditorFocused,
+                        placeholder: nil,
+                        isCompact: isEditorFocused
+                    )
+                    .padding(.top, isEditorFocused ? 16 : 28)
 
-                OnboardingPracticeStatus(
-                    symbol: statusSymbol,
-                    text: statusText,
-                    isComplete: didAcceptRewrite
-                )
-                .padding(.top, 18)
+                    OnboardingPracticeStatus(
+                        symbol: statusSymbol,
+                        text: statusText,
+                        hint: statusHint,
+                        isComplete: didAcceptRewrite
+                    )
+                    .padding(.top, isEditorFocused ? 12 : 18)
+                }
                 .padding(.horizontal, 20)
-
-                Spacer(minLength: 12)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
-        .practiceKeyboardDoneButton(isFocused: $isEditorFocused)
         .onAppear {
             InteractiveOnboardingState.armPractice(candidates: scenario.candidates)
+            // Both exercises share the accepted-at key; drop any stamp from a
+            // previous page so it can't complete this one.
+            KeyboardSettingsStore.clearOnboardingPracticeSignal(
+                KeyboardSettingsStore.onboardingPracticeAcceptedAtKey
+            )
             pageOpenedAt = Date()
             baselineConversions = KeyboardUsageStatsStore.snapshot().conversionsTotal
             keyboardStatus.refresh()
@@ -706,13 +1008,21 @@ private struct RewritePracticePage: View {
         if needsKeyboard {
             return "先にキーボードの追加が必要です。「設定を開く」から追加してください。"
         }
-        return "候補バーの上にある「\(prompt.title)」ボタンを押してみましょう"
+        // Carries both steps, not just the button press: while the keyboard is up
+        // the subtitle collapses and this is the only place the tap-to-replace
+        // gesture is explained.
+        return "候補バーの上の「\(prompt.title)」を押して、気に入った候補をタップしてください"
     }
 
     private var statusSymbol: String {
         if didAcceptRewrite { return "checkmark" }
         if needsKeyboard { return "gearshape" }
         return "hand.tap"
+    }
+
+    private var statusHint: LocalizedStringKey? {
+        guard isUnlockedByTimeout, !didAcceptRewrite else { return nil }
+        return "うまく反応しないときは、このまま「次へ」で進めます。"
     }
 
     private func refreshStatus() {
@@ -732,10 +1042,24 @@ private struct RewritePracticePage: View {
                 didAcceptRewrite = true
             }
         }
+        // A rewrite is two keyboard interactions, so this page gets longer than
+        // the switch page before it stops blocking.
+        if !didAcceptRewrite, !isUnlockedByTimeout,
+           Date().timeIntervalSince(pageOpenedAt) > 35 {
+            isUnlockedByTimeout = true
+            AppAnalytics.capture("onboarding_practice_stalled", properties: [
+                "page": "rewrite",
+                "input_style": style.rawValue,
+                "command_title": prompt.title,
+                "needs_keyboard": needsKeyboard,
+                "keyboard_active": keyboardStatus.isKeyboardActive,
+                "onboarding_version": InteractiveOnboardingState.version,
+            ])
+        }
     }
 
     private func handleCTA() {
-        if didAcceptRewrite {
+        if canAdvance {
             isEditorFocused = false
             onContinue()
             return
@@ -767,6 +1091,7 @@ private struct ReplyPracticePage: View {
     @State private var baselineConversions: Int?
     @State private var didAcceptReply = false
     @State private var reportedCompletion = false
+    @State private var isUnlockedByTimeout = false
     @FocusState private var isEditorFocused: Bool
 
     /// Reading the pasteboard from the keyboard needs Full Access, so the
@@ -774,6 +1099,10 @@ private struct ReplyPracticePage: View {
     private var needsSettings: Bool {
         !keyboardStatus.isKeyboardEnabled
             || !(keyboardStatus.isFullAccessEnabled || KeyboardSettingsStore.readLastKnownFullAccessEnabled())
+    }
+
+    private var canAdvance: Bool {
+        didAcceptReply || isUnlockedByTimeout
     }
 
     var body: some View {
@@ -788,38 +1117,42 @@ private struct ReplyPracticePage: View {
                 isEditorFocused = false
                 onSkip()
             },
-            ctaTitle: needsSettings && !didAcceptReply ? "設定を開く" : "次へ",
-            isCtaEnabled: didAcceptReply || needsSettings,
-            onCta: handleCTA
+            ctaTitle: !canAdvance && needsSettings ? "設定を開く" : "次へ",
+            isCtaEnabled: canAdvance || needsSettings,
+            onCta: handleCTA,
+            ctaAvoidsKeyboard: true
         ) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     OnboardingTitleBlock(
                         title: "返信も、\nコピーするだけ",
-                        subtitle: "相手のメッセージをコピーすると、キーボードに「返信」ボタンが現れます。"
+                        subtitle: "相手のメッセージをコピーすると、キーボードに「返信」ボタンが現れます。",
+                        isCompact: isEditorFocused
                     )
-                    .padding(.top, 24)
+                    .padding(.top, isEditorFocused ? 12 : 24)
 
                     ReplyIncomingMessageCard(
                         message: OnboardingPracticeScenario.replyIncomingMessage,
                         copied: copied,
                         onCopy: copyIncomingMessage
                     )
-                    .padding(.top, 28)
+                    .padding(.top, isEditorFocused ? 16 : 28)
 
                     OnboardingPracticeField(
                         text: $reply,
                         isFocused: $isEditorFocused,
-                        placeholder: "返信がここに入ります"
+                        placeholder: "返信がここに入ります",
+                        isCompact: isEditorFocused
                     )
                     .padding(.top, 12)
 
                     OnboardingPracticeStatus(
                         symbol: statusSymbol,
                         text: statusText,
+                        hint: statusHint,
                         isComplete: didAcceptReply
                     )
-                    .padding(.top, 18)
+                    .padding(.top, isEditorFocused ? 12 : 18)
 
                     Spacer(minLength: 12)
                 }
@@ -827,9 +1160,13 @@ private struct ReplyPracticePage: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .practiceKeyboardDoneButton(isFocused: $isEditorFocused)
         .onAppear {
             InteractiveOnboardingState.armPractice(candidates: OnboardingPracticeScenario.replyCandidates)
+            // The rewrite page stamps the same accepted-at key; drop it so the
+            // previous exercise can't complete this one.
+            KeyboardSettingsStore.clearOnboardingPracticeSignal(
+                KeyboardSettingsStore.onboardingPracticeAcceptedAtKey
+            )
             pageOpenedAt = Date()
             baselineConversions = KeyboardUsageStatsStore.snapshot().conversionsTotal
             keyboardStatus.refresh()
@@ -888,6 +1225,11 @@ private struct ReplyPracticePage: View {
         return "doc.on.doc"
     }
 
+    private var statusHint: LocalizedStringKey? {
+        guard isUnlockedByTimeout, !didAcceptReply else { return nil }
+        return "うまく反応しないときは、このまま「次へ」で進めます。"
+    }
+
     private func refreshStatus() {
         // Same as the rewrite page: no keyboardStatus.refresh() in the poll —
         // its per-tick publishes rebuilt the TextEditor during composition and
@@ -903,10 +1245,23 @@ private struct ReplyPracticePage: View {
                 didAcceptReply = true
             }
         }
+        // Copy → switch fields → press 返信 → tap a candidate: the longest of the
+        // three exercises, so it waits longest before it stops blocking.
+        if !didAcceptReply, !isUnlockedByTimeout,
+           Date().timeIntervalSince(pageOpenedAt) > 45 {
+            isUnlockedByTimeout = true
+            AppAnalytics.capture("onboarding_practice_stalled", properties: [
+                "page": "reply",
+                "copied": copied,
+                "needs_settings": needsSettings,
+                "keyboard_active": keyboardStatus.isKeyboardActive,
+                "onboarding_version": InteractiveOnboardingState.version,
+            ])
+        }
     }
 
     private func handleCTA() {
-        if didAcceptReply {
+        if canAdvance {
             isEditorFocused = false
             onContinue()
             return
@@ -973,6 +1328,10 @@ private struct OnboardingPracticeField: View {
     @Binding var text: String
     var isFocused: FocusState<Bool>.Binding
     let placeholder: LocalizedStringKey?
+    /// Shrinks to three lines of text while the keyboard is up. Drive this from
+    /// focus only — never from `text` — because re-laying out the TextEditor
+    /// mid-composition corrupts the marked text.
+    var isCompact: Bool = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -981,7 +1340,7 @@ private struct OnboardingPracticeField: View {
                     .font(.system(size: 17, weight: .regular))
                     .foregroundStyle(OnboardingPalette.subInk.opacity(0.55))
                     .padding(.horizontal, 21)
-                    .padding(.vertical, 20)
+                    .padding(.vertical, isCompact ? 14 : 20)
                     .allowsHitTesting(false)
             }
 
@@ -992,7 +1351,10 @@ private struct OnboardingPracticeField: View {
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .frame(minHeight: 128, maxHeight: 152)
+                .frame(
+                    minHeight: isCompact ? 84 : 128,
+                    maxHeight: isCompact ? 104 : 152
+                )
         }
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -1002,10 +1364,13 @@ private struct OnboardingPracticeField: View {
 }
 
 /// One-line live status under the practice field: what to do next, and a
-/// green check once the step is done.
+/// green check once the step is done. `hint` adds a quieter second line without
+/// taking the instruction away — used to surface the "just continue" escape when
+/// detection has not fired.
 private struct OnboardingPracticeStatus: View {
     let symbol: String
     let text: LocalizedStringKey
+    var hint: LocalizedStringKey? = nil
     let isComplete: Bool
 
     var body: some View {
@@ -1019,11 +1384,21 @@ private struct OnboardingPracticeStatus: View {
                     in: Circle()
                 )
 
-            Text(text)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(OnboardingPalette.ink)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(text)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(OnboardingPalette.ink)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let hint {
+                    Text(hint)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(OnboardingPalette.subInk)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -1037,26 +1412,7 @@ private struct OnboardingPracticeStatus: View {
     }
 }
 
-/// A 完了 accessory above the keyboard so the practice pages can always be
-/// collapsed — the practice field keeps focus otherwise and would hide the CTA
-/// behind the keyboard.
-private struct PracticeKeyboardDoneButton: ViewModifier {
-    var isFocused: FocusState<Bool>.Binding
-
-    func body(content: Content) -> some View {
-        content.toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("完了") { isFocused.wrappedValue = false }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppColor.purple)
-            }
-        }
-    }
-}
-
-private extension View {
-    func practiceKeyboardDoneButton(isFocused: FocusState<Bool>.Binding) -> some View {
-        modifier(PracticeKeyboardDoneButton(isFocused: isFocused))
-    }
-}
+// The 完了 keyboard accessory that used to sit here existed only to collapse the
+// keyboard and reveal the CTA hidden behind it. The CTA now rides above the
+// keyboard, so the accessory was a second bar competing for the same 46 pt;
+// swipe-to-dismiss on the practice scroll views replaces it.

@@ -194,11 +194,18 @@ struct RootContainerView: View {
         }
     }
 
-    /// Ask for an App Store review only once the keyboard has clearly paid off
-    /// (3+ accepted AI rewrites), at most once per app version, and never on top
-    /// of a what's-new sheet. The system itself caps prompts at 3 / 365 days.
+    /// Ask for an App Store review once the keyboard has paid off at all — one
+    /// accepted AI rewrite — at most once per app version, and never on top of a
+    /// what's-new sheet. Deliberately not gated on container visits: users have
+    /// no reason to reopen the container after setup, so counting opens only
+    /// shrinks the audience that has already proven value out in the keyboard.
+    /// The system itself caps prompts at 3 / 365 days.
+    /// `hasCompletedFirstRun` is required because the onboarding practice
+    /// exercises themselves record a conversion — without it the first Settings
+    /// round-trip mid-onboarding would foreground into this prompt.
     private func maybeRequestReview() {
-        guard stats.conversionsTotal >= 3, whatsNewSheet == nil, updateInfo == nil else { return }
+        guard hasCompletedFirstRun,
+              stats.conversionsTotal >= 1, whatsNewSheet == nil, updateInfo == nil else { return }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         guard !version.isEmpty, version != lastReviewPromptVersion else { return }
         lastReviewPromptVersion = version

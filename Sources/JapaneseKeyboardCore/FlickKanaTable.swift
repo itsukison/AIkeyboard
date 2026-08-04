@@ -31,14 +31,20 @@ public enum FlickKanaTable {
         public let top: String?
         public let right: String?
         public let bottom: String?
+        /// False when `center` is a key-cap label rather than text to insert —
+        /// only the 小書き key, whose center tap mutates the previous kana. A
+        /// flick onto a direction the key doesn't map commits `center` like
+        /// native; on that key it must do nothing instead.
+        public let centerIsInsertable: Bool
 
-        public init(center: String, display: String? = nil, left: String? = nil, top: String? = nil, right: String? = nil, bottom: String? = nil) {
+        public init(center: String, display: String? = nil, left: String? = nil, top: String? = nil, right: String? = nil, bottom: String? = nil, centerIsInsertable: Bool = true) {
             self.center = center
             self.display = display
             self.left = left
             self.top = top
             self.right = right
             self.bottom = bottom
+            self.centerIsInsertable = centerIsInsertable
         }
 
         /// What's drawn on the key cap.
@@ -75,7 +81,7 @@ public enum FlickKanaTable {
     /// Flick alternatives for the 小書き key. Center tap toggles the last
     /// kana's character type via `toggleCharacterType`; the flicks insert
     /// small kana directly.
-    public static let kogaki = FlickKey(center: "小ﾞﾟ", left: "ぁ", top: "ゃ", right: "っ", bottom: "ゔ")
+    public static let kogaki = FlickKey(center: "小ﾞﾟ", left: "ぁ", top: "ゃ", right: "っ", bottom: "ゔ", centerIsInsertable: false)
 
     /// Shown in the 小書き slot when not composing (native swaps the two): a
     /// kaomoji key whose center inserts "^_^". No flick alternatives.

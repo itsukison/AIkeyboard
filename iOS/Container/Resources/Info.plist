@@ -23,9 +23,9 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.16</string>
+    <string>1.0.18</string>
     <key>CFBundleVersion</key>
-    <string>19</string>
+    <string>21</string>
     <key>POSTHOG_PROJECT_TOKEN</key>
     <string>$(POSTHOG_PROJECT_TOKEN)</string>
     <key>POSTHOG_HOST</key>

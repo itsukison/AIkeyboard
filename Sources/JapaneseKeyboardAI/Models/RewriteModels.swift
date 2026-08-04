@@ -31,6 +31,12 @@ public struct RewriteRequest: Codable, Sendable {
     public let replyTo: String?
     public let commandKey: String?
     public let title: String?
+    /// Where the button came from (`builtin` / `onboarding_builder` /
+    /// `onboarding_preset` / `user_authored`). `commandKey` is nil for anything
+    /// that is not a seeded built-in, so it cannot distinguish a button the user
+    /// built during onboarding from one they wrote later — and those two predict
+    /// retention very differently.
+    public let promptOrigin: String?
     public let locale: String
     public let appVersion: String
     public let candidateCount: Int
@@ -43,6 +49,9 @@ public struct RewriteRequest: Codable, Sendable {
     /// quality only — the backend must never store it.
     public let selectionContextBefore: String?
     public let selectionContextAfter: String?
+    /// Asks the backend to deliver candidates over Server-Sent Events as each
+    /// one finishes, rather than buffering all of them into one response.
+    public let stream: Bool
 
     public init(
         prompt: String,
@@ -50,6 +59,7 @@ public struct RewriteRequest: Codable, Sendable {
         replyTo: String? = nil,
         commandKey: String? = nil,
         title: String? = nil,
+        promptOrigin: String? = nil,
         locale: String,
         appVersion: String,
         candidateCount: Int = 3,
@@ -57,13 +67,15 @@ public struct RewriteRequest: Codable, Sendable {
         analyticsAppInstanceId: String? = nil,
         selection: Bool = false,
         selectionContextBefore: String? = nil,
-        selectionContextAfter: String? = nil
+        selectionContextAfter: String? = nil,
+        stream: Bool = false
     ) {
         self.prompt = prompt
         self.text = text
         self.replyTo = replyTo
         self.commandKey = commandKey
         self.title = title
+        self.promptOrigin = promptOrigin
         self.locale = locale
         self.appVersion = appVersion
         self.candidateCount = candidateCount
@@ -72,6 +84,7 @@ public struct RewriteRequest: Codable, Sendable {
         self.selection = selection
         self.selectionContextBefore = selectionContextBefore
         self.selectionContextAfter = selectionContextAfter
+        self.stream = stream
     }
 }
 

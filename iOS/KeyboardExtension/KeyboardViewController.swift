@@ -26,6 +26,10 @@ final class KeyboardViewController: KeyboardInputViewController {
     private var typedDayMarker: String?
     /// Once-per-appearance guard for the onboarding practice typing signal.
     private var practiceTypedReported = false
+    /// Throttle for the practice "our keyboard is on screen" signal. It has to
+    /// be re-stamped while the keyboard stays up (not just on appearance) —
+    /// see `markPracticeKeyboardSeenIfNeeded`.
+    private var practiceSeenStampedAt: Date?
     /// The previous committed word, so the next commit can be recorded as a
     /// next-word (予測変換) transition in `NextWordPreferenceStore`.
     private var lastCommittedWord: String?
@@ -58,7 +62,6 @@ final class KeyboardViewController: KeyboardInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
-        autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
         keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
         configureInputManager(force: true)
@@ -256,7 +259,6 @@ final class KeyboardViewController: KeyboardInputViewController {
         // every appearance because the keyboard window is rebuilt between
         // presentations.
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
-        autoEnableHapticsDefaultIfNeeded()
         hapticsEnabled = KeyboardSettingsStore.readHapticsEnabled()
         keyClickSoundEnabled = KeyboardSettingsStore.readKeyClickSoundEnabled()
         keySizeObserver.refresh()
@@ -267,13 +269,8 @@ final class KeyboardViewController: KeyboardInputViewController {
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
         aiKeyboardController.refreshUpdateNudgeOnAppear()
         KeyboardUsageDailyStore.recordKeyboardOpen()
-        if KeyboardSettingsStore.readOnboardingPracticeActive() {
-            // Tells the onboarding switch-practice page "the user's keyboard
-            // is now ours" without relying on cross-process counter deltas.
-            KeyboardSettingsStore.writeOnboardingPracticeSignal(
-                KeyboardSettingsStore.onboardingPracticeKeyboardSeenAtKey
-            )
-        }
+        practiceSeenStampedAt = nil
+        markPracticeKeyboardSeenIfNeeded()
         practiceTypedReported = false
         keyboardAppearedAt = Date()
         #if DEBUG
@@ -311,6 +308,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         InputLatencyProbe.stopSampling()
         #endif
         aiKeyboardController.stopClipboardMonitoring()
+        aiKeyboardController.markClipboardSeenOnDisappear()
         if let appearedAt = keyboardAppearedAt {
             let elapsed = Int(Date().timeIntervalSince(appearedAt))
             if elapsed > 0 && elapsed < 3600 {
@@ -327,6 +325,7 @@ final class KeyboardViewController: KeyboardInputViewController {
             InputLatencyProbe.measure("├ syncFullAccess") { syncFullAccessStatus() }
             InputLatencyProbe.measure("├ documentDidChange") { aiKeyboardController.documentDidChange() }
             InputLatencyProbe.measure("├ replyAvailability") { aiKeyboardController.refreshReplyAvailability() }
+            InputLatencyProbe.measure("└ markPracticeSeen") { markPracticeKeyboardSeenIfNeeded() }
         }
     }
 
@@ -339,8 +338,26 @@ final class KeyboardViewController: KeyboardInputViewController {
             InputLatencyProbe.measure("├ replyAvailability") { aiKeyboardController.refreshReplyAvailability() }
             InputLatencyProbe.measure("├ markTypedActivity") { markTypedActivityIfNeeded() }
             InputLatencyProbe.measure("├ markPracticeTyped") { markPracticeTypedIfNeeded() }
+            InputLatencyProbe.measure("├ markPracticeSeen") { markPracticeKeyboardSeenIfNeeded() }
             InputLatencyProbe.measure("└ staleCompositionCheck") { scheduleStaleCompositionCheck() }
         }
+    }
+
+    /// Practice-mode "our keyboard is on screen" signal. Deliberately re-stamped
+    /// while the keyboard stays up, not written once on appearance: the switch
+    /// exercise used to have exactly one chance to prove the switch, so a user
+    /// who was already on this keyboard when the page opened (no fresh
+    /// `viewWillAppear`), or whose appearance ran before the container's
+    /// practice flag was visible in this process, could never complete it.
+    /// Throttled on the check, not just the write, so users who are not in
+    /// onboarding pay one App Group read per 2 s rather than one per keystroke.
+    private func markPracticeKeyboardSeenIfNeeded() {
+        if let checked = practiceSeenStampedAt, Date().timeIntervalSince(checked) < 2 { return }
+        practiceSeenStampedAt = Date()
+        guard KeyboardSettingsStore.readOnboardingPracticeActive() else { return }
+        KeyboardSettingsStore.writeOnboardingPracticeSignal(
+            KeyboardSettingsStore.onboardingPracticeKeyboardSeenAtKey
+        )
     }
 
     /// Practice-mode typing signal: an active composition proves the user is
@@ -611,8 +628,11 @@ final class KeyboardViewController: KeyboardInputViewController {
             context.keyboardType = .alphabetic
         }
         // iOS's keyboard haptic preference is private to UIKit and unreadable
-        // from a keyboard extension, so users opt in through our setting. We
-        // fire haptics in JapaneseActionHandler because custom-composed keys
+        // from a keyboard extension, so users opt in through our setting —
+        // which defaults off, like the system keyboard's own haptic setting.
+        // (UIFeedbackGenerator is not muted by the ring switch either, so an
+        // on-by-default keyboard buzzes in silent mode where native doesn't.)
+        // We fire haptics in JapaneseActionHandler because custom-composed keys
         // return before KeyboardKit's standard feedback path. The preference
         // is runtime-gated on Full Access below; we never persist a downgrade
         // so haptics auto-resume if Full Access is toggled back on.
@@ -632,16 +652,6 @@ final class KeyboardViewController: KeyboardInputViewController {
         if state.feedbackContext.audioConfiguration != .disabled {
             state.feedbackContext.audioConfiguration = .disabled
         }
-    }
-
-    /// One-time default seeding: the first time the keyboard loads with Full
-    /// Access on, opt the user into haptics. After this write the preference
-    /// key is explicitly set, so later manual toggles are respected and this
-    /// no-ops. Stays off if the user never grants Full Access.
-    private func autoEnableHapticsDefaultIfNeeded() {
-        guard !KeyboardSettingsStore.isHapticsEnabledSet(),
-              state.keyboardContext.hasFullAccess else { return }
-        KeyboardSettingsStore.writeHapticsEnabled(true)
     }
 
     private var shouldForceLowercaseAlphabeticCharacters: Bool {
@@ -733,7 +743,7 @@ private final class KeyboardHapticFeedback {
         // A cold Taptic Engine would show up here — measured at 0.2 ms, so it
         // doesn't. Left in place as the regression check for any haptic change.
         InputLatencyProbe.measure("impactOccurred") {
-            keyPressGenerator.impactOccurred(intensity: 0.6)
+            keyPressGenerator.impactOccurred(intensity: 0.62)
         }
         keyPressGenerator.prepare()
     }

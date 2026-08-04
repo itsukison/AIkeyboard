@@ -19,17 +19,21 @@ struct AIResultOverlayView: View {
 
     private var panelModel: PanelModel? {
         switch aiController.state {
-        case .generating(_, _, let refinement, let existing):
+        case .generating(_, _, let refinement, let existing, let pending):
             return PanelModel(
                 existing: existing,
-                showSkeletons: true,
+                showSkeletons: pending > 0,
+                skeletonCount: pending,
                 focusedIndex: nil,
+                // Streamed candidates land in `existing`, so a fresh generation
+                // only resets while nothing has arrived yet.
                 resetToFirstCard: refinement == nil && existing.isEmpty
             )
         case .result(_, _, let candidates, let selectedIndex):
             return PanelModel(
                 existing: candidates,
                 showSkeletons: false,
+                skeletonCount: 0,
                 focusedIndex: selectedIndex,
                 resetToFirstCard: false
             )
@@ -49,6 +53,7 @@ struct AIResultOverlayView: View {
                 cardsCarousel(
                     candidates: model.existing,
                     showSkeletons: model.showSkeletons,
+                    skeletonCount: model.skeletonCount,
                     focusedIndex: model.focusedIndex,
                     resetToFirstCard: model.resetToFirstCard
                 )
@@ -67,6 +72,7 @@ struct AIResultOverlayView: View {
     private func cardsCarousel(
         candidates: [RewriteCandidate],
         showSkeletons: Bool,
+        skeletonCount: Int,
         focusedIndex: Int?,
         resetToFirstCard: Bool
     ) -> some View {
@@ -79,6 +85,7 @@ struct AIResultOverlayView: View {
             centeredIndex: carouselIndex,
             candidates: candidates,
             showSkeletons: showSkeletons,
+            skeletonCount: skeletonCount,
             focusedIndex: focusedIndex,
             animatesProgrammaticScroll: !resetToFirstCard,
             onSelectionChanged: onSelectionHaptic,
@@ -106,8 +113,11 @@ struct AIResultOverlayView: View {
             guard isShowing else { return }
             centeredIndex = resetToFirstCard ? 0 : candidates.count
         }
+        // Reported even when it lands on a shimmer placeholder — mid-generation
+        // the controller needs that position to keep the user where they
+        // scrolled. The controller ignores out-of-range indices once results
+        // are in, so no guard is needed here.
         .onChange(of: centeredIndex) { newCentered in
-            guard candidates.indices.contains(newCentered) else { return }
             aiController.selectCandidate(index: newCentered)
         }
     }
@@ -135,6 +145,7 @@ struct AIResultOverlayView: View {
     private struct PanelModel {
         let existing: [RewriteCandidate]
         let showSkeletons: Bool
+        let skeletonCount: Int
         let focusedIndex: Int?
         let resetToFirstCard: Bool
     }

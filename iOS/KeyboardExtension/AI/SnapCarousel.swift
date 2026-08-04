@@ -10,13 +10,16 @@ struct SnapCarousel: UIViewRepresentable {
     @Binding var centeredIndex: Int
     let candidates: [RewriteCandidate]
     let showSkeletons: Bool
+    /// Shrinks as streamed candidates arrive, so a placeholder is replaced by
+    /// its real card rather than sitting alongside it.
+    let skeletonCount: Int
     let focusedIndex: Int?
     let animatesProgrammaticScroll: Bool
     let onSelectionChanged: () -> Void
     let onTapCentered: () -> Void
 
     private var totalCount: Int {
-        candidates.count + (showSkeletons ? 3 : 0)
+        candidates.count + (showSkeletons ? skeletonCount : 0)
     }
 
     func makeUIView(context: Context) -> SnapCarouselView {
@@ -45,14 +48,21 @@ struct SnapCarousel: UIViewRepresentable {
                         text: candidate.replacement,
                         isSelected: index == focusedIndex
                     )
-                    .onTapGesture {
-                        guard isCentered else { return }
-                        onTap()
+                    // Raw-touch surface rather than `.onTapGesture`: iOS 26 drops
+                    // SwiftUI taps on hosted cells like these cards, and this tap
+                    // is the only way to accept a rewrite. Same pattern (and same
+                    // reason) as `CandidateTapSurface` in the candidate bar; the
+                    // scroll pan cancelling the touch is what rejects a swipe.
+                    .overlay {
+                        CandidateCardTapSurface(label: "ai-card") {
+                            guard isCentered else { return }
+                            onTap()
+                        }
                     }
                     .allowsHitTesting(isCentered)
                 }
                 if showSkeletons {
-                    ForEach(0..<3, id: \.self) { _ in
+                    ForEach(0..<skeletonCount, id: \.self) { _ in
                         CandidateSkeletonCard()
                     }
                 }
@@ -238,5 +248,62 @@ final class SnapCarouselView: UIView {
     private func contentOffsetX(forCenteredIndex index: Int) -> CGFloat {
         let cardCenter = sidePadding + CGFloat(index) * (Self.cardWidth + Self.cardSpacing) + Self.cardWidth / 2
         return cardCenter - bounds.width / 2
+    }
+}
+
+/// Accept-tap surface for a candidate card. Third copy of the raw-touch pattern
+/// (`CandidateTapSurface` in the candidate bar, `KeyboardToolbarTapSurface` in
+/// the toolbar) because both existing ones are private to their file/module —
+/// worth hoisting into one shared type if a fourth ever shows up.
+private struct CandidateCardTapSurface: UIViewRepresentable {
+    let label: String
+    let onTap: () -> Void
+
+    func makeUIView(context: Context) -> CandidateCardTapSurfaceView {
+        CandidateCardTapSurfaceView(label: label, onTap: onTap)
+    }
+
+    func updateUIView(_ view: CandidateCardTapSurfaceView, context: Context) {
+        view.onTap = onTap
+    }
+}
+
+private final class CandidateCardTapSurfaceView: UIView {
+    var onTap: () -> Void
+    private let label: String
+    private var touchStart: CGPoint?
+    private static let maximumTapMovement: CGFloat = 12
+
+    init(label: String, onTap: @escaping () -> Void) {
+        self.label = label
+        self.onTap = onTap
+        super.init(frame: .zero)
+        // Not .clear — fully transparent views have been observed dropping
+        // touches in keyboard extensions (Apple forums 702798).
+        backgroundColor = UIColor.white.withAlphaComponent(0.01)
+        isMultipleTouchEnabled = false
+        accessibilityIdentifier = "CandidateCardTapSurface.\(label)"
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        touchStart = touches.first?.location(in: self)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        defer { touchStart = nil }
+        guard let start = touchStart,
+              let point = touches.first?.location(in: self) else { return }
+        guard hypot(point.x - start.x, point.y - start.y) <= Self.maximumTapMovement else { return }
+        onTap()
+    }
+
+    // The carousel's pan claiming the touch lands here — a swipe must not accept.
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        touchStart = nil
     }
 }

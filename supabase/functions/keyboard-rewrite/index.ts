@@ -21,6 +21,7 @@ type RewriteRequest = {
   replyTo?: string;
   commandKey?: string;
   title?: string;
+  promptOrigin?: string;
   locale?: string;
   appVersion?: string;
   candidateCount?: number;
@@ -31,6 +32,9 @@ type RewriteRequest = {
   selection?: boolean;
   selectionContextBefore?: string;
   selectionContextAfter?: string;
+  // Opt-in: clients that can read Server-Sent Events get each candidate as it
+  // finishes generating. Older builds omit it and keep the single-JSON path.
+  stream?: boolean;
 };
 
 type RewriteCandidate = {
@@ -191,13 +195,43 @@ Deno.serve(async (req) => {
     return jsonError("configuration_missing", "No rewrite provider API key is configured.", 503);
   }
 
-  const usage = await reserveUsage(userId, request.candidateCount ?? DEFAULT_CANDIDATES);
+  // The usage guard is a full round trip to Postgres, so it runs alongside the
+  // provider call rather than in front of it. The limits are abuse-oriented and
+  // observed peak use is 7 requests/minute against a 12/minute cap, so a denial
+  // — which wastes the in-flight provider call — is close to unreachable.
+  const preflightMs = Date.now() - startedAt;
+  const guardStartedAt = Date.now();
+  const usagePromise = reserveUsage(userId, request.candidateCount ?? DEFAULT_CANDIDATES)
+    .then((value) => ({ ...value, guardMs: Date.now() - guardStartedAt }));
+
+  // Streaming clients get each candidate as it finishes. Falls through to the
+  // buffered path if the stream can't be started, so a failure here is never
+  // worse than the non-streaming behaviour.
+  if (request.stream) {
+    const streamed = await streamRewrite(request, userId, usagePromise, startedAt, preflightMs);
+    if (streamed) return streamed;
+  }
+
+  const providerStartedAt = Date.now();
+  let providerMs = 0;
+  const rewritePromise = rewriteWithProviders(providers, request, userId)
+    .then((value) => {
+      providerMs = Date.now() - providerStartedAt;
+      return value;
+    });
+  // A denied or failed guard returns before the provider settles. Without a
+  // handler attached here that rejection would surface as an unhandled one and
+  // take down the isolate; the await below still observes the real error.
+  rewritePromise.catch(() => {});
+
+  const usage = await usagePromise;
+  const guardMs = usage.guardMs;
   if (!usage.allowed) {
     return jsonError("rate_limited", usage.message, 429);
   }
 
   try {
-    const rewrite = await rewriteWithProviders(providers, request, userId);
+    const rewrite = await rewritePromise;
     const result = rewrite.result;
     const latencyMs = Date.now() - startedAt;
     console.log(JSON.stringify({
@@ -216,6 +250,9 @@ Deno.serve(async (req) => {
         0,
       ),
       latencyMs,
+      preflightMs,
+      guardMs,
+      providerMs,
       inputTokens: rewrite.usage.inputTokens,
       cachedInputTokens: rewrite.usage.cachedInputTokens,
       outputTokens: rewrite.usage.outputTokens,
@@ -246,6 +283,9 @@ Deno.serve(async (req) => {
         serviceTier: rewrite.serviceTier,
         usage: rewrite.usage,
         latencyMs,
+        preflightMs,
+        guardMs,
+        providerMs,
       }),
     ]));
     return json({ ...result, eventId });
@@ -284,6 +324,7 @@ function parseRewriteRequest(body: unknown):
   const replyTo = data.replyTo;
   const commandKey = data.commandKey;
   const title = data.title;
+  const promptOrigin = data.promptOrigin;
   const locale = data.locale;
   const appVersion = data.appVersion;
   const refinementValue = data.refinement;
@@ -325,6 +366,7 @@ function parseRewriteRequest(body: unknown):
       replyTo: hasReplyTo ? (replyTo as string) : undefined,
       commandKey: typeof commandKey === "string" ? commandKey : undefined,
       title: typeof title === "string" ? title : undefined,
+      promptOrigin: typeof promptOrigin === "string" ? promptOrigin : undefined,
       locale: typeof locale === "string" ? locale : "ja-JP",
       appVersion: typeof appVersion === "string" ? appVersion : "unknown",
       candidateCount,
@@ -337,6 +379,7 @@ function parseRewriteRequest(body: unknown):
       selectionContextAfter: selection && typeof selectionContextAfter === "string" && selectionContextAfter.length > 0
         ? selectionContextAfter
         : undefined,
+      stream: data.stream === true,
     },
   };
 }
@@ -663,6 +706,7 @@ async function logRewriteEvent(
   const payload: Record<string, unknown> = {
     language: input.result.language,
     command_key: input.request.commandKey ?? null,
+    prompt_origin: input.request.promptOrigin ?? null,
     title: input.request.title ?? null,
     refinement: input.request.refinement ?? null,
     locale: input.request.locale ?? null,
@@ -835,11 +879,15 @@ async function captureRewriteAnalytics(
     serviceTier: string | null;
     usage: ProviderUsage;
     latencyMs: number;
+    preflightMs: number;
+    guardMs: number;
+    providerMs: number;
   },
 ): Promise<void> {
   const properties = {
     event_id: eventId,
     command_key: input.request.commandKey ?? null,
+    prompt_origin: input.request.promptOrigin ?? null,
     title: input.request.title ?? null,
     refinement: input.request.refinement ?? null,
     provider: input.provider,
@@ -862,6 +910,11 @@ async function captureRewriteAnalytics(
     output_tokens: input.usage.outputTokens,
     reasoning_tokens: input.usage.reasoningTokens,
     latency_ms: input.latencyMs,
+    // Latency budget split, so the fixed overhead is queryable rather than
+    // only visible in console logs.
+    preflight_ms: input.preflightMs,
+    guard_ms: input.guardMs,
+    provider_ms: input.providerMs,
   };
   await Promise.all([
     capturePostHogEvent("ai_rewrite", input.userId, properties),
@@ -1193,46 +1246,7 @@ async function rewriteWithProvider(
     Math.min(config.timeoutMs, remainingMs),
   );
 
-  const maxCompletionTokens = config.baseTokens * candidateCount;
-  const reasoningEffort = config.reasoningEffort;
-
-  const isReply = typeof request.replyTo === "string" && request.replyTo.trim().length > 0;
-  const body: Record<string, unknown> = {
-    model: config.model,
-    messages: [
-      {
-        role: "system",
-        content: isReply
-          ? systemInstructionsForReply(candidateCount)
-          : request.selection
-          ? systemInstructionsForSelection(candidateCount)
-          : systemInstructions(candidateCount),
-      },
-      { role: "user", content: userPrompt(request) },
-    ],
-    max_completion_tokens: maxCompletionTokens,
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "keyboard_rewrite_response",
-        strict: true,
-        schema: rewriteSchema(),
-      },
-    },
-  };
-
-  if (reasoningEffort) {
-    body.reasoning_effort = reasoningEffort;
-  }
-  if (provider === "openai") {
-    body.store = false;
-    if (config.serviceTier) {
-      body.service_tier = config.serviceTier;
-    }
-    if (safetyIdentifier) {
-      body.safety_identifier = safetyIdentifier;
-    }
-  }
+  const body = buildRewriteBody(provider, config, request, candidateCount, safetyIdentifier);
 
   let response: Response;
   try {
@@ -1286,6 +1300,372 @@ async function rewriteWithProvider(
     usage: extractProviderUsage(payload),
     result: normalizeResult(result, request),
   };
+}
+
+// Shared by the buffered and streaming paths so the two can never drift on
+// prompt wording, schema, or provider-specific fields.
+function buildRewriteBody(
+  provider: ProviderName,
+  config: ProviderConfig,
+  request: RewriteRequest,
+  candidateCount: number,
+  safetyIdentifier: string | null,
+): Record<string, unknown> {
+  const isReply = typeof request.replyTo === "string" && request.replyTo.trim().length > 0;
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages: [
+      {
+        role: "system",
+        content: isReply
+          ? systemInstructionsForReply(candidateCount)
+          : request.selection
+          ? systemInstructionsForSelection(candidateCount)
+          : systemInstructions(candidateCount),
+      },
+      { role: "user", content: userPrompt(request) },
+    ],
+    max_completion_tokens: config.baseTokens * candidateCount,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "keyboard_rewrite_response",
+        strict: true,
+        schema: rewriteSchema(),
+      },
+    },
+  };
+
+  if (config.reasoningEffort) {
+    body.reasoning_effort = config.reasoningEffort;
+  }
+  if (provider === "openai") {
+    body.store = false;
+    if (config.serviceTier) {
+      body.service_tier = config.serviceTier;
+    }
+    if (safetyIdentifier) {
+      body.safety_identifier = safetyIdentifier;
+    }
+  }
+  return body;
+}
+
+type UsageDecision = { allowed: boolean; message: string; guardMs: number };
+
+// Tracks how far into a partially-received `{"candidates":["a","b"],…}` payload
+// we have scanned. The cursor never advances past an unterminated string, so a
+// candidate is only emitted once its closing quote has actually arrived.
+type CandidateScan = { cursor: number; started: boolean; done: boolean };
+
+function scanCandidates(buffer: string, state: CandidateScan): string[] {
+  const found: string[] = [];
+  if (state.done) return found;
+
+  if (!state.started) {
+    const key = buffer.indexOf('"candidates"', state.cursor);
+    if (key < 0) return found;
+    const open = buffer.indexOf("[", key);
+    if (open < 0) return found;
+    state.started = true;
+    state.cursor = open + 1;
+  }
+
+  for (;;) {
+    let i = state.cursor;
+    while (i < buffer.length && " \n\r\t,".includes(buffer[i])) i++;
+    if (i >= buffer.length) {
+      state.cursor = i;
+      return found;
+    }
+    if (buffer[i] === "]") {
+      state.done = true;
+      state.cursor = i + 1;
+      return found;
+    }
+    if (buffer[i] !== '"') {
+      state.cursor = i;
+      return found;
+    }
+
+    let j = i + 1;
+    let escaped = false;
+    let closed = false;
+    while (j < buffer.length) {
+      const ch = buffer[j];
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        closed = true;
+        break;
+      }
+      j++;
+    }
+    if (!closed) {
+      state.cursor = i;
+      return found;
+    }
+
+    try {
+      found.push(JSON.parse(buffer.slice(i, j + 1)) as string);
+    } catch {
+      state.cursor = i;
+      return found;
+    }
+    state.cursor = j + 1;
+  }
+}
+
+// Yields each parsed `data:` payload from an OpenAI SSE body.
+async function* iterateProviderStream(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<Record<string, unknown>> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let pending = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      let cut = pending.indexOf("\n");
+      while (cut >= 0) {
+        const line = pending.slice(0, cut).trim();
+        pending = pending.slice(cut + 1);
+        cut = pending.indexOf("\n");
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (payload === "[DONE]") return;
+        try {
+          yield JSON.parse(payload);
+        } catch {
+          // A partial or non-JSON keepalive line; skip it.
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// Streams candidates to the client as each one finishes. Returns null when the
+// stream could not be started, which tells the caller to fall back to the
+// buffered path rather than failing the request.
+async function streamRewrite(
+  request: RewriteRequest,
+  userId: string,
+  usagePromise: Promise<UsageDecision>,
+  startedAt: number,
+  preflightMs: number,
+): Promise<Response | null> {
+  const config = resolveProviderConfig("openai");
+  if (!config.apiKey) return null;
+
+  const candidateCount = request.candidateCount ?? DEFAULT_CANDIDATES;
+  const safetyIdentifier = await hashUserId(userId);
+  const body = buildRewriteBody("openai", config, request, candidateCount, safetyIdentifier);
+  body.stream = true;
+  body.stream_options = { include_usage: true };
+
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), config.timeoutMs);
+  const providerStartedAt = Date.now();
+
+  let response: Response;
+  try {
+    response = await fetch(config.endpoint, {
+      method: "POST",
+      signal: abort.signal,
+      headers: { ...config.authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+    console.error(JSON.stringify({
+      event: "keyboard_rewrite_stream_start_failed",
+      message: error instanceof Error ? error.message : "unknown error",
+    }));
+    return null;
+  }
+
+  // The guard runs concurrently with the request above, so by now it has
+  // usually already resolved and this await is free.
+  const usage = await usagePromise;
+  if (!usage.allowed) {
+    clearTimeout(timeout);
+    await response.body?.cancel().catch(() => {});
+    return jsonError("rate_limited", usage.message, 429);
+  }
+
+  if (!response.ok || !response.body) {
+    clearTimeout(timeout);
+    const detail = response.ok ? "no body" : (await response.text()).slice(0, 300);
+    await response.body?.cancel().catch(() => {});
+    console.error(JSON.stringify({
+      event: "keyboard_rewrite_stream_start_failed",
+      httpStatus: response.status,
+      message: detail,
+    }));
+    return null;
+  }
+
+  const providerBody = response.body;
+  const encoder = new TextEncoder();
+  const eventId = crypto.randomUUID();
+
+  const sse = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (payload: unknown) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+
+      const scan: CandidateScan = { cursor: 0, started: false, done: false };
+      const candidates: RewriteCandidate[] = [];
+      let buffer = "";
+      let model = config.model;
+      let serviceTier: string | null = null;
+      let providerUsage: ProviderUsage = {
+        inputTokens: null,
+        cachedInputTokens: null,
+        outputTokens: null,
+        reasoningTokens: null,
+      };
+      let blocked = false;
+
+      try {
+        for await (const chunk of iterateProviderStream(providerBody)) {
+          if (typeof chunk.model === "string") model = chunk.model;
+          if (typeof chunk.service_tier === "string") serviceTier = chunk.service_tier;
+          if (chunk.usage) providerUsage = extractProviderUsage(chunk);
+
+          // deno-lint-ignore no-explicit-any
+          const choice = (chunk as any).choices?.[0];
+          if (choice?.finish_reason === "content_filter") {
+            blocked = true;
+            break;
+          }
+          const delta = choice?.delta?.content;
+          if (typeof delta !== "string" || delta.length === 0) continue;
+
+          buffer += delta;
+          for (const text of scanCandidates(buffer, scan)) {
+            candidates.push({ replacement: text, changed: text !== request.text });
+            send({
+              type: "candidate",
+              index: candidates.length - 1,
+              text,
+              changed: text !== request.text,
+            });
+          }
+        }
+      } catch (error) {
+        console.error(JSON.stringify({
+          event: "keyboard_rewrite_stream_failed",
+          emitted: candidates.length,
+          message: error instanceof Error ? error.message : "unknown error",
+        }));
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      const providerMs = Date.now() - providerStartedAt;
+      const latencyMs = Date.now() - startedAt;
+
+      if (blocked) {
+        send({
+          type: "error",
+          code: "content_blocked",
+          message: "この内容はAIで書き換えできません。内容を変えてもう一度お試しください。",
+        });
+        controller.close();
+        return;
+      }
+      if (candidates.length === 0) {
+        send({
+          type: "error",
+          code: "provider_error",
+          message: "AIの処理に失敗しました。少し待ってからもう一度お試しください。",
+        });
+        controller.close();
+        return;
+      }
+
+      const result: RewriteResult = {
+        candidates,
+        language: languageFromBuffer(buffer),
+      };
+      send({ type: "done", eventId, language: result.language });
+      controller.close();
+
+      console.log(JSON.stringify({
+        event: "keyboard_rewrite",
+        provider: "openai",
+        model,
+        serviceTier,
+        userId,
+        commandKey: request.commandKey,
+        refinement: request.refinement,
+        candidateCount: candidates.length,
+        inputLength: [...request.text].length,
+        promptLength: [...request.prompt].length,
+        outputLength: candidates.reduce((sum, c) => sum + [...c.replacement].length, 0),
+        latencyMs,
+        preflightMs,
+        guardMs: usage.guardMs,
+        providerMs,
+        streamed: true,
+        inputTokens: providerUsage.inputTokens,
+        cachedInputTokens: providerUsage.cachedInputTokens,
+        outputTokens: providerUsage.outputTokens,
+        reasoningTokens: providerUsage.reasoningTokens,
+        status: "ok",
+      }));
+
+      const logInput = {
+        userId,
+        request,
+        result,
+        provider: "openai" as ProviderName,
+        model,
+        serviceTier,
+        usage: providerUsage,
+        latencyMs,
+      };
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil(Promise.all([
+        logRewriteEvent(eventId, logInput),
+        captureRewriteAnalytics(eventId, {
+          ...logInput,
+          preflightMs,
+          guardMs: usage.guardMs,
+          providerMs,
+        }),
+      ]));
+    },
+    cancel() {
+      clearTimeout(timeout);
+      providerBody.cancel().catch(() => {});
+    },
+  });
+
+  return new Response(sse, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Connection": "keep-alive",
+    },
+  });
+}
+
+// The `language` field lands after `candidates` in the schema, so by the time
+// the stream ends the whole object is usually parseable. Falls back to "ja".
+function languageFromBuffer(buffer: string): RewriteResult["language"] {
+  const allowed: Array<RewriteResult["language"]> = ["ja", "en", "ko", "zh", "mixed"];
+  const match = buffer.match(/"language"\s*:\s*"([a-z]+)"/);
+  const value = match?.[1] as RewriteResult["language"] | undefined;
+  return value && allowed.includes(value) ? value : "ja";
 }
 
 function extractProviderUsage(payload: any): ProviderUsage {
@@ -1400,11 +1780,11 @@ function systemInstructions(candidateCount: number): string {
   const candidateInstruction = candidateCount === 3
     ? [
       "Return exactly 3 candidate rewrites in this fixed order:",
-      "1. Standard: balanced and natural for the requested command.",
-      "2. Slightly softer: warmer and a little more casual, without slang.",
-      "3. Slightly more polite: one notch more courteous, without becoming stiff.",
-      "Keep the differences subtle unless the command or refinement explicitly asks for a stronger change.",
-      "Avoid near-duplicates.",
+      "1. Standard: the most natural reading of the command.",
+      "2. Softer: warmer and slightly more casual than 1, without slang.",
+      "3. More polite: one notch more courteous than 1, without becoming stiff.",
+      "Apply the command at full strength in all three. Variants 2 and 3 shift the register around 1 unless the command explicitly requires preserving the original register; they never soften how far the command itself is applied.",
+      "Avoid near-duplicates unless the command permits only one valid correction.",
     ].join("\n")
     : `Return exactly ${candidateCount} distinct candidate rewrites that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`;
 
@@ -1422,11 +1802,11 @@ function systemInstructionsForSelection(candidateCount: number): string {
   const candidateInstruction = candidateCount === 3
     ? [
       "Return exactly 3 candidate rewrites in this fixed order:",
-      "1. Standard: balanced and natural for the requested command.",
-      "2. Slightly softer: warmer and a little more casual, without slang.",
-      "3. Slightly more polite: one notch more courteous, without becoming stiff.",
-      "Keep the differences subtle unless the command or refinement explicitly asks for a stronger change.",
-      "Avoid near-duplicates.",
+      "1. Standard: the most natural reading of the command.",
+      "2. Softer: warmer and slightly more casual than 1, without slang.",
+      "3. More polite: one notch more courteous than 1, without becoming stiff.",
+      "Apply the command at full strength in all three. Variants 2 and 3 shift the register around 1 unless the command explicitly requires preserving the original register; they never soften how far the command itself is applied.",
+      "Avoid near-duplicates unless the command permits only one valid correction.",
     ].join("\n")
     : `Return exactly ${candidateCount} distinct candidate rewrites that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`;
 
@@ -1446,10 +1826,11 @@ function systemInstructionsForReply(candidateCount: number): string {
   const candidateInstruction = candidateCount === 3
     ? [
       "Return exactly 3 candidate replies in this fixed order:",
-      "1. Standard: balanced and natural for the requested tone.",
-      "2. Slightly softer: warmer and a little more casual, without slang.",
-      "3. Slightly more polite: one notch more courteous, without becoming stiff.",
-      "Keep the differences subtle. Avoid near-duplicates.",
+      "1. Standard: the most natural reading of the requested tone.",
+      "2. Softer: warmer and slightly more casual than 1, without slang.",
+      "3. More polite: one notch more courteous than 1, without becoming stiff.",
+      "Apply the requested tone at full strength in all three. Variants 2 and 3 shift the register around 1.",
+      "Avoid near-duplicates.",
     ].join("\n")
     : `Return exactly ${candidateCount} distinct candidate replies that meaningfully differ in phrasing, structure, or emphasis. Avoid near-duplicates.`;
 

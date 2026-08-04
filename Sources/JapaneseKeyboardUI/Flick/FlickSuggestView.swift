@@ -162,6 +162,35 @@ struct FlickQuickPreviewView: View {
     }
 }
 
+/// The enlarged key cap shown the instant a finger lands, before any direction
+/// is picked. Native replaces the key cap with this on touch-down; the pointed
+/// `FlickQuickPreviewView` takes over as soon as a direction is.
+struct FlickCenterPreviewView: View {
+    let key: FlickKanaTable.FlickKey
+    let capSize: CGSize
+
+    var body: some View {
+        let scale = FlickQuickPreviewMetrics.bodyRatio
+        ZStack {
+            RoundedRectangle(
+                cornerRadius: FlickQuickPreviewMetrics.cornerRadius(for: capSize),
+                style: .continuous
+            )
+            .fill(FlickKeyPalette.kanaKey)
+            .shadow(color: .black.opacity(0.24), radius: 5, y: 2)
+            Text(key.face)
+                .font(.system(
+                    size: min(capSize.width, capSize.height) * (key.face.count > 1 ? 0.4 : 0.66),
+                    weight: .regular
+                ))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(.primary)
+        }
+        .frame(width: capSize.width * scale, height: capSize.height * scale)
+    }
+}
+
 struct FlickQuickPreviewShape: Shape {
     let direction: FlickKanaTable.FlickDirection
     let cornerRadius: CGFloat

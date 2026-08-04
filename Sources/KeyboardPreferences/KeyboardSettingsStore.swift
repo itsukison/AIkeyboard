@@ -57,6 +57,7 @@ public enum KeyboardSettingsStore {
     public static let pendingOnboardingMainPromptTitleKey = "pendingOnboardingMainPromptTitle"
     public static let pendingOnboardingMainPromptBodyKey = "pendingOnboardingMainPromptBody"
     public static let pendingOnboardingPromptEntriesKey = "pendingOnboardingPromptEntries"
+    public static let onboardingGeneratedPracticeKey = "onboardingGeneratedPractice"
     public static let anonymousDeviceIdKey = "anonymousDeviceId"
     public static let analyticsAppInstanceIdKey = "analyticsAppInstanceId"
     public static let lastKnownFullAccessEnabledKey = "lastKnownFullAccessEnabled"
@@ -123,10 +124,6 @@ public enum KeyboardSettingsStore {
 
     public static func readHapticsEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
         defaults?.bool(forKey: hapticsEnabledKey) ?? false
-    }
-
-    public static func isHapticsEnabledSet(defaults: UserDefaults? = sharedDefaults) -> Bool {
-        defaults?.object(forKey: hapticsEnabledKey) != nil
     }
 
     public static func writeHapticsEnabled(
@@ -326,6 +323,34 @@ public enum KeyboardSettingsStore {
         defaults?.removeObject(forKey: pendingOnboardingPromptEntriesKey)
     }
 
+    /// The worked example for the button the onboarding builder generated, so
+    /// the rewrite practice page can demonstrate *that* button. It has to be
+    /// produced up front, alongside the button itself: practice mode answers a
+    /// tap from a local cache with no network and no signed-in session, so
+    /// there is no opportunity to generate an example when the page is reached.
+    public static func readOnboardingGeneratedPractice(
+        defaults: UserDefaults? = sharedDefaults
+    ) -> OnboardingGeneratedPractice? {
+        guard let data = defaults?.data(forKey: onboardingGeneratedPracticeKey) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(OnboardingGeneratedPractice.self, from: data)
+    }
+
+    public static func writeOnboardingGeneratedPractice(
+        _ practice: OnboardingGeneratedPractice,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        guard let data = try? JSONEncoder().encode(practice) else { return }
+        defaults?.set(data, forKey: onboardingGeneratedPracticeKey)
+    }
+
+    public static func clearOnboardingGeneratedPractice(
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.removeObject(forKey: onboardingGeneratedPracticeKey)
+    }
+
     public static func anonymousDeviceId(defaults: UserDefaults? = sharedDefaults) -> String {
         if let existing = defaults?.string(forKey: anonymousDeviceIdKey), !existing.isEmpty {
             return existing
@@ -411,6 +436,13 @@ public enum KeyboardSettingsStore {
     ) -> Date? {
         guard let ti = defaults?.object(forKey: key) as? Double else { return nil }
         return Date(timeIntervalSince1970: ti)
+    }
+
+    public static func clearOnboardingPracticeSignal(
+        _ key: String,
+        defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.removeObject(forKey: key)
     }
 
     /// The canned rewrite candidates the keyboard returns while practice mode

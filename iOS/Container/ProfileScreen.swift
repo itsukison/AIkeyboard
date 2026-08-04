@@ -6,17 +6,13 @@ import UIKit
 struct ProfileScreen: View {
     @EnvironmentObject private var session: UserSession
     @EnvironmentObject private var overlay: AppOverlay
-    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var stats = ConversionStats.shared
-    @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
     @State private var showPersonalInfo = false
     @State private var showKeyboardSettings = false
     @State private var keyboardStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     @State private var promptCount: Int = UserPromptStore.readEntries().count
     @Binding var showAbout: Bool
     @State private var showAuth = false
-    @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
-    private var hapticsEnabled = false
     #if DEBUG
     // Verification hook for the Zenzai latency gate: inflates the keyboard's
     // latency samples so the gate trips without real slowness. Turning it OFF
@@ -100,16 +96,10 @@ struct ProfileScreen: View {
             .onAppear {
                 KeyboardSettingsStore.writeCloudAIEnabled(true)
                 promptCount = UserPromptStore.readEntries().count
-                refreshFullAccessState()
             }
             .onChange(of: session.profile) { _ in
                 KeyboardSettingsStore.writeCloudAIEnabled(true)
                 promptCount = UserPromptStore.readEntries().count
-            }
-            .onChange(of: scenePhase) { phase in
-                if phase == .active {
-                    refreshFullAccessState()
-                }
             }
             .guestAuthCover(isPresented: $showAuth)
         }
@@ -122,11 +112,6 @@ struct ProfileScreen: View {
                 title: "キーボード",
                 trailing: keyboardSettingsDisplayName,
                 action: { showKeyboardSettings = true }
-            ),
-            .init(
-                icon: "hand.tap",
-                title: "触覚フィードバック",
-                toggle: hapticsBinding
             ),
             .init(
                 icon: "info.circle",
@@ -163,26 +148,6 @@ struct ProfileScreen: View {
     }
     #endif
 
-    private var hapticsBinding: Binding<Bool> {
-        Binding(
-            get: { hapticsEnabled },
-            set: { enabled in
-                if enabled {
-                    refreshFullAccessState()
-                    guard keyboardStatus.isFullAccessEnabled else {
-                        hapticsEnabled = false
-                        overlay.present(.hapticsFullAccessRequired)
-                        return
-                    }
-                }
-                hapticsEnabled = enabled
-            }
-        )
-    }
-
-    private func refreshFullAccessState() {
-        keyboardStatus.refresh()
-    }
 }
 
 private struct PersonalInformationView: View {
@@ -1286,9 +1251,17 @@ struct DeleteAccountConfirmModal: View {
 
 private struct KeyboardSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var overlay: AppOverlay
+    @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
     @Binding var selection: KeyboardPreferences.KeyboardStyle
     @AppStorage(KeyboardSettingsStore.keyClickSoundEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
     private var keyClickSoundEnabled = true
+    // Off by default, like the system keyboard's own haptic setting. iOS gives
+    // an extension no way to read that preference (or the ring switch), so this
+    // toggle is the only control — it belongs next to the key-click sound.
+    @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
+    private var hapticsEnabled = false
 
     // NOTE: The key-size slider + live keyboard preview are deferred. The
     // rendering plumbing (KeyboardKeySizeObserver, the views' keySizeObserver
@@ -1319,6 +1292,11 @@ private struct KeyboardSettingsView: View {
                         icon: "speaker.wave.2",
                         title: "キークリック音",
                         toggle: $keyClickSoundEnabled
+                    ),
+                    .init(
+                        icon: "hand.tap",
+                        title: "触覚フィードバック",
+                        toggle: hapticsBinding
                     )
                 ])
                 .padding(.top, BikeyMetrics.Spacing.l)
@@ -1336,5 +1314,31 @@ private struct KeyboardSettingsView: View {
                 BikeyNavigationBackButton { dismiss() }
             }
         }
+        .onAppear { keyboardStatus.refresh() }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                keyboardStatus.refresh()
+            }
+        }
+    }
+
+    /// Haptics need Full Access (the Taptic Engine call is unavailable without
+    /// it), so turning the toggle on re-checks and explains rather than silently
+    /// storing a preference that can't take effect.
+    private var hapticsBinding: Binding<Bool> {
+        Binding(
+            get: { hapticsEnabled },
+            set: { enabled in
+                if enabled {
+                    keyboardStatus.refresh()
+                    guard keyboardStatus.isFullAccessEnabled else {
+                        hapticsEnabled = false
+                        overlay.present(.hapticsFullAccessRequired)
+                        return
+                    }
+                }
+                hapticsEnabled = enabled
+            }
+        )
     }
 }

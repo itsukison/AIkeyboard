@@ -85,6 +85,9 @@ public final class InputManager: ObservableObject {
     /// syllable) reuse the in-flight or already-published candidates.
     private var lastScheduledKanaPrefix: String?
     private var kanaTapCycleState: KanaTapCycleState?
+    /// Non-nil while a finger is down on a flick key: the character that touch
+    /// is currently contributing to the buffer, which each move replaces.
+    private var flickInput: FlickInputState?
     /// Left context captured when the current composition started; constant
     /// for the whole composition so conversions stay cache-friendly.
     private var compositionLeftContext: String?
@@ -206,35 +209,87 @@ public final class InputManager: ObservableObject {
         refresh()
     }
 
-    public func appendKanaFromTapCycle(_ key: FlickKanaTable.FlickKey, now: Date = Date()) {
-        guard let cycle = FlickKanaTable.tapCycle(for: key), !cycle.isEmpty else {
-            appendKana(key.center)
-            return
-        }
+    /// Flick input the way the native keyboard does it: the character enters the
+    /// composition on **touch-down** and is swapped in place while the finger
+    /// moves, so the next key can be pressed without waiting for a release.
+    /// Touch-down also advances the tap cycle when the same key is pressed again
+    /// inside the timeout (native toggle input: あ→い→う under the finger).
+    ///
+    /// Conversion is deferred until `endFlickInput` — `refresh()` skips
+    /// scheduling while a flick is in flight — so one flick still costs one
+    /// conversion no matter how many directions the finger passes through.
+    public func beginFlickInput(_ key: FlickKanaTable.FlickKey, now: Date = Date()) {
         clearPredictions()
         if selectedCandidateIndex != nil {
             selectedCandidateIndex = nil
         }
 
-        if let state = kanaTapCycleState,
+        let cycle = FlickKanaTable.tapCycle(for: key)
+        let head: String
+        // What this press consumed, so a cancelled touch can put it back.
+        var replaced: String?
+        if let cycle, !cycle.isEmpty,
+           let state = kanaTapCycleState,
            state.keyCenter == key.center,
            now.timeIntervalSince(state.lastTapAt) <= kanaTapCycleTimeout,
            buffer.displayKana.last.map({ String($0) }) == cycle[state.index] {
             let nextIndex = (state.index + 1) % cycle.count
+            replaced = cycle[state.index]
             _ = buffer.backspace()
-            buffer.append(cycle[nextIndex])
+            head = cycle[nextIndex]
             kanaTapCycleState = KanaTapCycleState(
                 keyCenter: key.center,
                 index: nextIndex,
                 lastTapAt: now
             )
         } else {
-            buffer.append(cycle[0])
-            kanaTapCycleState = KanaTapCycleState(
-                keyCenter: key.center,
-                index: 0,
-                lastTapAt: now
-            )
+            head = cycle?.first ?? key.center
+            kanaTapCycleState = cycle == nil
+                ? nil
+                : KanaTapCycleState(keyCenter: key.center, index: 0, lastTapAt: now)
+        }
+
+        buffer.append(head)
+        flickInput = FlickInputState(head: head, current: head, replaced: replaced)
+        refresh()
+    }
+
+    /// Swap the in-flight flick character for the one under the finger. `nil`
+    /// (finger back on the center tile) restores the touch-down character.
+    public func updateFlickInput(_ key: FlickKanaTable.FlickKey, direction: FlickKanaTable.FlickDirection?) {
+        guard let state = flickInput else { return }
+        let next = direction.flatMap { key.character(for: $0) } ?? state.head
+        guard next != state.current else { return }
+        _ = buffer.backspace()
+        buffer.append(next)
+        flickInput = FlickInputState(head: state.head, current: next, replaced: state.replaced)
+        refresh()
+    }
+
+    /// Finalize the flick. The character is already in the buffer, so this only
+    /// releases the conversion that was held while the finger was down.
+    public func endFlickInput() {
+        guard let state = flickInput else { return }
+        // A flicked character is not a position in the key's tap cycle, so
+        // pressing the same key again must start a new kana, not advance.
+        if state.current != state.head {
+            kanaTapCycleState = nil
+        }
+        flickInput = nil
+        refresh()
+    }
+
+    /// The touch was cancelled (a system gesture or banner took it). Take the
+    /// provisional character back out.
+    public func cancelFlickInput() {
+        guard let state = flickInput else { return }
+        flickInput = nil
+        kanaTapCycleState = nil
+        _ = buffer.backspace()
+        // A press that advanced the tap cycle consumed the previous kana; put
+        // it back so a stolen touch leaves the composition exactly as it was.
+        if let replaced = state.replaced {
+            buffer.append(replaced)
         }
         refresh()
     }
@@ -369,6 +424,7 @@ public final class InputManager: ObservableObject {
         conversionTask = nil
         lastScheduledKanaPrefix = nil
         kanaTapCycleState = nil
+        flickInput = nil
         if let adapter {
             Task { await adapter.stopComposition() }
         }
@@ -416,6 +472,10 @@ public final class InputManager: ObservableObject {
 
         notifyMarkedTextChange()
         if kanaPrefix == lastScheduledKanaPrefix { return }
+        // A flick still under the finger will change again before it settles;
+        // converting every intermediate character would cost several conversions
+        // per keystroke. `endFlickInput` re-enters here once it lands.
+        guard flickInput == nil else { return }
         scheduleConversion(kanaPrefix: kanaPrefix)
     }
 
@@ -477,5 +537,14 @@ public final class InputManager: ObservableObject {
         let keyCenter: String
         let index: Int
         let lastTapAt: Date
+    }
+
+    private struct FlickInputState {
+        /// What touch-down produced (the tap-cycle position). The center tile
+        /// restores this when the finger comes back from a direction.
+        let head: String
+        let current: String
+        /// The kana this press replaced when it advanced the tap cycle, if any.
+        let replaced: String?
     }
 }

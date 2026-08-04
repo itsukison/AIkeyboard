@@ -5,7 +5,7 @@ enum UserPromptRemoteStore {
     static func fetchEntries(for userId: UUID) async throws -> [UserPrompt] {
         let rows: [Row] = try await supabase
             .from("user_prompts")
-            .select("id, user_id, slot, builtin_key, title, prompt, is_enabled, sort_order, created_at, updated_at")
+            .select("id, user_id, slot, builtin_key, origin, title, prompt, is_enabled, sort_order, created_at, updated_at")
             .eq("user_id", value: userId)
             .order("slot", ascending: true)
             .order("sort_order", ascending: true)
@@ -47,6 +47,7 @@ enum UserPromptRemoteStore {
             user_id: userId,
             slot: "sub",
             builtin_key: nil,
+            origin: PromptOrigin.userAuthored.rawValue,
             title: title,
             prompt: prompt,
             is_enabled: true,
@@ -55,7 +56,7 @@ enum UserPromptRemoteStore {
         let inserted: Row = try await supabase
             .from("user_prompts")
             .insert(row)
-            .select("id, user_id, slot, builtin_key, title, prompt, is_enabled, sort_order, created_at, updated_at")
+            .select("id, user_id, slot, builtin_key, origin, title, prompt, is_enabled, sort_order, created_at, updated_at")
             .single()
             .execute()
             .value
@@ -101,6 +102,7 @@ enum UserPromptRemoteStore {
                 user_id: userId,
                 slot: entry.slot.rawValue,
                 builtin_key: entry.builtinKey,
+                origin: entry.origin.rawValue,
                 title: entry.title,
                 prompt: entry.prompt,
                 is_enabled: entry.isEnabled,
@@ -124,6 +126,7 @@ enum UserPromptRemoteStore {
                 user_id: userId,
                 slot: entry.slot.rawValue,
                 builtin_key: entry.builtinKey,
+                origin: entry.origin.rawValue,
                 title: entry.title,
                 prompt: entry.prompt,
                 is_enabled: true,
@@ -142,6 +145,7 @@ private struct Row: Decodable {
     let user_id: UUID
     let slot: String
     let builtin_key: String?
+    let origin: String?
     let title: String
     let prompt: String
     let is_enabled: Bool
@@ -158,6 +162,7 @@ private struct Row: Decodable {
             prompt: prompt,
             isEnabled: is_enabled,
             sortOrder: sort_order,
+            origin: origin.flatMap(PromptOrigin.init(rawValue:)),
             createdAt: created_at,
             updatedAt: updated_at
         )
@@ -175,6 +180,7 @@ private struct InsertRow: Encodable {
     let user_id: UUID
     let slot: String
     let builtin_key: String?
+    let origin: String
     let title: String
     let prompt: String
     let is_enabled: Bool

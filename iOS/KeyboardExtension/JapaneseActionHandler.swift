@@ -50,6 +50,27 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
             backspaceSequenceConsumed = false
         }
 
+        // Romaji letters commit on `.press`, like the native iOS keyboard —
+        // press and hold a letter there and it appears before you lift. Waiting
+        // for `.release` cost one finger-dwell per keystroke (p50 67 ms on
+        // device, see docs/development.md § Input latency profiling). Only
+        // `.press`, never `.repeatPress`: letters don't auto-repeat, and a
+        // repeat would insert duplicates. The matching `.release` is swallowed
+        // in the release branch below, so nothing fires twice.
+        //
+        // Deliberately not moved: `.space` (KeyboardKit's spacebar drag moves
+        // the cursor, which needs the hold), `.primary`, `.shift`, and
+        // non-romaji characters like 。、 (those insert via KeyboardKit's own
+        // release path). The flick layout can never move — its direction isn't
+        // known until the finger lifts.
+        if gesture == .press, case .character(let s) = action,
+           let character = Self.singleRomajiCharacter(s) {
+            let controller = jpController
+            MainActor.assumeIsolated {
+                controller?.handleRomajiInput(character)
+            }
+        }
+
         // Composing-time backspace must run on press / repeatPress, not release.
         // Otherwise KeyboardKit's super.handle would call deleteBackward() on
         // the host on `.press`, racing with our `setMarkedText` and causing the
@@ -81,10 +102,9 @@ final class JapaneseActionHandler: KeyboardAction.StandardActionHandler {
                 guard let controller else { return false }
                 switch action {
                 case .character(let s):
-                    if let ch = Self.singleRomajiCharacter(s) {
-                        controller.handleRomajiInput(ch)
-                        return true
-                    }
+                    // Already inserted on `.press`. Still reported as handled so
+                    // super never runs its release-side insert for this key.
+                    if Self.singleRomajiCharacter(s) != nil { return true }
                     controller.flushBufferToHost()
                     return false
                 case .space:

@@ -63,99 +63,19 @@ enum OnboardingUseCase: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The 4 fixed buttons for this use case (index 0 = main). `nil` for `.custom`,
-    /// which is generated on-device from the user's free-text description.
-    var presetButtons: [OnboardingButtonSpec]? {
-        switch self {
-        case .keigo:
-            // Must equal the seeded default set exactly, so picking 敬語 leaves
-            // existing/new accounts untouched.
-            return [.builtin(UserPromptDefaults.politeKey), .builtin(UserPromptDefaults.naturalKey), .builtin(UserPromptDefaults.emailKey), .builtin(UserPromptDefaults.translateToEnglishKey)]
-        case .email:
-            return [.builtin(UserPromptDefaults.emailKey), .builtin(UserPromptDefaults.politeKey), .builtin(UserPromptDefaults.naturalKey), .builtin(UserPromptDefaults.translateToEnglishKey)]
-        case .casual:
-            return [.casual, .builtin(UserPromptDefaults.naturalKey), .builtin(UserPromptDefaults.politeKey), .builtin(UserPromptDefaults.translateToEnglishKey)]
-        case .translate:
-            return [.builtin(UserPromptDefaults.translateToEnglishKey), .translateToChinese, .builtin(UserPromptDefaults.naturalKey), .builtin(UserPromptDefaults.politeKey)]
-        case .proofread:
-            return [.proofread, .builtin(UserPromptDefaults.naturalKey), .builtin(UserPromptDefaults.politeKey), .casual]
-        case .summarize:
-            return [.summarize, .simplify, .builtin(UserPromptDefaults.politeKey), .builtin(UserPromptDefaults.naturalKey)]
-        case .custom:
-            return nil
-        }
-    }
 }
 
 // MARK: - Button specs
 
+/// The four fixed presets per use case that this page used to seed are gone.
+/// They were the thing that did not work: 44% picked 敬語, whose preset was
+/// identical to the default set, and the rest were permutations of the same
+/// built-ins. Every use case now leads into `OnboardingButtonBuilder` instead.
 struct OnboardingButtonSpec {
     let title: String
     let prompt: String
     let builtinKey: String?
-
-    /// Reuses an existing seeded built-in verbatim (keeps its key, so analytics
-    /// and the translate locale hint stay correct).
-    static func builtin(_ key: String) -> OnboardingButtonSpec {
-        OnboardingButtonSpec(
-            title: UserPromptDefaults.defaultTitle(for: key) ?? "",
-            prompt: UserPromptDefaults.defaultPrompt(for: key) ?? "",
-            builtinKey: key
-        )
-    }
-
-    // New actions (builtinKey = nil). Prompts follow the house style: imperative
-    // Japanese, preserve meaning, don't invent facts, output the rewritten text
-    // only. The cloud function still returns 3 candidates per tap.
-
-    static let casual = OnboardingButtonSpec(
-        title: "カジュアル",
-        prompt: "次の文章を、友達や親しい人に送るカジュアルで自然な日本語に書き直してください。\n\n敬語や堅い表現は避け、日常会話やSNSでそのまま送れるフレンドリーな口調にしてください。ただし乱暴・失礼な印象にはせず、親しみやすさを保ってください。\n原文の意味や意図は変えず、事実を付け足したり省いたりしないでください。絵文字は原文にある場合のみ活かし、無理に足さないでください。\n出力は書き直した文章だけにしてください。",
-        builtinKey: nil
-    )
-
-    static let proofread = OnboardingButtonSpec(
-        title: "添削",
-        prompt: "あなたは日本語の校正者です。次の文章の文法・助詞・送りがな・誤字脱字・不自然な言い回しを修正し、自然で正しい日本語にしてください。\n\n書き手の本来の意味・意図・文体（丁寧さのレベル）は変えず、必要最小限の修正にとどめてください。情報を新たに付け足したり、勝手に敬語やカジュアルへ変換したりしないでください。誤りがない場合は原文のまま返してください。\n出力は修正後の文章だけにしてください。解説や修正理由は書かないでください。",
-        builtinKey: nil
-    )
-
-    static let summarize = OnboardingButtonSpec(
-        title: "要約",
-        prompt: "次の文章を、要点を保ったまま簡潔に要約してください。\n\n重要な情報は落とさず、冗長な部分や繰り返しを削ってください。原文にない事実や解釈を付け加えないでください。元の文体・丁寧さのレベルは保ってください。\n出力は要約した文章だけにしてください。",
-        builtinKey: nil
-    )
-
-    static let simplify = OnboardingButtonSpec(
-        title: "わかりやすく",
-        prompt: "次の文章を、意味を変えずに、より分かりやすく読みやすい日本語に書き直してください。\n\n難しい言葉や回りくどい表現は、平易で伝わりやすい言い方に置き換えてください。一文が長い場合は自然に区切ってください。情報を付け足したり省いたりしないでください。\n出力は書き直した文章だけにしてください。",
-        builtinKey: nil
-    )
-
-    static let translateToChinese = OnboardingButtonSpec(
-        title: "中国語訳",
-        prompt: "次の文章を、自然で読みやすい中国語（簡体字）に翻訳してください。\n\n直訳ではなく、中国語のネイティブが日常的に使う自然な表現・語順にしてください。原文の意味やニュアンスを正確に伝え、固有名詞・数字・日付はそのまま保ってください。\n出力は翻訳した文章だけにしてください。",
-        builtinKey: nil
-    )
-}
-
-// MARK: - Applying a preset
-
-enum OnboardingUseCasePreset {
-    /// Builds the 4 ordered `UserPrompt` entries from a spec list. `slot`/`sortOrder`
-    /// are placeholders — `OnboardingPromptSetup.save` normalizes index 0 to main.
-    static func entries(from specs: [OnboardingButtonSpec]) -> [UserPrompt] {
-        specs.enumerated().map { index, spec in
-            UserPrompt(
-                slot: index == 0 ? .main : .sub,
-                builtinKey: spec.builtinKey,
-                title: spec.title,
-                prompt: spec.prompt,
-                isEnabled: true,
-                sortOrder: max(0, index - 1)
-            )
-        }
-    }
+    var origin: PromptOrigin = .onboardingBuilder
 }
 
 // MARK: - Custom (AI-generated) preset
@@ -163,6 +83,7 @@ enum OnboardingUseCasePreset {
 enum OnboardingCustomPresetService {
     struct Request: Encodable {
         let description: String
+        let useCase: String?
     }
 
     private struct Response: Decodable {
@@ -170,24 +91,50 @@ enum OnboardingCustomPresetService {
             let title: String
             let prompt: String
         }
+        struct Practice: Decodable {
+            let input: String
+            let outputs: [String]
+        }
         let buttons: [Button]
+        /// Absent when the model didn't produce a usable example. The practice
+        /// page then falls back to its built-in scenarios rather than failing.
+        let practice: Practice?
+    }
+
+    struct Result {
+        let specs: [OnboardingButtonSpec]
+        /// `nil` when the model produced no usable example. The caller decides
+        /// what to do — never persisted here, because the example has to be
+        /// keyed to the button's id, which does not exist until it is committed.
+        let practice: OnboardingGeneratedPractice?
     }
 
     /// Calls the `generate-prompt-preset` edge function (publishable-key callable,
     /// no sign-in required) and returns 4 button specs tailored to the user's
-    /// free-text use case.
-    static func generate(description: String) async throws -> [OnboardingButtonSpec] {
+    /// use case, plus the worked example the practice page will replay for the
+    /// main button.
+    static func generate(description: String, useCase: String?) async throws -> Result {
         let response: Response = try await supabase.functions.invoke(
             "generate-prompt-preset",
-            options: FunctionInvokeOptions(body: Request(description: description))
+            options: FunctionInvokeOptions(body: Request(description: description, useCase: useCase))
         )
         let specs = response.buttons.prefix(4).map {
-            OnboardingButtonSpec(title: $0.title, prompt: $0.prompt, builtinKey: nil)
+            OnboardingButtonSpec(
+                title: $0.title,
+                prompt: $0.prompt,
+                builtinKey: nil,
+                origin: .onboardingBuilder
+            )
         }
         guard specs.count == 4 else {
             throw OnboardingCustomPresetError.malformed
         }
-        return specs
+        return Result(
+            specs: specs,
+            practice: response.practice.map {
+                OnboardingGeneratedPractice(buttonId: "", input: $0.input, outputs: $0.outputs)
+            }
+        )
     }
 }
 
@@ -199,15 +146,25 @@ enum OnboardingCustomPresetError: Error {
 
 struct KeyboardUseCasePage: View {
     let progress: Double
+    /// Non-empty when this is a replay for an extra button. The page is
+    /// otherwise pixel-identical to the first pass, which reads as "the app went
+    /// backwards" rather than "you are adding another one".
+    var existingButtonTitles: [String] = []
     let onBack: () -> Void
     var onSkip: (() -> Void)? = nil
-    let onContinue: () -> Void
+    /// Hands the chosen use case to the flow, which routes it into the button
+    /// builder. This page no longer writes prompts itself — except for
+    /// `.custom`, which collects its description here and has nothing left to
+    /// ask on the builder pages.
+    let onContinue: (OnboardingUseCase) -> Void
 
     @State private var selected: OnboardingUseCase?
     @State private var customText: String = ""
     @State private var isGenerating = false
     @State private var showError = false
     @FocusState private var customFieldFocused: Bool
+
+    private var isAdditional: Bool { !existingButtonTitles.isEmpty }
 
     private var canContinue: Bool {
         guard let selected, !isGenerating else { return false }
@@ -232,11 +189,18 @@ struct KeyboardUseCasePage: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         OnboardingTitleBlock(
-                            title: "何のために\n使いますか？",
-                            subtitle: "用途に合わせて、ぴったりのボタンを用意します。あとで自由に変更できます。"
+                            title: isAdditional ? "次のボタンは\n何に使いますか？" : "何のために\n使いますか？",
+                            subtitle: isAdditional
+                                ? "さきほどとは別の用途を選ぶと、使い分けられるボタンになります。"
+                                : "用途に合わせて、ぴったりのボタンを用意します。あとで自由に変更できます。"
                         )
                         .frame(maxWidth: .infinity)
                         .padding(.top, 24)
+
+                        if isAdditional {
+                            ExistingButtonsBanner(titles: existingButtonTitles)
+                                .padding(.top, 20)
+                        }
 
                         VStack(spacing: 10) {
                             ForEach(OnboardingUseCase.allCases) { useCase in
@@ -312,32 +276,73 @@ struct KeyboardUseCasePage: View {
             guard !description.isEmpty else { return }
             isGenerating = true
             Task {
-                do {
-                    let specs = try await OnboardingCustomPresetService.generate(description: description)
-                    await MainActor.run {
-                        isGenerating = false
-                        apply(selected, specs: specs)
-                    }
-                } catch {
-                    await MainActor.run {
-                        isGenerating = false
+                let result = await OnboardingButtonBuilderService.buildFromDescription(
+                    description,
+                    useCase: .custom
+                )
+                await MainActor.run {
+                    isGenerating = false
+                    guard let result, let main = result.specs.first else {
                         showError = true
+                        return
                     }
+                    // Only the main button is kept. The generator still returns
+                    // four, but the three complements are buttons the user did
+                    // not ask for, and shipping them back as "buttons you made"
+                    // is the conflation this flow exists to remove.
+                    OnboardingButtonBuilderService.commit(
+                        OnboardingButtonBuilderService.Built(
+                            spec: main,
+                            practice: result.practice,
+                            useCase: .custom,
+                            source: "generated"
+                        ),
+                        replacing: nil
+                    )
+                    record(selected)
+                    onContinue(selected)
                 }
             }
             return
         }
 
-        guard let specs = selected.presetButtons else { return }
-        apply(selected, specs: specs)
+        record(selected)
+        onContinue(selected)
     }
 
-    private func apply(_ useCase: OnboardingUseCase, specs: [OnboardingButtonSpec]) {
-        OnboardingPromptSetup.save(OnboardingUseCasePreset.entries(from: specs))
+    private func record(_ useCase: OnboardingUseCase) {
         AppAnalytics.capture("onboarding_use_case_selected", properties: [
             "use_case": useCase.rawValue,
         ])
-        onContinue()
+    }
+}
+
+/// Names the buttons that already exist, so the replayed page reads as "adding
+/// to a set" instead of "the first page again".
+struct ExistingButtonsBanner: View {
+    let titles: [String]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 15))
+                .foregroundStyle(AppColor.purple)
+
+            Text("作成済み：\(titles.joined(separator: "・"))")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(OnboardingPalette.ink)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(AppColor.purple.opacity(0.09))
+        )
     }
 }
 
@@ -443,25 +448,31 @@ private struct CustomUseCaseField: View {
     var isFocused: FocusState<Bool>.Binding
 
     var body: some View {
-        TextField(
-            "例：中国語を自然な日本語に直す",
-            text: $text,
-            axis: .vertical
-        )
-        .font(.system(size: 16, weight: .regular))
-        .foregroundStyle(OnboardingPalette.ink)
-        .focused(isFocused)
-        .submitLabel(.done)
-        .lineLimit(1...3)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(OnboardingPalette.fieldFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(OnboardingPalette.fieldStroke.opacity(0.5), lineWidth: 0.6)
-        )
+        VStack(alignment: .leading, spacing: 8) {
+            Text("何をするボタンですか？")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(OnboardingPalette.ink)
+
+            TextField(
+                "例：中国語を自然な日本語に直す",
+                text: $text,
+                axis: .vertical
+            )
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(OnboardingPalette.ink)
+            .focused(isFocused)
+            .submitLabel(.done)
+            .lineLimit(1...3)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(OnboardingPalette.fieldFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(OnboardingPalette.fieldStroke.opacity(0.5), lineWidth: 0.6)
+            )
+        }
     }
 }

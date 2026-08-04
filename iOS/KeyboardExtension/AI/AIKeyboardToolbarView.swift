@@ -37,7 +37,7 @@ struct AIKeyboardToolbarView: View {
     @ViewBuilder
     private var otherStatesBar: some View {
         switch aiController.state {
-        case .generating(let prompt, _, _, _):
+        case .generating(let prompt, _, _, _, _):
             commandResultBar(prompt: prompt, isGenerating: true)
         case .result(let prompt, _, _, _):
             commandResultBar(prompt: prompt, isGenerating: false)
@@ -127,16 +127,20 @@ struct AIKeyboardToolbarView: View {
                 .opacity(aiController.canOpenAI() && aiController.mainPrompt != nil ? 1 : 0.35)
                 .disabled(!aiController.canOpenAI() || aiController.mainPrompt == nil)
                 .transition(.move(edge: .leading).combined(with: .opacity))
-
-                Spacer()
-                    .frame(width: 6)
-                    .transition(.opacity)
             }
 
-            pillButton(label: "…", isSelected: isOverflow) {
-                aiController.toggleOverflow()
+            if !aiController.subPrompts.isEmpty {
+                if !isOverflow {
+                    Spacer()
+                        .frame(width: 6)
+                        .transition(.opacity)
+                }
+
+                pillButton(label: "…", isSelected: isOverflow) {
+                    aiController.toggleOverflow()
+                }
+                .accessibilityLabel(isOverflow ? "閉じる" : "その他")
             }
-            .accessibilityLabel(isOverflow ? "閉じる" : "その他")
 
             if !isOverflow {
                 Spacer()

@@ -13,9 +13,23 @@ extension EnvironmentValues {
     }
 }
 
+/// Drives a key's characters straight into the composing buffer while the
+/// finger is still down, which is how the native kana keyboard behaves: the
+/// character appears on touch-down and swaps as the finger moves, so typing
+/// never waits for a release. Only the kana keys use it — the ABC/123 pages
+/// insert into the host document and the 小書き key's center tap mutates the
+/// previous kana, and neither can be provisional.
+struct FlickLiveInput {
+    let begin: () -> Void
+    let update: (FlickKanaTable.FlickDirection?) -> Void
+    let end: () -> Void
+    let cancel: () -> Void
+}
+
 /// One flickable key in the 10-key kana layout. Renders the center label,
-/// handles the flick gesture, shows a compact preview for quick flicks or the
-/// full guide after a hold, and commits the selected character on touch-up.
+/// handles the flick gesture, shows the enlarged cap on touch-down (swapping
+/// to the flicked character, or to the full guide after a hold), and delivers
+/// the character through `live` when set, otherwise on touch-up.
 ///
 /// For the 小書き key, pass `onCenterTap` to handle the character-type
 /// toggle (center tap cycles the last kana through small/dakuten forms).
@@ -25,6 +39,7 @@ struct FlickKanaKeyView: View {
     let key: FlickKanaTable.FlickKey
     let onSelect: (String) -> Void
     let onCenterTap: (() -> Void)?
+    let live: FlickLiveInput?
     let onTriggerHaptic: () -> Void
 
     @State private var interaction = FlickInteractionState()
@@ -32,19 +47,18 @@ struct FlickKanaKeyView: View {
     @Environment(\.flickKeyCapInset) private var keyCapInset
 
     private let guideDelay: TimeInterval = 0.30
-    private let thresholds: (left: CGFloat, top: CGFloat, right: CGFloat, bottom: CGFloat) = (
-        left: 24, top: 44, right: 64, bottom: 24
-    )
 
     init(
         key: FlickKanaTable.FlickKey,
-        onSelect: @escaping (String) -> Void,
+        onSelect: @escaping (String) -> Void = { _ in },
         onCenterTap: (() -> Void)? = nil,
+        live: FlickLiveInput? = nil,
         onTriggerHaptic: @escaping () -> Void = {}
     ) {
         self.key = key
         self.onSelect = onSelect
         self.onCenterTap = onCenterTap
+        self.live = live
         self.onTriggerHaptic = onTriggerHaptic
     }
 
@@ -83,19 +97,24 @@ struct FlickKanaKeyView: View {
                     interaction.touchDown()
                     scheduleGuide()
                     onTriggerHaptic()
+                    live?.begin()
                 },
                 onTouchMove: { dx, dy, _ in
-                    if interaction.move(to: flickDirection(dx: dx, dy: dy)) {
-                        cancelGuide()
-                    }
+                    track(dx: dx, dy: dy)
                 },
                 onTouchUp: { dx, dy, _ in
-                    let direction = flickDirection(dx: dx, dy: dy)
+                    let direction = track(dx: dx, dy: dy)
+                    let didFlick = max(abs(dx), abs(dy)) >= FlickDirectionResolver.threshold
                     resetInteraction()
-                    commit(direction)
+                    if let live {
+                        live.end()
+                    } else {
+                        commit(direction: direction, didFlick: didFlick)
+                    }
                 },
                 onTouchCancel: {
                     resetInteraction()
+                    live?.cancel()
                 }
             )
         }
@@ -143,38 +162,82 @@ struct FlickKanaKeyView: View {
         interaction.reset()
     }
 
-    private func flickDirection(dx: CGFloat, dy: CGFloat) -> FlickKanaTable.FlickDirection? {
-        let absX = abs(dx)
-        let absY = abs(dy)
-
-        if absX < 8 && absY < 8 {
-            return nil
+    /// Resolve the drag, update what the popup shows, and push the character
+    /// under the finger into the composition. Deduped on the resolved direction
+    /// so a stationary finger costs nothing per touch-move event.
+    @discardableResult
+    private func track(dx: CGFloat, dy: CGFloat) -> FlickKanaTable.FlickDirection? {
+        let direction = FlickDirectionResolver.resolve(
+            dx: dx,
+            dy: dy,
+            latched: interaction.direction,
+            key: key
+        )
+        guard direction != interaction.direction else { return direction }
+        interaction.move(to: direction)
+        if direction != nil {
+            cancelGuide()
         }
-
-        if absX > absY {
-            if dx < 0 && absX >= thresholds.left {
-                return key.left != nil ? .left : nil
-            } else if dx > 0 && absX >= thresholds.right {
-                return key.right != nil ? .right : nil
-            }
-        } else {
-            if dy < 0 && absY >= thresholds.top {
-                return key.top != nil ? .top : nil
-            } else if dy > 0 && absY >= thresholds.bottom {
-                return key.bottom != nil ? .bottom : nil
-            }
-        }
-        return nil
+        live?.update(direction)
+        return direction
     }
 
-    private func commit(_ direction: FlickKanaTable.FlickDirection?) {
+    private func commit(direction: FlickKanaTable.FlickDirection?, didFlick: Bool) {
         if let direction, let character = key.character(for: direction) {
             onSelect(character)
-        } else if let onCenterTap {
+            return
+        }
+        if didFlick {
+            // Native commits the center character when a flick lands on a
+            // direction the key doesn't map. The 小書き key's center is a cap
+            // label whose tap mutates the previous kana, so a stray flick there
+            // must do nothing rather than fire the toggle.
+            if key.centerIsInsertable {
+                onSelect(key.center)
+            }
+            return
+        }
+        if let onCenterTap {
             onCenterTap()
         } else {
             onSelect(key.center)
         }
+    }
+}
+
+/// Resolves a drag vector to a flick direction the way the native keyboard
+/// does: one threshold for all four directions, small enough that the 45°
+/// cone — not the distance — is what rejects a flick. Distance stops binding
+/// once a flick is longer than `threshold * √2` (25 pt, the cone edge), which
+/// every deliberate flick is.
+///
+/// The per-direction thresholds this replaced (left 24, top 44, right 64,
+/// bottom 24 pt) made 上 and 右 unreachable at normal flick lengths, so those
+/// flicks silently fell back to the center character.
+enum FlickDirectionResolver {
+    static let threshold: CGFloat = 18
+    /// Hysteresis: a latched direction survives until the finger comes back
+    /// inside this radius, so the small reverse slide a finger makes on
+    /// lift-off can't drop the flick back to the center character.
+    static let releaseRadius: CGFloat = 10
+
+    static func resolve(
+        dx: CGFloat,
+        dy: CGFloat,
+        latched: FlickKanaTable.FlickDirection?,
+        key: FlickKanaTable.FlickKey
+    ) -> FlickKanaTable.FlickDirection? {
+        let absX = abs(dx)
+        let absY = abs(dy)
+        let travel = max(absX, absY)
+
+        if latched != nil && travel < releaseRadius { return nil }
+        guard travel >= threshold else { return latched }
+
+        let direction: FlickKanaTable.FlickDirection = absX > absY
+            ? (dx < 0 ? .left : .right)
+            : (dy < 0 ? .top : .bottom)
+        return key.character(for: direction) != nil ? direction : nil
     }
 }
 
@@ -276,6 +339,21 @@ struct FlickInteractionState: Equatable {
         phase != .hidden
     }
 
+    /// The direction under the finger — what the popup is showing, and so what
+    /// touch-up commits. Display and commit read the same value, they are never
+    /// computed separately.
+    var direction: FlickKanaTable.FlickDirection? {
+        switch phase {
+        case .hidden: return nil
+        case .quick(let direction), .guide(let direction): return direction
+        }
+    }
+
+    /// Only the directional preview needs the key hidden: it is drawn offset
+    /// towards the flick, so the original cap would still show beside it. The
+    /// touch-down cap sits centred and is larger than the key, so it covers it.
+    /// (Only one popup renders at a time — see `FlickPopupKey.reduce` — so a
+    /// second finger during rollover must not blank its own key.)
     var hidesBaseKey: Bool {
         if case .quick(let direction) = phase {
             return direction != nil
@@ -283,29 +361,27 @@ struct FlickInteractionState: Equatable {
         return false
     }
 
+    /// Native puts the enlarged center cap up the instant the finger lands; the
+    /// full flick guide follows only if the press turns into a hold.
     mutating func touchDown() {
         isPressed = true
-        phase = .hidden
+        phase = .quick(nil)
     }
 
-    @discardableResult
-    mutating func move(to direction: FlickKanaTable.FlickDirection?) -> Bool {
-        guard isPressed else { return false }
+    mutating func move(to direction: FlickKanaTable.FlickDirection?) {
+        guard isPressed else { return }
         switch phase {
         case .hidden:
-            guard let direction else { return false }
-            phase = .quick(direction)
-            return true
+            break
         case .quick:
             phase = .quick(direction)
         case .guide:
             phase = .guide(direction)
         }
-        return false
     }
 
     mutating func longPressElapsed() {
-        guard isPressed, phase == .hidden else { return }
+        guard isPressed, phase == .quick(nil) else { return }
         phase = .guide(nil)
     }
 

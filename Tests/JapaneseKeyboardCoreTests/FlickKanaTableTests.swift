@@ -30,6 +30,18 @@ final class FlickKanaTableTests: XCTestCase {
         }
     }
 
+    /// The 小書き key's center is a cap label, not text: its tap toggles the
+    /// previous kana. A flick that lands on an unmapped direction commits the
+    /// center everywhere else, and must do nothing here.
+    func testOnlyKogakiHasANonInsertableCenter() {
+        XCTAssertFalse(FlickKanaTable.kogaki.centerIsInsertable)
+        for key in FlickKanaTable.kanaKeys {
+            XCTAssertTrue(key.centerIsInsertable, key.center)
+        }
+        XCTAssertTrue(FlickKanaTable.kutoten.centerIsInsertable)
+        XCTAssertTrue(FlickKanaTable.kaomoji.centerIsInsertable)
+    }
+
     func testYaKeyHasBracketsOnLeftAndRight() {
         XCTAssertEqual(FlickKanaTable.ya.center, "や")
         XCTAssertEqual(FlickKanaTable.ya.character(for: .left), "「")

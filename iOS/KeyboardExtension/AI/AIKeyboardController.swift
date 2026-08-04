@@ -12,6 +12,9 @@ final class AIKeyboardController: ObservableObject {
     static let fullAccessURL = URL(string: "keigobutton://fullaccess")!
     static let consentURL = URL(string: "keigobutton://consent")!
     static let updateURL = URL(string: "keigobutton://update")!
+    /// Candidates requested per generation. Also the number of shimmer
+    /// placeholders shown before any have streamed in.
+    static let candidateCount = 3
 
     @Published private(set) var state: AIKeyboardState = .hidden
     @Published private(set) var mainPrompt: UserPrompt? = UserPromptStore.mainPrompt()
@@ -29,6 +32,10 @@ final class AIKeyboardController: ObservableObject {
         controller?.inputManager ?? fallbackInputManager
     }
     private var rewriteTask: Task<Void, Never>?
+    /// Where the user scrolled while a batch was still streaming in, including
+    /// onto a shimmer placeholder. `nil` means they never took over, so
+    /// completion falls back to focusing the first card of the new batch.
+    private var generationScrollIndex: Int?
     /// The in-flight full-document replacement. Deliberately not cancelled by
     /// `close()`: cancelling between the move-to-end hops and the delete loop
     /// would leave the document half-replaced.
@@ -68,6 +75,9 @@ final class AIKeyboardController: ObservableObject {
     func refreshPrompts() {
         mainPrompt = UserPromptStore.mainPrompt()
         subPrompts = UserPromptStore.subPrompts()
+        if subPrompts.isEmpty, case .overflow = state {
+            state = .hidden
+        }
     }
 
     func canOpenAI() -> Bool {
@@ -100,8 +110,9 @@ final class AIKeyboardController: ObservableObject {
     }
 
     /// Re-evaluates the reply pill on keyboard appearance: a fresh copy since the
-    /// last appearance shows the pill, a stale clipboard hides it. Also starts
-    /// polling so a copy made while the keyboard stays open surfaces the pill.
+    /// keyboard last disappeared shows the pill, a stale clipboard hides it. Also
+    /// starts polling so a copy made while the keyboard stays open surfaces the
+    /// pill. Safe to call repeatedly within one presentation.
     func refreshReplyAvailabilityOnAppear() {
         replyAvailable = false
         promoteReplyIfFreshCopy()
@@ -135,16 +146,34 @@ final class AIKeyboardController: ObservableObject {
 
     /// Detects a freshly copied message using pasteboard metadata only
     /// (`changeCount` / `hasStrings`) — no content access, so iOS shows no paste
-    /// banner. Updates `replyAvailable` only when the clipboard changed since we
-    /// last looked.
+    /// banner. Detection is pure: the stored count moves only on disappearance
+    /// (`markClipboardSeenOnDisappear`), never here. Consuming it at first sight
+    /// lost the pill whenever iOS delivered a second appearance callback for the
+    /// same presentation — the re-run reset `replyAvailable` and then found the
+    /// count already seen, so a copy made before the keyboard came up (the
+    /// copy-then-focus flow) could never raise the pill.
     private func promoteReplyIfFreshCopy() {
+        guard !replyAvailable else { return }
         let pasteboard = UIPasteboard.general
         let current = pasteboard.changeCount
         guard current != KeyboardSettingsStore.readLastSeenPasteboardChangeCount() else { return }
-        KeyboardSettingsStore.writeLastSeenPasteboardChangeCount(current)
+        let hasStrings = pasteboard.hasStrings
+        #if DEBUG
+        NSLog("%@", "📋 [reply-pill] changeCount=\(current) hasStrings=\(hasStrings)")
+        #endif
+        // A cold-launching extension can report the copy's changeCount before the
+        // item itself is readable; the poll retries until `hasStrings` is true.
+        guard hasStrings else { return }
         withAnimation(.easeInOut(duration: 0.28)) {
-            replyAvailable = pasteboard.hasStrings
+            replyAvailable = true
         }
+    }
+
+    /// Called on keyboard disappearance: whatever is on the clipboard now —
+    /// replied to or ignored — is stale for the next session, so the pill
+    /// starts hidden until something new is copied.
+    func markClipboardSeenOnDisappear() {
+        KeyboardSettingsStore.writeLastSeenPasteboardChangeCount(UIPasteboard.general.changeCount)
     }
 
     /// Reads the clipboard and starts a reply. Reading `UIPasteboard.general.string`
@@ -198,6 +227,7 @@ final class AIKeyboardController: ObservableObject {
     }
 
     func toggleOverflow() {
+        guard !subPrompts.isEmpty else { return }
         withAnimation(.easeInOut(duration: 0.28)) {
             if case .overflow = state {
                 state = .hidden
@@ -220,6 +250,13 @@ final class AIKeyboardController: ObservableObject {
     }
 
     func selectCandidate(index: Int) {
+        // Mid-generation the index can point at a shimmer placeholder, which is
+        // not selectable yet — just remember it, so the arrival of the last
+        // candidate doesn't yank the user back to the first card.
+        if case .generating = state {
+            generationScrollIndex = index
+            return
+        }
         guard case .result(let prompt, let capture, let candidates, _) = state else { return }
         guard candidates.indices.contains(index) else { return }
         state = .result(prompt: prompt, capture: capture, candidates: candidates, selectedIndex: index)
@@ -340,7 +377,7 @@ final class AIKeyboardController: ObservableObject {
         guard let controller else { return }
         let current = String(describing: controller.textDocumentProxy.documentIdentifier)
         switch state {
-        case .generating(_, let capture, _, _), .result(_, let capture, _, _):
+        case .generating(_, let capture, _, _, _), .result(_, let capture, _, _):
             if capture.documentIdentifierString != current {
                 close()
             }
@@ -401,7 +438,7 @@ final class AIKeyboardController: ObservableObject {
         // so `close()` cancels it and the reader restores the cursor.
         rewriteTask?.cancel()
         generationSegments = []
-        state = .generating(prompt: prompt, capture: windowCapture, refinement: nil, existing: [])
+        state = .generating(prompt: prompt, capture: windowCapture, refinement: nil, existing: [], pending: Self.candidateCount)
 
         rewriteTask = Task { [weak self] in
             // The flush lands on the host asynchronously; let it settle before
@@ -507,21 +544,56 @@ final class AIKeyboardController: ObservableObject {
             replyTo: replyTo,
             commandKey: prompt.builtinKey,
             title: prompt.title,
+            promptOrigin: prompt.origin.rawValue,
             locale: Self.locale(for: prompt),
             appVersion: configuration.appVersion,
-            candidateCount: 3,
+            candidateCount: Self.candidateCount,
             refinement: refinement,
             analyticsAppInstanceId: KeyboardSettingsStore.readAnalyticsAppInstanceId(),
             selection: isSelection,
             selectionContextBefore: isSelection ? String(capture.beforeCursor.suffix(200)) : nil,
-            selectionContextAfter: isSelection ? String(capture.afterCursor.prefix(200)) : nil
+            selectionContextAfter: isSelection ? String(capture.afterCursor.prefix(200)) : nil,
+            stream: true
         )
         let service = CloudRewriteService(configuration: configuration)
-        state = .generating(prompt: prompt, capture: capture, refinement: refinement, existing: existing)
+        // A new batch starts with the user not having taken over yet.
+        generationScrollIndex = nil
+        state = .generating(
+            prompt: prompt,
+            capture: capture,
+            refinement: refinement,
+            existing: existing,
+            pending: Self.candidateCount
+        )
+
+        // Shows each candidate the moment it lands, replacing one shimmer
+        // placeholder, so the user can start reading the first option while the
+        // rest are still being written. Declared here rather than inside the
+        // task below so `[weak self]` binds the controller, not the task's own
+        // capture. A no-op unless we are still generating, which makes a late
+        // callback after cancel or completion harmless.
+        let applyStreamedCandidate: @Sendable (RewriteCandidate) -> Void = { [weak self] candidate in
+            Task { @MainActor in
+                guard let self else { return }
+                guard case .generating(
+                    let statePrompt, let stateCapture, let stateRefinement, let shown, let pending
+                ) = self.state, pending > 0 else { return }
+                self.state = .generating(
+                    prompt: statePrompt,
+                    capture: stateCapture,
+                    refinement: stateRefinement,
+                    existing: shown + [candidate],
+                    pending: pending - 1
+                )
+            }
+        }
 
         rewriteTask = Task { [weak self] in
             do {
-                let result = try await service.rewrite(request)
+                let result = try await service.rewriteStreaming(
+                    request,
+                    onCandidate: applyStreamedCandidate
+                )
                 guard !Task.isCancelled else { return }
                 let newCandidates = result.candidates.isEmpty
                     ? [RewriteCandidate(replacement: inputText, changed: false)]
@@ -531,11 +603,21 @@ final class AIKeyboardController: ObservableObject {
                     if let eventId = result.eventId {
                         self?.generationSegments.append((eventId: eventId, start: existing.count))
                     }
+                    // Default to the first card of the new batch, but if the user
+                    // scrolled while it was streaming in, leave them there — the
+                    // scroll position may point past what actually arrived, so
+                    // clamp it.
+                    let scrolled = self?.generationScrollIndex
+                    self?.generationScrollIndex = nil
+                    let focused = min(
+                        max(scrolled ?? existing.count, 0),
+                        max(combined.count - 1, 0)
+                    )
                     self?.state = .result(
                         prompt: prompt,
                         capture: capture,
                         candidates: combined,
-                        selectedIndex: existing.count
+                        selectedIndex: focused
                     )
                     self?.resultShownAt = Date()
                     self?.rewriteTask = nil
@@ -564,7 +646,7 @@ final class AIKeyboardController: ObservableObject {
             : stored
         let candidates = replacements.map { RewriteCandidate(replacement: $0, changed: $0 != inputText) }
 
-        state = .generating(prompt: prompt, capture: capture, refinement: nil, existing: [])
+        state = .generating(prompt: prompt, capture: capture, refinement: nil, existing: [], pending: Self.candidateCount)
         rewriteTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 900_000_000)
             guard !Task.isCancelled else { return }

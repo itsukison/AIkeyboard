@@ -36,6 +36,9 @@
         }
       }
     },
+    "「%@」" : {
+
+    },
     "「%@」ボタン" : {
       "localizations" : {
         "en" : {
@@ -279,6 +282,9 @@
         }
       }
     },
+    "AIへの指示" : {
+
+    },
     "AIボタンで\n書き換えてみましょう" : {
       "localizations" : {
         "en" : {
@@ -423,6 +429,9 @@
         }
       }
     },
+    "App Store" : {
+      "shouldTranslate" : false
+    },
     "Appleサインインに失敗しました。時間をおいて再度お試しください。" : {
       "localizations" : {
         "en" : {
@@ -439,7 +448,7 @@
         }
       }
     },
-    "Facebook" : {
+    "ChatGPT" : {
       "shouldTranslate" : false
     },
     "Google" : {
@@ -511,12 +520,6 @@
           }
         }
       }
-    },
-    "LinkedIn" : {
-      "shouldTranslate" : false
-    },
-    "Product Hunt" : {
-      "shouldTranslate" : false
     },
     "QWERTY配列" : {
       "localizations" : {
@@ -788,6 +791,25 @@
         }
       }
     },
+    "あなた専用の\nボタンを作ります" : {
+
+    },
+    "うまく反応しないときは、このまま「次へ」で進めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not reacting? You can continue with “Next” anyway."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果没有反应，也可以直接点「下一步」继续。"
+          }
+        }
+      }
+    },
     "おかえりなさい" : {
       "localizations" : {
         "en" : {
@@ -1013,6 +1035,7 @@
       }
     },
     "キーボード上の「%@」を押すと、候補が3つ出ます。好きな候補で「置き換え」してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1024,6 +1047,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点按键盘上方的「%@」会生成 3 个候选，选一个喜欢的进行「替换」。"
+          }
+        }
+      }
+    },
+    "キーボード上の「%@」を押すと、候補が3つ出ます。気に入った候補をタップすると、その文章に置き換わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap “%@” above the keyboard to get 3 suggestions. Tap the one you like and it replaces your text."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按键盘上方的「%@」会生成 3 个候选。点按喜欢的候选即可替换原文。"
           }
         }
       }
@@ -1041,6 +1080,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "键盘输入方式"
+          }
+        }
+      }
+    },
+    "キーボード左下の地球儀キーを長押し →「敬語ボタン」を選択" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the globe key at the bottom left → choose 敬語ボタン"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "长按键盘左下角的地球键 → 选择「敬語ボタン」"
           }
         }
       }
@@ -1172,6 +1227,9 @@
           }
         }
       }
+    },
+    "この内容で進む" : {
+
     },
     "コピー" : {
       "localizations" : {
@@ -1462,6 +1520,9 @@
         }
       }
     },
+    "さきほどとは別の用途を選ぶと、使い分けられるボタンになります。" : {
+
+    },
     "さっそく使う" : {
       "localizations" : {
         "en" : {
@@ -1688,6 +1749,7 @@
       }
     },
     "タップすると名前や指示を自由に書き換えられます。長押しで並び替え、一番上がメインボタンです。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1702,6 +1764,9 @@
           }
         }
       }
+    },
+    "タップすると名前や指示を自由に書き換えられます。長押しで並び替え、左スワイプで削除。一番上がメインボタンです。" : {
+
     },
     "チャットを離れずに書き直せます" : {
       "localizations" : {
@@ -2265,6 +2330,12 @@
         }
       }
     },
+    "ボタンが\nできました" : {
+
+    },
+    "ボタンができました" : {
+
+    },
     "ボタンは、\n好きな順番に。" : {
       "localizations" : {
         "en" : {
@@ -2329,6 +2400,9 @@
           }
         }
       }
+    },
+    "ボタンを作成できませんでした。もう一度お試しください。" : {
+
     },
     "ボタンを作成できませんでした。少し待ってからもう一度お試しください。" : {
       "localizations" : {
@@ -2539,6 +2613,12 @@
         }
       }
     },
+    "もう1つ\nボタンを作ります" : {
+
+    },
+    "もう1つボタンを作る" : {
+
+    },
     "ユーザー情報" : {
       "localizations" : {
         "en" : {
@@ -2587,6 +2667,9 @@
           }
         }
       }
+    },
+    "よく使う場面を選んでください。あとから自由に変更できます。" : {
+
     },
     "よく使う言い換えを新しいボタンとして追加" : {
       "localizations" : {
@@ -2926,6 +3009,12 @@
         }
       }
     },
+    "何をするボタンですか？" : {
+
+    },
+    "作成済み：%@" : {
+
+    },
     "使いたい用途を書くと、AIがボタンを作成" : {
       "localizations" : {
         "en" : {
@@ -3087,6 +3176,7 @@
       }
     },
     "候補バーの上にある「%@」ボタンを押してみましょう" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3098,6 +3188,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点按键盘上方的「%@」按钮试试"
+          }
+        }
+      }
+    },
+    "候補バーの上の「%@」を押して、好きな候補で「置き換え」してください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap “%@” above the candidate bar, then pick a candidate and tap 置き換え"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按候选栏上方的「%@」，选择喜欢的候选后点按「置き換え」"
+          }
+        }
+      }
+    },
+    "候補バーの上の「%@」を押して、気に入った候補をタップしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap “%@” above the candidate bar, then tap the candidate you like"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按候选栏上方的「%@」，然后点按喜欢的候选"
           }
         }
       }
@@ -3392,6 +3515,9 @@
         }
       }
     },
+    "具体的に入力してください" : {
+
+    },
     "内容" : {
       "localizations" : {
         "en" : {
@@ -3650,6 +3776,9 @@
         }
       }
     },
+    "名前と指示は、ここで直接なおせます。" : {
+
+    },
     "変換" : {
       "localizations" : {
         "en" : {
@@ -3746,6 +3875,22 @@
         }
       }
     },
+    "小紅書 / RedNote" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RedNote (Xiaohongshu)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小红书"
+          }
+        }
+      }
+    },
     "戻る" : {
       "localizations" : {
         "en" : {
@@ -3777,6 +3922,9 @@
           }
         }
       }
+    },
+    "指示" : {
+
     },
     "敬語" : {
       "localizations" : {
@@ -4325,6 +4473,9 @@
           }
         }
       }
+    },
+    "次のボタンは\n何に使いますか？" : {
+
     },
     "次は、「%@」と入力してみましょう。" : {
       "localizations" : {

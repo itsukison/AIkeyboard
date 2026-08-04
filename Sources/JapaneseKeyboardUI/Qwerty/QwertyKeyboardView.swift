@@ -1,7 +1,9 @@
+import CoreText
 import JapaneseKeyboardCore
 import KeyboardKit
 import KeyboardPreferences
 import SwiftUI
+import UIKit
 
 public struct QwertyKeyboardView: View {
     public let services: Keyboard.Services
@@ -58,11 +60,33 @@ public struct QwertyKeyboardView: View {
                             .font(.system(size: 22, weight: .regular))
                     case .keyboardType(.symbolic):
                         Text("#+=")
-                            .font(.system(size: 16, weight: .regular))
+                            .font(.system(size: NativeKeyMetrics.modeLabelFontSize, weight: .regular))
                             .foregroundStyle(.primary)
+                    // Native labels this key `.?123` on iPad and `123` on iPhone.
                     case .keyboardType(.numeric):
-                        Text("123")
-                            .font(.system(size: 16, weight: .regular))
+                        Text(isPadKeyboard ? ".?123" : "123")
+                            .font(.system(size: NativeKeyMetrics.modeLabelFontSize, weight: .regular))
+                            .foregroundStyle(.primary)
+                    // KeyboardKit ships no CJK locale, so its own label for this
+                    // key resolves to empty on ja_JP and the cap rendered blank.
+                    case .keyboardType(.alphabetic):
+                        Text("あいう")
+                            .font(.system(size: NativeKeyMetrics.modeLabelFontSize, weight: .regular))
+                            .foregroundStyle(.primary)
+                    case .character(let s) where s == NativeKeyMetrics.kaomoji:
+                        Text(s)
+                            .font(.system(size: NativeKeyMetrics.modeLabelFontSize, weight: .regular))
+                            .foregroundStyle(.primary)
+                    // Not on the iPad letter page: 、。 carry a swipe-down hint
+                    // label there, and replacing the whole button content would
+                    // drop it. KeyboardKit's own content keeps the hint, at the
+                    // cost of the em-box offset this branch exists to correct.
+                    case .character(let s) where NativeKeyMetrics.usesProportionalMetrics(s)
+                        && !(isPadKeyboard && keyboardContext.keyboardType == .alphabetic):
+                        Text(s)
+                            .font(NativeKeyMetrics.proportionalFont(
+                                ofSize: characterFontSize(for: params.item.action)
+                            ))
                             .foregroundStyle(.primary)
                     case .character("-") where keyboardContext.keyboardType == .alphabetic:
                         Text("ー")
@@ -73,7 +97,7 @@ public struct QwertyKeyboardView: View {
                     case .space:
                         SpaceKeyLabel(inputManager: inputManager)
                     case .primary:
-                        PrimaryKeyLabel(inputManager: inputManager)
+                        PrimaryKeyLabel(inputManager: inputManager, usesNewlineGlyph: isPadKeyboard)
                     default:
                         params.view
                     }
@@ -92,8 +116,16 @@ public struct QwertyKeyboardView: View {
             .keyboardButtonStyle { params in
                 var style = params.standardStyle()
                 // Match native iOS 26 key caps: KeyboardKit's default corner
-                // radius reads ~1.5pt rounder than the system keyboard.
-                style.cornerRadius = 5.5
+                // radius reads rounder than the system keyboard.
+                style.cornerRadius = NativeKeyMetrics.cornerRadius
+                // KeyboardKit's character font runs 1pt larger than native's.
+                // `style.font` is derived from `keyboardFont`, so set that one.
+                if case .character = params.action {
+                    style.keyboardFont = KeyboardFont(
+                        .system(size: characterFontSize(for: params.action)),
+                        params.action.standardButtonFontWeight(for: params.context)
+                    )
+                }
                 // KeyboardKit paints an inactive shift key near-white, so it
                 // reads as "active" against the other (gray) function keys. Pin
                 // it to the system function-key background — borrowed from the
@@ -109,6 +141,22 @@ public struct QwertyKeyboardView: View {
                     style.backgroundColor = systemKey.backgroundColor
                     style.foregroundColor = systemKey.foregroundColor
                 }
+                // Dark mode only — the light-mode values still need their own
+                // side-by-side capture before we touch them.
+                if params.context.colorScheme == .dark {
+                    style.shadowColor = NativeKeyMetrics.darkKeyShadow
+                    // Match on the fill rather than on `isSystemAction` so the
+                    // active (uppercased / caps-locked) shift keeps its white
+                    // highlight, and so pressed states are left to KeyboardKit.
+                    let systemFill = KeyboardAction.backspace
+                        .standardButtonBackgroundColor(for: params.context)
+                    if style.backgroundColor == systemFill {
+                        style.backgroundColor = NativeKeyMetrics.darkFunctionKeyFill
+                    }
+                }
+                if isPadKeyboard {
+                    applyNativePadStyle(&style, params: params)
+                }
                 return style
             }
 
@@ -118,28 +166,109 @@ public struct QwertyKeyboardView: View {
         }
     }
 
+    private var isPadKeyboard: Bool {
+        keyboardContext.deviceTypeForKeyboard == .pad
+    }
+
+    /// iPad-only style corrections, measured against the native capture: the
+    /// function caps render 64/255 where native uses 70/255, and the two slots
+    /// the native layout leaves empty must not draw a cap.
+    private func applyNativePadStyle(
+        _ style: inout Keyboard.ButtonStyle,
+        params: Keyboard.ButtonStyleBuilderParams
+    ) {
+        if case .none = params.action {
+            style.backgroundColor = .clear
+            style.shadowColor = .clear
+            return
+        }
+        guard params.context.colorScheme == .dark, !params.isPressed else { return }
+        // The colour match above never fires on iPad. The pad layout is ours,
+        // so match on the action instead — we know which keys are function keys.
+        if params.action.isNativePadFunctionKey {
+            style.backgroundColor = NativeKeyMetrics.darkFunctionKeyFill
+        }
+    }
+
     private var keyboardLayout: KeyboardLayout {
         var layout = KeyboardLayout.standard(for: keyboardContext)
         layout.deviceConfiguration.inputToolbarHeight = KeyboardChromeMetrics.toolbarHeight
-        // KeyboardKit's default key caps are ~2pt taller with ~2pt tighter row
-        // gaps than native iOS. Widening the vertical button insets by 1pt per
-        // side rebalances within the same row pitch (caps 44→42pt, gaps
-        // 10→12pt). Horizontal insets already match native, so leave them.
-        layout.deviceConfiguration.buttonInsets.top += 1
-        layout.deviceConfiguration.buttonInsets.bottom += 1
         layout.applyKeyboardKeySizePreset(keyboardKeySizePreset)
         if shouldForceLowercaseAlphabeticCharacters() {
             layout.forceLowercasedAlphabeticCharacters(for: keyboardContext.keyboardType)
             layout.forceInactiveAlphabeticShift(for: keyboardContext.keyboardType)
         }
+        // KeyboardKit's iPad layout shares almost nothing with the native
+        // Japanese iPad keyboard, so it gets its own row surgery. The phone
+        // path below stays exactly as it was.
+        if isPadKeyboard {
+            if keyboardContext.keyboardType != .alphabetic {
+                layout.insertInputModeSwitchKeyBeforeSpace()
+                layout.replaceEnglishPunctuationWithJapanese(for: keyboardContext.keyboardType)
+            }
+            layout.applyNativePadLayout(for: keyboardContext.keyboardType)
+            return layout
+        }
         layout.insertInputModeSwitchKeyBeforeSpace()
         layout.insertLongVowelKeyOnHomeRow()
         layout.replaceEnglishPunctuationWithJapanese(for: keyboardContext.keyboardType)
+        // Last, so the keys inserted above are covered too.
+        layout.applyNativeVerticalButtonInsets(NativeKeyMetrics.verticalButtonInset)
         return layout
+    }
+
+    /// Native character caps run 1pt smaller than KeyboardKit's standard size.
+    /// Derived from KeyboardKit's own value so it tracks device and key type.
+    private func characterFontSize(for action: KeyboardAction) -> CGFloat {
+        action.standardButtonFontSize(for: keyboardContext)
+            - NativeKeyMetrics.characterFontSizeReduction
     }
 
     private var keyboardKeySizePreset: KeyboardKeySizePreset {
         keySizeObserver.preset
+    }
+}
+
+/// Key-cap values where KeyboardKit's defaults miss the iOS 26 system keyboard.
+/// Every number is measured off a side-by-side device capture of this keyboard
+/// and the native Japanese keyboard — see `scripts/keycap-diff.py`.
+private enum NativeKeyMetrics {
+    /// Mode-switch and kaomoji caps (あいう / 123 / #+= / ^_^). KeyboardKit drew
+    /// ^_^ with the full character font (~25pt) and #+= at 16pt.
+    static let modeLabelFontSize: CGFloat = 13
+    static let cornerRadius: CGFloat = 5
+    static let characterFontSizeReduction: CGFloat = 1
+    /// Vertical button inset per side. KeyboardKit's 5pt leaves a 44pt cap in a
+    /// 54pt row; native insets 6pt for a 42pt cap and a 12pt gap.
+    static let verticalButtonInset: CGFloat = 6
+    /// Dark-mode function-key fill: KeyboardKit renders 64/255, native 70/255.
+    static let darkFunctionKeyFill = Color(white: 70.0 / 255.0)
+    /// Dark-mode drop shadow. KeyboardKit's composites to 13/255 over the
+    /// 43/255 keyboard background; native lands on 26/255.
+    static let darkKeyShadow = Color.black.opacity(0.4)
+
+    static let kaomoji = "^_^"
+
+    /// Full-width CJK punctuation carries its ink in one corner of the em box,
+    /// so centring the glyph leaves the ink ~6.5pt off-centre — the single most
+    /// visible difference on the number page. The system keyboard renders these
+    /// with proportional metrics (`palt`), which trims the empty side bearings
+    /// and brings the ink back to the middle.
+    private static let proportionalMetricCharacters: Set<String> = ["。", "、", "「", "」"]
+
+    static func usesProportionalMetrics(_ character: String) -> Bool {
+        proportionalMetricCharacters.contains(character)
+    }
+
+    static func proportionalFont(ofSize size: CGFloat) -> Font {
+        let descriptor = UIFont.systemFont(ofSize: size).fontDescriptor
+            .addingAttributes([
+                .featureSettings: [[
+                    UIFontDescriptor.FeatureKey.type: kTextSpacingType,
+                    UIFontDescriptor.FeatureKey.selector: kAltProportionalTextSelector
+                ]]
+            ])
+        return Font(UIFont(descriptor: descriptor, size: size) as CTFont)
     }
 }
 
@@ -171,11 +300,37 @@ private struct ShiftKeyLabel: View {
 /// chrome does not need to rebuild.
 private struct PrimaryKeyLabel: View {
     @ObservedObject var inputManager: InputManager
+    /// Native's idle return cap is the ⏎ glyph on iPad and 改行 text on iPhone.
+    /// Both show 確定 while composing.
+    var usesNewlineGlyph = false
 
     var body: some View {
-        Text(inputManager.isComposing ? "確定" : "改行")
-            .font(.system(size: 16, weight: .regular))
-            .foregroundStyle(.primary)
+        if !inputManager.isComposing, usesNewlineGlyph {
+            Image.keyboardNewline
+                .resizable()
+                .scaledToFit()
+                .frame(width: 25, height: 21)
+                .foregroundStyle(.primary)
+        } else {
+            Text(inputManager.isComposing ? "確定" : "改行")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(.primary)
+        }
+    }
+}
+
+private extension KeyboardAction {
+    /// The function keys in the native iPad layout built by
+    /// `applyNativePadLayout(for:)`.
+    var isNativePadFunctionKey: Bool {
+        switch self {
+        case .backspace, .primary, .keyboardType, .nextKeyboard, .dismissKeyboard:
+            return true
+        case .shift(let keyboardCase):
+            return keyboardCase == .lowercased
+        default:
+            return false
+        }
     }
 }
 
@@ -200,9 +355,28 @@ extension KeyboardLayout {
         deviceConfiguration.buttonInsets.trailing += adjustment
     }
 
+    /// Native puts an emoji key in this slot and leaves keyboard switching to the
+    /// bar iOS draws under the keyboard. We keep the globe here instead — the one
+    /// deliberate departure from the native bottom row.
     mutating func insertInputModeSwitchKeyBeforeSpace() {
         remove(.nextKeyboard)
         tryInsertBottomRowAction(.nextKeyboard, before: .space)
+    }
+
+    /// `KeyboardLayout.standard(for:)` resolves button insets per item, and the
+    /// renderer reads the item's copy — mutating `deviceConfiguration` afterwards
+    /// does nothing (which is why the previous +1pt here never took effect and
+    /// caps stayed at KeyboardKit's 44pt instead of native's 42pt). Write both,
+    /// and only vertically: the horizontal insets already match native exactly.
+    mutating func applyNativeVerticalButtonInsets(_ inset: CGFloat) {
+        deviceConfiguration.buttonInsets.top = inset
+        deviceConfiguration.buttonInsets.bottom = inset
+        for rowIndex in itemRows.indices {
+            for itemIndex in itemRows[rowIndex].indices {
+                itemRows[rowIndex][itemIndex].edgeInsets.top = inset
+                itemRows[rowIndex][itemIndex].edgeInsets.bottom = inset
+            }
+        }
     }
 
     /// Add a chōonpu (ー) key to the right of `l` on the home row, matching the

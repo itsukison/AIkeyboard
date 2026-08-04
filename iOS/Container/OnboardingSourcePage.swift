@@ -18,52 +18,107 @@ struct OnboardingScaffold<Content: View>: View {
     let onCta: () -> Void
     var secondaryTitle: LocalizedStringKey? = nil
     var onSecondary: (() -> Void)? = nil
+    var emphasizesSecondaryAction: Bool = false
+    /// Practice pages keep the software keyboard up for the whole exercise, so
+    /// their CTA has to ride above it — a CTA hidden behind the keyboard leaves
+    /// the moment of success with no visible way forward.
+    var ctaAvoidsKeyboard: Bool = false
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        ZStack(alignment: .top) {
-            OnboardingPalette.background
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                OnboardingTopBar(
-                    progress: progress,
-                    canGoBack: canGoBack,
-                    onBack: onBack,
-                    onSkip: onSkip
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-                content()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
+                OnboardingPalette.background
+                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    OnboardingPrimaryButton(
-                        title: ctaTitle,
-                        isEnabled: isCtaEnabled,
-                        isLoading: isCtaLoading,
-                        action: onCta
+                    OnboardingTopBar(
+                        progress: progress,
+                        canGoBack: canGoBack,
+                        onBack: onBack,
+                        onSkip: onSkip
                     )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
 
-                    if let secondaryTitle, let onSecondary {
-                        Button(action: onSecondary) {
-                            Text(secondaryTitle)
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundStyle(OnboardingPalette.subInk)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 12)
-                    }
+                    content()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.bottom, contentBottomInset)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+
+                bottomActions
+                    .ignoresSafeArea(.keyboard, edges: ctaAvoidsKeyboard ? [] : .bottom)
             }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var showsSecondaryAction: Bool {
+        secondaryTitle != nil && onSecondary != nil
+    }
+
+    /// Room the content leaves for the CTA. The keyboard-riding variant gets an
+    /// extra 12 pt so the button never sits flush against the last line of copy.
+    private var contentBottomInset: CGFloat {
+        if showsSecondaryAction && emphasizesSecondaryAction { return 120 }
+        if showsSecondaryAction { return 96 }
+        return ctaAvoidsKeyboard ? 76 : 64
+    }
+
+    private var bottomActions: some View {
+        VStack(spacing: 0) {
+            OnboardingPrimaryButton(
+                title: ctaTitle,
+                isEnabled: isCtaEnabled,
+                isLoading: isCtaLoading,
+                action: onCta
+            )
+
+            if let secondaryTitle, let onSecondary {
+                Button(action: onSecondary) {
+                    HStack(spacing: 6) {
+                        if emphasizesSecondaryAction {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+
+                        Text(secondaryTitle)
+                            .multilineTextAlignment(.center)
+                    }
+                    .font(.system(
+                        size: emphasizesSecondaryAction ? 14 : 13,
+                        weight: emphasizesSecondaryAction ? .medium : .regular
+                    ))
+                    .foregroundStyle(
+                        emphasizesSecondaryAction
+                            ? OnboardingPalette.ink.opacity(0.82)
+                            : OnboardingPalette.subInk
+                    )
+                    .padding(.horizontal, emphasizesSecondaryAction ? 18 : 0)
+                    .frame(minHeight: emphasizesSecondaryAction ? 40 : 0)
+                    .background(
+                        Capsule()
+                            .fill(emphasizesSecondaryAction ? OnboardingPalette.fieldFill : .clear)
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(
+                                emphasizesSecondaryAction
+                                    ? OnboardingPalette.fieldStroke.opacity(0.55)
+                                    : .clear,
+                                lineWidth: 0.8
+                            )
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 12)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
     }
 }
 
@@ -168,18 +223,22 @@ struct OnboardingPrimaryButton: View {
 struct OnboardingTitleBlock: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey? = nil
+    /// The keyboard-up state on the practice pages: the header shrinks to a
+    /// label and drops the subtitle, because the live status line under the
+    /// field is already carrying the instruction and must stay on screen.
+    var isCompact: Bool = false
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: isCompact ? 8 : 14) {
             Text(title)
-                .font(.system(size: 32, weight: .semibold))
+                .font(.system(size: isCompact ? 22 : 32, weight: .semibold))
                 .tracking(-0.3)
                 .foregroundStyle(OnboardingPalette.ink)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let subtitle {
+            if let subtitle, !isCompact {
                 Text(subtitle)
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(OnboardingPalette.subInk)
@@ -249,17 +308,23 @@ enum OnboardingSourceStore {
     }
 }
 
+/// Declaration order is render order — the page grids `allCases` two-up, so the
+/// likeliest channels sit above the fold. `appStore` and `redNote` were added
+/// because both were real channels with no option, which pushed them into
+/// `other` (71% of all answers over 60 days); `chatgpt` covers users who ask an
+/// assistant for a keigo tool. Removed 2026-08-01 for near-zero selection over
+/// 60 days: facebook (9), linkedin (7), productHunt (3). Reddit stays at 63.
 enum SourceOption: String, CaseIterable, Identifiable {
+    case appStore
+    case tiktok
+    case friend
     case google
+    case chatgpt
+    case redNote
+    case instagram
     case twitter
     case reddit
-    case instagram
-    case facebook
-    case tiktok
     case youtube
-    case linkedin
-    case productHunt
-    case friend
     case newsletter
     case other
 
@@ -267,18 +332,18 @@ enum SourceOption: String, CaseIterable, Identifiable {
 
     var label: LocalizedStringKey {
         switch self {
-        case .google:      return "Google"
-        case .twitter:     return "Twitter/X"
-        case .reddit:      return "Reddit"
-        case .instagram:   return "Instagram"
-        case .facebook:    return "Facebook"
-        case .tiktok:      return "TikTok"
-        case .youtube:     return "YouTube"
-        case .linkedin:    return "LinkedIn"
-        case .productHunt: return "Product Hunt"
-        case .friend:      return "友人・知人"
-        case .newsletter:  return "メール"
-        case .other:       return "その他"
+        case .appStore:   return "App Store"
+        case .tiktok:     return "TikTok"
+        case .friend:     return "友人・知人"
+        case .google:     return "Google"
+        case .chatgpt:    return "ChatGPT"
+        case .redNote:    return "小紅書 / RedNote"
+        case .instagram:  return "Instagram"
+        case .twitter:    return "Twitter/X"
+        case .reddit:     return "Reddit"
+        case .youtube:    return "YouTube"
+        case .newsletter: return "メール"
+        case .other:      return "その他"
         }
     }
 }
@@ -379,18 +444,18 @@ private struct SourceBrandBadge: View {
 
     var body: some View {
         switch option {
-        case .google:      BrandTile(asset: "BrandGoogle",      inset: 5)
-        case .twitter:     BrandTile(asset: "BrandX",           inset: 7)
-        case .reddit:      BrandTile(asset: "BrandReddit",      inset: 4)
-        case .instagram:   BrandTile(asset: "BrandInstagram",   inset: 4)
-        case .facebook:    BrandTile(asset: "BrandFacebook",    inset: 4)
-        case .tiktok:      BrandTile(asset: "BrandTiktok",      inset: 5)
-        case .youtube:     BrandTile(asset: "BrandYoutube",     inset: 4)
-        case .linkedin:    BrandTile(asset: "BrandLinkedin",    inset: 4)
-        case .productHunt: BrandTile(asset: "BrandProducthunt", inset: 5)
-        case .friend:      FriendBadge()
-        case .newsletter:  NewsletterBadge()
-        case .other:       OtherBadge()
+        case .appStore:   BrandTile(asset: "BrandAppStore",  inset: 4)
+        case .tiktok:     BrandTile(asset: "BrandTiktok",    inset: 5)
+        case .google:     BrandTile(asset: "BrandGoogle",    inset: 5)
+        case .chatgpt:    BrandTile(asset: "BrandChatgpt",   inset: 6)
+        case .redNote:    BrandTile(asset: "BrandRednote",   inset: 5)
+        case .instagram:  BrandTile(asset: "BrandInstagram", inset: 4)
+        case .twitter:    BrandTile(asset: "BrandX",         inset: 7)
+        case .reddit:     BrandTile(asset: "BrandReddit",    inset: 4)
+        case .youtube:    BrandTile(asset: "BrandYoutube",   inset: 4)
+        case .friend:     FriendBadge()
+        case .newsletter: NewsletterBadge()
+        case .other:      OtherBadge()
         }
     }
 }

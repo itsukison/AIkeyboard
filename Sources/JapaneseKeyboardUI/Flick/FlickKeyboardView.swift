@@ -111,6 +111,11 @@ public struct FlickKeyboardView: View {
                         )
                         .position(center)
                         .allowsHitTesting(false)
+                    } else {
+                        // Touch-down, or the finger back on the center tile.
+                        FlickCenterPreviewView(key: popup.key, capSize: popup.frame.size)
+                            .position(x: popup.frame.midX, y: popup.frame.midY)
+                            .allowsHitTesting(false)
                     }
                 case .guide(let direction):
                     // The focused flick cross is slightly larger than the base
@@ -286,16 +291,15 @@ public struct FlickKeyboardView: View {
         )
     }
 
-    private func kanaKey(_ key: FlickKanaTable.FlickKey, onCenterTap: (() -> Void)? = nil) -> some View {
-        let centerTap = onCenterTap ?? (
-            FlickKanaTable.tapCycle(for: key) == nil ? nil : {
-                inputManager.appendKanaFromTapCycle(key)
-            }
-        )
-        return FlickKanaKeyView(
+    private func kanaKey(_ key: FlickKanaTable.FlickKey) -> some View {
+        FlickKanaKeyView(
             key: key,
-            onSelect: { kana in inputManager.appendKana(kana) },
-            onCenterTap: centerTap,
+            live: FlickLiveInput(
+                begin: { inputManager.beginFlickInput(key) },
+                update: { inputManager.updateFlickInput(key, direction: $0) },
+                end: { inputManager.endFlickInput() },
+                cancel: { inputManager.cancelFlickInput() }
+            ),
             onTriggerHaptic: onTriggerHaptic
         )
     }
@@ -330,27 +334,35 @@ private struct ReturnKeyLabel: View {
 
 /// The bottom-row slot under あ/た/ま. Native swaps it with composition state:
 /// `^_^` (insert kaomoji) when idle, the 小書き/濁点 key when composing. Observed
-/// so the swap re-renders without rebuilding the whole grid.
+/// so the swap re-renders without rebuilding the whole grid. The two states are
+/// one view with swapped inputs, not an if/else over two views: a branch change
+/// would give the key a new identity and tear its gesture view down mid-press,
+/// and this key re-renders on every conversion result (it observes the manager)
+/// — which is exactly when the next finger is landing.
 private struct DakutenKaomojiKey: View {
     @ObservedObject var inputManager: InputManager
     let onInsertText: (String) -> Void
     let onTriggerHaptic: () -> Void
 
     var body: some View {
-        if inputManager.isComposing {
-            FlickKanaKeyView(
-                key: FlickKanaTable.kogaki,
-                onSelect: { inputManager.appendKana($0) },
-                onCenterTap: { inputManager.toggleLastKanaCharacterType() },
-                onTriggerHaptic: onTriggerHaptic
-            )
-        } else {
-            FlickKanaKeyView(
-                key: FlickKanaTable.kaomoji,
-                onSelect: { _ in onInsertText("^_^") },
-                onCenterTap: { onInsertText("^_^") },
-                onTriggerHaptic: onTriggerHaptic
-            )
-        }
+        let composing = inputManager.isComposing
+        FlickKanaKeyView(
+            key: composing ? FlickKanaTable.kogaki : FlickKanaTable.kaomoji,
+            onSelect: { kana in
+                if composing {
+                    inputManager.appendKana(kana)
+                } else {
+                    onInsertText("^_^")
+                }
+            },
+            onCenterTap: {
+                if composing {
+                    inputManager.toggleLastKanaCharacterType()
+                } else {
+                    onInsertText("^_^")
+                }
+            },
+            onTriggerHaptic: onTriggerHaptic
+        )
     }
 }

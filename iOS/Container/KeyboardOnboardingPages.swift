@@ -93,11 +93,25 @@ struct KeyboardSetupPage: View {
                             .padding(.top, 8)
                     }
 
-                    Button("追加済みなので次へ") {
+                    Button {
                         onContinue()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("追加済みなので次へ")
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(OnboardingPalette.ink.opacity(0.82))
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 40)
+                        .background(OnboardingPalette.fieldFill, in: Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(OnboardingPalette.fieldStroke.opacity(0.55), lineWidth: 0.8)
+                        )
                     }
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(OnboardingPalette.subInk)
+                    .buttonStyle(.plain)
                     .padding(.top, 4)
                 }
                 .padding(.horizontal, 20)
@@ -496,6 +510,9 @@ private func onboardingNormalizedPrompts(_ ordered: [UserPrompt]) -> [UserPrompt
 
 struct KeyboardPromptsPage: View {
     let progress: Double
+    /// Shown as the secondary action when the user has buttons of their own to
+    /// add to. `nil` hides it.
+    var onAddAnother: (() -> Void)? = nil
     let onBack: () -> Void
     var onSkip: (() -> Void)? = nil
     let onContinue: () -> Void
@@ -512,12 +529,15 @@ struct KeyboardPromptsPage: View {
             onSkip: onSkip,
             ctaTitle: "次へ",
             isCtaEnabled: true,
-            onCta: onContinue
+            onCta: onContinue,
+            secondaryTitle: onAddAnother == nil ? nil : "もう1つボタンを作る",
+            onSecondary: onAddAnother,
+            emphasizesSecondaryAction: onAddAnother != nil
         ) {
             VStack(spacing: 16) {
                 OnboardingTitleBlock(
                     title: "あなた専用の\nボタンができました",
-                    subtitle: "タップすると名前や指示を自由に書き換えられます。長押しで並び替え、一番上がメインボタンです。"
+                    subtitle: "タップすると名前や指示を自由に書き換えられます。長押しで並び替え、左スワイプで削除。一番上がメインボタンです。"
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
@@ -539,6 +559,7 @@ struct KeyboardPromptsPage: View {
                             .listRowSeparatorTint(AppColor.rule.opacity(0.35))
                         }
                         .onMove(perform: moveEntries)
+                        .onDelete(perform: deleteEntries)
                     }
                 }
                 .listStyle(.insetGrouped)
@@ -572,6 +593,22 @@ struct KeyboardPromptsPage: View {
         entries = normalized
         OnboardingPromptSetup.save(normalized)
         AppAnalytics.capture("onboarding_prompt_reordered")
+    }
+
+    /// The keyboard needs a main button, so the last row cannot be deleted —
+    /// the swipe simply does nothing rather than being conditionally absent,
+    /// which would make the gesture appear and disappear as the list shrinks.
+    private func deleteEntries(at offsets: IndexSet) {
+        var remaining = entries
+        remaining.remove(atOffsets: offsets)
+        guard !remaining.isEmpty else { return }
+        let normalized = onboardingNormalizedPrompts(remaining)
+        entries = normalized
+        OnboardingPromptSetup.save(normalized)
+        AppAnalytics.capture("onboarding_prompt_deleted", properties: [
+            "remaining": normalized.count,
+            "onboarding_version": InteractiveOnboardingState.version,
+        ])
     }
 
     private func saveEntry(_ updated: UserPrompt) {

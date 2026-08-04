@@ -202,6 +202,30 @@ inside the extension. Key facts:
 
 Critical edge cases (do not regress):
 
+- **Romaji letters insert on `.press`, not `.release`** (`JapaneseActionHandler`).
+  The native iOS keyboard inserts on touch-down — press and hold a letter there
+  and it appears before you lift. Acting on `.release` cost one finger-dwell per
+  keystroke (measured p50 67 ms on device). The matching `.release` still returns
+  `true` so KeyboardKit's own release-side insert never runs and nothing
+  double-fires. `.space` (its drag moves the cursor, which needs the hold),
+  `.primary`, `.shift` and non-romaji characters like `。、` stay on release.
+  Baseline numbers in `docs/development.md` § Input latency profiling.
+- **Flick kana keys are live** (`InputManager.beginFlickInput` /
+  `updateFlickInput` / `endFlickInput`). Native puts the character into the
+  composition on touch-down and swaps it as the finger moves between flick
+  directions, so the next key can be pressed without waiting for a release;
+  touch-down also advances the tap cycle (あ→い→う under the finger). Conversion
+  is deferred until the finger lifts, so one flick still costs one conversion.
+  The ABC/123 pages and the 小書き key stay commit-on-release: they insert into
+  the host document and mutate the previous kana respectively, and neither can
+  be provisional.
+- **Flick direction thresholds are uniform** (`FlickDirectionResolver`, 18 pt in
+  all four directions, plus a 10 pt hysteresis release radius). The per-direction
+  values this replaced (left 24, top 44, right 64, bottom 24 pt) made 上 and 右
+  unreachable at normal flick lengths — the flick silently fell back to the
+  centre character, and on the 小書き key to the dakuten toggle. Keep the
+  threshold small enough that the 45° cone, not the distance, is what rejects a
+  flick.
 - KeyboardKit's `tryChangeKeyboardCase` is overridden to no-op
   (`JapaneseActionHandler.swift`). Without this, every gesture re-uppercases
   the alphabetic layer and the romaji buffer breaks.

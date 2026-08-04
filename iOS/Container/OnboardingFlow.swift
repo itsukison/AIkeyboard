@@ -71,7 +71,9 @@ struct OnboardingFlow: View {
                 KeyboardUseCasePage(
                     progress: progress(for: 5),
                     onBack: { goBack() },
-                    onContinue: { advance() }
+                    // This legacy flow has no builder pages, so the chosen use
+                    // case has nowhere to go; the seeded preset stands.
+                    onContinue: { _ in advance() }
                 )
             case 6:
                 KeyboardPromptsPage(
@@ -437,7 +439,8 @@ private struct CandidateCapsule: View {
     }
 }
 
-private struct FlowLayout: Layout {
+/// Shared with the onboarding button builder's chip groups.
+struct FlowLayout: Layout {
     var spacing: CGFloat = 6
     var lineSpacing: CGFloat = 6
 

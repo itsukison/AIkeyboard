@@ -64,6 +64,79 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         throw CloudRewriteError.backend("AI rewrite failed.")
     }
 
+    public func rewriteStreaming(
+        _ request: RewriteRequest,
+        onCandidate: @escaping @Sendable (RewriteCandidate) -> Void
+    ) async throws -> RewriteResult {
+        let accessToken = try await ensureFreshAccessToken()
+
+        var urlRequest = URLRequest(url: configuration.endpoint)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(configuration.publishableKey, forHTTPHeaderField: "apikey")
+        urlRequest.timeoutInterval = 20
+        urlRequest.httpBody = try JSONEncoder().encode(request)
+
+        let (bytes, response) = try await session.bytes(for: urlRequest)
+        guard let http = response as? HTTPURLResponse else {
+            throw CloudRewriteError.invalidResponse
+        }
+
+        guard (200..<300).contains(http.statusCode) else {
+            let data = try await Self.collect(bytes)
+            if let payload = try? JSONDecoder().decode(CloudRewriteErrorPayload.self, from: data) {
+                throw CloudRewriteError.backend(payload.error.message)
+            }
+            throw CloudRewriteError.backend("AI rewrite failed.")
+        }
+
+        // The backend falls back to a buffered JSON response when it can't open
+        // a stream, so a streaming request can still legitimately get one back.
+        guard (http.value(forHTTPHeaderField: "Content-Type") ?? "").contains("text/event-stream") else {
+            let result = try JSONDecoder().decode(RewriteResult.self, from: try await Self.collect(bytes))
+            result.candidates.forEach(onCandidate)
+            return result
+        }
+
+        var collected: [RewriteCandidate] = []
+        var language = "ja"
+        var eventId: String?
+
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data:") else { continue }
+            let raw = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+            guard let event = try? JSONDecoder().decode(
+                RewriteStreamEvent.self, from: Data(raw.utf8)
+            ) else { continue }
+
+            switch event.type {
+            case "candidate":
+                guard let text = event.text else { continue }
+                let candidate = RewriteCandidate(replacement: text, changed: event.changed ?? true)
+                collected.append(candidate)
+                onCandidate(candidate)
+            case "done":
+                language = event.language ?? language
+                eventId = event.eventId
+            case "error":
+                throw CloudRewriteError.backend(event.message ?? "AI rewrite failed.")
+            default:
+                continue
+            }
+        }
+
+        guard !collected.isEmpty else { throw CloudRewriteError.invalidResponse }
+        return RewriteResult(candidates: collected, language: language, eventId: eventId)
+    }
+
+    private static func collect(_ bytes: URLSession.AsyncBytes) async throws -> Data {
+        var data = Data()
+        for try await byte in bytes { data.append(byte) }
+        return data
+    }
+
     public func submitSelection(eventId: String, selectedIndex: Int) async {
         guard let accessToken = try? await ensureFreshAccessToken() else { return }
 
@@ -165,6 +238,15 @@ private struct ActionFeedback: Encodable {
     let selectedIndex: Int?
     let latencyMs: Int?
     let analyticsAppInstanceId: String?
+}
+
+private struct RewriteStreamEvent: Decodable {
+    let type: String
+    let text: String?
+    let changed: Bool?
+    let language: String?
+    let eventId: String?
+    let message: String?
 }
 
 private struct CloudRewriteErrorPayload: Decodable {
