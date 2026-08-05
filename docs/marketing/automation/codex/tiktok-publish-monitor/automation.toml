@@ -1,0 +1,14 @@
+version = 1
+id = "tiktok-publish-monitor"
+kind = "cron"
+name = "TikTok publish monitor"
+prompt = "Use [$tiktok-growth-loop](/Users/itsukison/Desktop/AIkeyboard/.agents/skills/tiktok-growth-loop/SKILL.md) in publish-monitor mode. Follow docs/marketing/gtm/tiktok-autopilot.md. Reconcile both line-story and office-talk posts whose Buffer due time passed, record sent links or errors in local state and the owning content spec, and report only failures or posts still unsent after the reasonable publishing window. Never create a replacement automatically."
+status = "ACTIVE"
+rrule = "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;BYHOUR=11,14,20;BYMINUTE=0"
+model = "gpt-5.6-sol"
+reasoning_effort = "medium"
+execution_environment = "local"
+target = { type = "projectless" }
+cwds = ["/Users/itsukison/Desktop/AIkeyboard"]
+created_at = 1785817805000
+updated_at = 1785817805000

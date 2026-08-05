@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "010-money-smart",
+  "mechanism": "financial competence",
+  "hook": "お金に強い人が\nこっそり使う\nアプリ5個",
+  "thumbnail": "_ (7).jpeg",
+  "swipe": "→ 4個目、仕事の文章も資産",
+  "apps": ["acorns", "origin", "fuse", "keigobutton", "zing"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Acorns ②Origin ③Fuse ④敬語ボタン ⑤Zing\n\nお金の管理で使ってるアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #お金の勉強 #社会人 #敬語",
+  "tiktokTitle": "お金に強い人がこっそり使うアプリ5個",
+  "tiktokDescription": "①Acorns ②Origin ③Fuse ④敬語ボタン ⑤Zing\n\nお金の管理アプリ、何使ってる？\n\n#アプリ紹介 #お金の勉強 #社会人 #敬語 #iPhone",
+  "hypothesis": "A competence signal around money should create high-intent saves while the fourth card broadens competence to workplace communication.",
+  "approved": true
+}

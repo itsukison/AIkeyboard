@@ -52,6 +52,7 @@ def asset_uri(kind: str, name: str) -> str:
 
 
 def slides(library: dict, post: dict) -> list[dict]:
+    image_overrides = post.get("appImageOverrides", {})
     out = [{
         "slide": "hook",
         "pill": SERIES,
@@ -61,6 +62,7 @@ def slides(library: dict, post: dict) -> list[dict]:
     }]
     for position, app_id in enumerate(post["apps"], 1):
         app = library[app_id]
+        image = image_overrides.get(app_id, app["image"])
         cropped_height = app["naturalHeight"] - app["cropBottomPx"]
         spec = {
             "slide": "app",
@@ -71,12 +73,46 @@ def slides(library: dict, post: dict) -> list[dict]:
             "detail": app["detail"],
             "accent": app["accent"],
             "ratio": f"{app['naturalWidth'] / cropped_height:.4f}",
-            "img": asset_uri("apps", app["image"]),
+            "img": asset_uri("apps", image),
         }
         if app.get("pending"):
             spec["pending"] = "1"
         out.append(spec)
     return out
+
+
+def load_posts() -> dict[str, dict]:
+    return {
+        path.parent.name: json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted((HERE / "posts").glob("*/post.json"))
+    }
+
+
+def validate_app_reuse(posts: dict[str, dict], library: dict) -> None:
+    app_usage: dict[str, list[str]] = {}
+    image_usage: dict[str, list[str]] = {}
+    for slug, post in posts.items():
+        for app_id in post["apps"]:
+            if app_id not in library or library[app_id].get("ours"):
+                continue
+            app_usage.setdefault(app_id, []).append(slug)
+            image_usage.setdefault(library[app_id]["image"], []).append(slug)
+
+    overused = [
+        f"{app_id}: {', '.join(slugs)}"
+        for app_id, slugs in app_usage.items()
+        if len(slugs) > 3
+    ]
+    overused += [
+        f"{image}: {', '.join(slugs)}"
+        for image, slugs in image_usage.items()
+        if len(slugs) > 3
+    ]
+    if overused:
+        raise SystemExit(
+            "third-party apps or screenshots used more than three times: "
+            + "; ".join(overused)
+        )
 
 
 def render(url: str, path: Path) -> None:
@@ -119,12 +155,14 @@ def main() -> None:
     args = parser.parse_args()
 
     library = json.loads((HERE / "apps.json").read_text(encoding="utf-8"))["apps"]
+    posts = load_posts()
+    validate_app_reuse(posts, library)
     pending = [a["name"] for a in library.values() if a.get("pending")]
     if pending:
         print(f"⚠️  placeholder screenshots still in use: {', '.join(pending)} — do not publish")
 
     if args.all:
-        slugs = sorted(p.name for p in (HERE / "posts").iterdir() if (p / "post.json").exists())
+        slugs = sorted(posts)
     elif args.slug:
         slugs = [args.slug]
     else:

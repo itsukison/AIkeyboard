@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "slug": "002-workplace-signal",
+  "mechanism": "social threat at work",
+  "hook": "「仕事できない人」\\nだと思われる理由、\\nスマホの中にある",
+  "thumbnail": "_ (4).jpeg",
+  "swipe": "→ 4個目、仕事の返信が変わる",
+  "apps": ["comet", "notion", "wispr_flow", "keigobutton", "substack"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Comet ②Notion ③Wispr Flow ④敬語ボタン ⑤Substack\n\n他に入れとくべきアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "「仕事できない人」と思われる理由、スマホの中にある",
+  "tiktokDescription": "①Comet ②Notion ③Wispr Flow ④敬語ボタン ⑤Substack\n\n他に入れとくべきアプリある？\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "A workplace-judgment hook should reveal whether the strongest LINE-story tension also travels in a utility-curation format.",
+  "approved": true,
+  "scheduled": {
+    "at": "2026-08-01T13:00:00+09:00",
+    "instagram": {
+      "account": "yuna_keigobutton",
+      "postId": "6a6c5ad2d0a2c34e09a000d0"
+    },
+    "tiktok": {
+      "account": "ruka_keigobutton",
+      "postId": "6a6c5b55d4973fbee23170fd"
+    }
+  }
+}

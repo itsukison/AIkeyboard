@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "015-routine-reset",
+  "mechanism": "routine reset",
+  "hook": "三日坊主でも\n残ったアプリ\n5個",
+  "thumbnail": "_ (1).jpeg",
+  "swipe": "→ 4個目、毎日使う理由がある",
+  "apps": ["life_reset", "stoic", "pillowtalk", "keigobutton", "strava"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①Life Reset ②stoic. ③pillowtalk ④敬語ボタン ⑤Strava\n\n珍しく続いたアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #習慣化 #社会人 #敬語",
+  "tiktokTitle": "三日坊主でも残ったアプリ5個",
+  "tiktokDescription": "①Life Reset ②stoic. ③pillowtalk ④敬語ボタン ⑤Strava\n\n珍しく続いたアプリは？\n\n#アプリ紹介 #習慣化 #社会人 #敬語 #iPhone",
+  "hypothesis": "Admitting inconsistency should make a habit list feel relatable and increase comments about tools viewers actually retained.",
+  "approved": true
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "008-future-ready",
+  "mechanism": "future-self aspiration",
+  "hook": "半年後の自分が\n感謝する\nアプリ5個",
+  "thumbnail": "_ (5).jpeg",
+  "swipe": "→ 4個目、返信で差がつく",
+  "apps": ["speak", "tiimo", "twitch", "keigobutton", "zing"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Speak ②Tiimo ③Twitch ④敬語ボタン ⑤Zing\n\n半年続けたいアプリはどれ？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "半年後の自分が感謝するアプリ5個",
+  "tiktokDescription": "①Speak ②Tiimo ③Twitch ④敬語ボタン ⑤Zing\n\n半年続けたいのはどれ？\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "A future-self promise should connect daily-use apps to visible personal progress without sounding like productivity guilt.",
+  "approved": true
+}

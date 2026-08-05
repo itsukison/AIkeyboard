@@ -24,6 +24,10 @@ DerivedData/
 ## Obj-C/Swift specific
 *.hmap
 
+# Python
+__pycache__/
+*.py[cod]
+
 ## App packaging
 *.ipa
 *.dSYM.zip
@@ -91,6 +95,7 @@ GoogleService-Info.plist
 # Supabase
 supabase/.temp/
 supabase/.branch/
+/supabase/supabase/
 .env
 .agents/*
 !.agents/skills/

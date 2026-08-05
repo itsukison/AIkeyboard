@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "002-dakikomanai",
+  "mechanism": "high-recognition overload hook + practical workload-boundary translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "仕事を振られて\n「無理です」って\n言えない人へ",
+    "support": "抱え込まない\n言い換え、5選",
+    "image": "../app-intro/assets/thumbnails/_ (4).jpeg",
+    "position": "center 32%"
+  },
+  "phrases": [
+    {
+      "blunt": "「急すぎて\n無理です」",
+      "polished": "「対応可否を確認し、\n本日中に回答いたします」"
+    },
+    {
+      "blunt": "「優先順位が\n分かりません」",
+      "polished": "「現在の業務とあわせて、\n優先順位をご指定ください」"
+    },
+    {
+      "blunt": "「この量は\n終わりません」",
+      "polished": "「期限内の完了が難しいため、\n範囲か納期をご相談ください」"
+    },
+    {
+      "blunt": "「それは担当外\nです」",
+      "polished": "「担当範囲を確認のうえ、\n適切な窓口をご案内します」"
+    },
+    {
+      "blunt": "「今は手が\n回りません」",
+      "polished": "「着手可能な時期を確認し、\n改めてご連絡いたします」"
+    }
+  ],
+  "cta": {
+    "headline": "抱え込む前に、\n言い方を整える。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n仕事を抱える前に、条件を伝えられます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "仕事を振られて「無理です」と言えない人へ。抱え込まない言い換え5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#仕事術",
+      "#職場あるある",
+      "#ビジネス敬語"
+    ]
+  },
+  "hypothesis": "A recognizable workload-overflow hook should broaden office-talk beyond generalized frustration, while five specific boundary-setting rewrites test whether utility can sustain swipes before the delayed product CTA.",
+  "approval": {
+    "status": "approved",
+    "visualQA": false
+  }
+}

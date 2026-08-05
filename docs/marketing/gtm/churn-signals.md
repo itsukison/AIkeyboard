@@ -47,7 +47,34 @@ practice mode answers locally with canned candidates and emits no `ai_rewrite`. 
 *real* rewrites happen within 5 minutes of `onboarding_completed`, so "ran ≥1 ai_rewrite" is a
 setup-completion signal, not evidence of value.
 
-Still unmeasured: enable-rate step (next release); *why* a candidate gets discarded — split
+## Full Access is a hard capability gate (measured 2026-08-03)
+
+The enable-rate step is now instrumented (`keyboard_enabled`, `full_access_granted`), and it
+answers the standing question "did they not know how, or could they not?" — mostly **could not**.
+Cloud rewrite requires Full Access, so without it the feature is impossible, not just undiscovered.
+
+New-flow starters (`onboarding_started` since 2026-07-28, n=165):
+
+| | n | finished onboarding | ≥1 real rewrite | ≥2 |
+|---|---|---|---|---|
+| Full Access confirmed | 78 | 58 (74%) | 39 (**50.0%**) | 28 (35.9%) |
+| Full Access not confirmed | 87 | 26 (30%) | 6 (**6.9%**) | 6 (6.9%) |
+
+**53% of onboarding starters have no confirmed Full Access grant, and that group reaches a rewrite
+6.9% of the time.** This sits *upstream* of the try→keep gap above and is cheaper to fix.
+
+**Detection caveat:** `full_access_granted` fires from `App.swift` only after the extension writes
+the App Group flag *and* the container is reopened, so "not confirmed" is an upper bound and
+"confirmed" a floor. Under-detection is unlikely to be the main story — only 6 of the 87 ran a
+rewrite, and a rewrite needs no container reopen.
+
+Secondary finding, same cohort: among Full-Access-confirmed users, completing the in-onboarding
+rewrite practice associates with more real usage — 56.0% (n=50) vs 39.3% skipped (n=28), **+16.7 pt
+but p≈0.16, not significant**. And the practice is widely skipped: `onboarding_step_skipped` counts
+59 persons on `rewrite_practice`, 59 on `keyboard_switch_practice`, 63 on `reply_practice`, so only
+55/165 (33%) complete the rewrite practice at all — a third skip it, another third never reach it.
+
+Still unmeasured: *why* a candidate gets discarded — split
 `ai_rewrite_action` into dismissed / regenerated / replace_failed, and check whether
 `replace_failed` (the replacement engine bailing when proxy context moved) is a real bug inflating
 the gap.

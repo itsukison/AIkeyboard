@@ -317,7 +317,47 @@ Ship dates that should visibly move retention/acceptance. When pulling data, seg
 
 | Date | Version | Change | Hypothesis / what to watch |
 |---|---|---|---|
+| 2026-07-27 / 07-28 | 1.0.15 (partial) → 1.0.16 | **Interactive onboarding** (`InteractiveOnboardingFlow.swift`): practice pages + user-customized prompts replacing preset buttons. Hypothesis: teaching the rewrite in-flow raises the share of onboarding finishers who actually use it. | Watch **`onboarding_completed` → ≥2 real `ai_rewrite` within 48 h, split by `$locale` × `$app_version`** (locale mix moved zh 65% → 39% across the ship, so an uncontrolled read is meaningless). First honest verdict ~**2026-08-10** (n≈300 completers, ja n≈150). Interim read below. |
 | 2026-07-23 | 1.0.14 | (a) backend rewrite model upgraded to **GPT-Soul** (from `gpt-5.6-terra` default per AGENTS.md §4); (b) keyboard **input latency** improved | Targets the two named churn causes directly — AI accuracy (#2) and keyboard feel/latency (#1, `churn-signals.md`). Watch: **W1 retention** on cohorts landing 2026-07-23+ vs prior, and the **58%-never-accept** acceptance rate (772/1,855) which reads faster than W1. First W1 signal ~1 week out, D30 ~4 weeks. |
+
+### Interim read on the interactive onboarding (2026-08-03, 6 days of data — not a verdict)
+
+Metric: persons with `onboarding_completed`, then ≥1 / ≥2 real `ai_rewrite` within 48 h (practice
+mode emits no `ai_rewrite`, so it cannot contaminate this). 48 h maturity enforced.
+
+By app version (PostHog):
+
+| version | n | ≥1 | ≥2 |
+|---|---|---|---|
+| 1.0.12 | 247 | 50.6% | 39.3% |
+| 1.0.13 | 220 | 24.1% | 20.9% |
+| 1.0.14 | 55 | 38.2% | 32.7% |
+| 1.0.15 (new flow, partial) | 101 | 35.6% | 26.7% |
+| 1.0.16 (new flow) | 49 | 51.0% | 42.9% |
+| 1.0.17 | 11 | 54.5% | 36.4% |
+
+Locale-controlled (≥2 rewrites), which is what the mix shift forces:
+
+| locale | 7/06–7/19 (old) | 7/20–7/27 (old) | 7/28+ (new) |
+|---|---|---|---|
+| ja | 47.2% (n=106) | 30.4% (n=102) | **45.5% (n=66)** |
+| zh | 36.7% (n=166) | 19.6% (n=219) | **20.9% (n=43)** |
+
+→ **Recovery to the early-July level, not a lift.** ja 7/20-week → new flow is significant
+(p≈0.03); ja early-July → new flow is not distinguishable; zh barely moved. Pooled new-vs-previous
+is inside noise (≥1: z=1.38, p≈0.17). Independently reproduced server-side from Supabase
+`ai_rewrite_events` anchored on signup (7/10–7/19 50.7% → 7/20–7/27 35.8% → 7/28+ 41.2%), which
+also avoids the PostHog identity case-mismatch.
+
+**The 7/20–7/27 trough is real, not an updater artifact** — 97.3% of 1.0.13 onboarding completers
+were fresh installs. Cause unresolved; onboarding completions spiked to 78–94/day (baseline ~15)
+on 7/20–7/21, so 【推測】 low-intent traffic influx, but a 1.0.13 regression is not excluded (7/22–7/26
+excluding the spike days still reads ~43% vs 66% in early July). **This must be settled — it is the
+baseline every future before/after comparison is measured against.**
+
+Also note: Supabase `ai_rewrite_events` only retains data back to **2026-07-03**, so no server-side
+June baseline exists. That contradicts `AGENTS.md` §8, which still lists the retention job as
+unscheduled — verify which is true before quoting either.
 
 **Pre-ship reference (2026-07-24, day after ship — treat as "before"):** 3,025 users, AI WAU 237, AI DAU 7d-avg ~44. Users only start updating on/after 07-23, so 07-24 metrics are effectively pre-effect.
 
@@ -331,6 +371,10 @@ own column so the series doesn't break at the definition change.
 |---|---|---|---|---|---|---|---|---|---|
 | 2026-07-18 | 2,851 | 269 | ~55 | — | — | — | ~5–18% | 199 | 677 |
 | 2026-07-30 | (not re-pulled) | (not re-pulled) | (not re-pulled) | **11.5%** | **~30%** | **~16%** | — | (not re-pulled) | (not re-pulled) |
+
+**2026-08-03 pull was interactive-onboarding effect only** — see *Interim read on the interactive
+onboarding* above and the Full Access gate in `churn-signals.md`. No canonical retention/activation
+or Supabase topline numbers were re-pulled, so the row above still stands as the latest.
 
 **2026-07-30 pull was retention-definition work only** — the Supabase topline (users, WAU, DAU,
 opt-ins, pairs) was not re-pulled and the 07-18 figures above are 12 days stale. Re-pull the full

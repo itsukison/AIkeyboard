@@ -87,10 +87,11 @@ detail elsewhere.
 ## Future direction (Itsuki, 2026-07-18)
 
 The first autonomous GTM harness is the TikTok growth loop documented in
-`tiktok-autopilot.md`. Its repository pieces are built; scheduled tasks remain
-disabled until the manual dry run and approval gates are verified. Extend the
-same pattern later to weekly metrics, PR content, competitor monitoring, and
-alerts without mixing their state or permissions.
+`tiktok-autopilot.md`. Its three Codex tasks are active as of 2026-08-04. The
+daily controller maintains two LINE-story posts and one office-talk post per
+complete day; the publication monitor and weekly review operate on both
+formats. Extend the same pattern later to weekly metrics, PR content, competitor
+monitoring, and alerts without mixing their state or permissions.
 
 ## Standing prompts for Claude Code sessions
 

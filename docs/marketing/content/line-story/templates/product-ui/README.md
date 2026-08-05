@@ -78,6 +78,7 @@ Open `product-ui.html` with query parameters:
 ```text
 product-ui.html?state=toolbar&scene=creepy-boss&step=2&draft=...&format=tiktok
 product-ui.html?state=result&scene=creepy-boss&step=2&result=...&format=tiktok
+product-ui.html?state=result&command=英訳&draft=...&result=...&chat=off&format=tiktok
 product-ui.html?state=toolbar&incoming=...&draft=...&format=instagram   (legacy single-bubble)
 ```
 
@@ -92,6 +93,8 @@ product-ui.html?state=toolbar&incoming=...&draft=...&format=instagram   (legacy 
   host field in place. Long drafts wrap to a second line instead of clipping.
 - `result`: the rewritten message shown in the candidate card (result state). The card
   is centered with the next candidate peeking at the right edge.
+- `command`: overrides the prompt pill label in both states, for example `英訳`.
+  Defaults to `敬語`.
 - `incoming`: legacy fallback — a single boss bubble when no `scene` is given.
 - `scenejson`: a JSON scene injected by the generic episode renderer. It takes
   precedence over `scene` and keeps autonomous story and product frames on the

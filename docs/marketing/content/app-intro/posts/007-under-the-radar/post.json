@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "007-under-the-radar",
+  "mechanism": "under-the-radar discovery",
+  "hook": "有名じゃないのに\n手放せない\nアプリ5個",
+  "thumbnail": "_ (3).jpeg",
+  "swipe": "→ 4個目、毎日触るやつ",
+  "apps": ["linktree", "mimo", "open", "keigobutton", "origin"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Linktree ②Mimo ③Open ④敬語ボタン ⑤Origin\n\n自分だけが知ってる便利アプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "有名じゃないのに手放せないアプリ5個",
+  "tiktokDescription": "①Linktree ②Mimo ③Open ④敬語ボタン ⑤Origin\n\n隠れた推しアプリも教えて。\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "The under-the-radar frame should reward discovery and make unfamiliar names an advantage instead of a trust problem.",
+  "approved": true
+}

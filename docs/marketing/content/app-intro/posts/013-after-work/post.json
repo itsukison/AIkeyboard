@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "013-after-work",
+  "mechanism": "after-work identity",
+  "hook": "仕事終わりが\nちょっと楽しみになる\nアプリ5個",
+  "thumbnail": "🐰.jpeg",
+  "swipe": "→ 4個目、退勤前にも便利",
+  "apps": ["twitch", "bump", "clubhouse", "keigobutton", "substack"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Twitch ②Bump ③Clubhouse ④敬語ボタン ⑤Substack\n\n仕事終わりに最初に開くアプリは？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人の日常 #仕事術 #敬語",
+  "tiktokTitle": "仕事終わりがちょっと楽しみになるアプリ5個",
+  "tiktokDescription": "①Twitch ②Bump ③Clubhouse ④敬語ボタン ⑤Substack\n\n退勤後に最初に開くのは？\n\n#アプリ紹介 #社会人の日常 #仕事術 #敬語 #iPhone",
+  "hypothesis": "An after-work frame should soften the productivity tone and reach viewers through leisure and connection instead.",
+  "approved": true
+}

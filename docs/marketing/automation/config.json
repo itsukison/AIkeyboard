@@ -19,11 +19,22 @@
     "maxPostsPerDay": 3,
     "requireRewriteVerified": true,
     "requireVisualQA": true,
-    "humanApprovalRequiredForNewConcepts": true
+    "humanApprovalRequiredForNewConcepts": true,
+    "formatPolicies": {
+      "office-talk": {
+        "autoCreate": true,
+        "humanApprovalRequiredForNewConcepts": false,
+        "requireVisualQA": true
+      }
+    }
   },
   "experiments": {
     "exploitPostsPerDay": 2,
     "explorePostsPerDay": 1,
+    "contentMix": {
+      "lineStoryPostsPerDay": 2,
+      "officeTalkPostsPerDay": 1
+    },
     "minimumSamplesPerSlot": 10,
     "winnerViewMultiple": 3.0,
     "winnerEngagementFloorRatio": 0.75

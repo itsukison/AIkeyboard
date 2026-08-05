@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "slug": "001-visual-prototype",
+  "duration": 14,
+  "messages": [
+    { "side": "me", "text": "その前は？", "time": "20:17", "read": "既読" },
+    { "side": "other", "text": "寝てた", "time": "20:18" },
+    { "side": "me", "text": "正直でよろしい", "time": "20:18", "read": "既読" },
+    { "side": "me", "text": "でも今回は映画の予約してるんや\nけど", "time": "20:19", "read": "既読" },
+    { "side": "other", "text": "何時やっけ", "time": "20:19" },
+    { "side": "me", "text": "19時", "time": "20:20", "read": "既読" },
+    { "side": "me", "text": "もう家出た？", "time": "20:20", "read": "既読" },
+    { "side": "other", "text": "まだ", "time": "20:21" },
+    { "side": "me", "text": "え？", "time": "20:21", "read": "既読" },
+    { "side": "other", "text": "今から行く", "time": "20:22" },
+    { "side": "other", "text": "間に合うと思う", "time": "20:22" },
+    { "side": "me", "text": "もういい", "time": "20:23", "read": "既読" }
+  ]
+}

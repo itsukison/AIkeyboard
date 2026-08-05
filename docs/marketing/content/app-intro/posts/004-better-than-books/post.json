@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "004-better-than-books",
+  "mechanism": "contrarian replacement",
+  "hook": "自己啓発本より、\\nこのアプリ5個",
+  "thumbnail": "iPhone App Icon Mockup – iOS UI Preview.jpeg",
+  "swipe": "→ 4個目、毎日使うやつ",
+  "apps": ["life_reset", "quizlet", "strava", "keigobutton", "wabi"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Life Reset ②Quizlet ③Strava ④敬語ボタン ⑤Wabi\n\n他に入れとくべきアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "自己啓発本より、このアプリ5個",
+  "tiktokDescription": "①Life Reset ②Quizlet ③Strava ④敬語ボタン ⑤Wabi\n\n他に入れとくべきアプリある？\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "Replacing abstract self-help with concrete daily tools should attract viewers who want action rather than inspiration.",
+  "approved": true
+}

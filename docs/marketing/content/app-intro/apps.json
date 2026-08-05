@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "Library of app cards. A post picks which ids to show, and in what order, in its post.json. 敬語ボタン appears in every post; every other app should appear in only one, so each post introduces something new.",
+  "note": "Library of app cards. A post picks which ids to show, and in what order, in its post.json. 敬語ボタン appears in every post; third-party apps may be reused up to three times across distinct themed lists.",
   "crop": {
     "why": "The *.webp shots are Mobbin-sourced and carry a 'curated by Mobbin' bar across the bottom 120 px. It is clipped in CSS via naturalWidth / (naturalHeight - cropBottomPx); the original files are never modified.",
     "measured": "120 px on every webp shot (2026-07-30, re-confirmed for duolingo.webp 2026-07-31)"
@@ -56,6 +56,296 @@
       "cropBottomPx": 0,
       "accent": "#b3a4f7",
       "ours": true
+    },
+    "comet": {
+      "name": "Comet",
+      "tagline": "AIが動くブラウザ",
+      "detail": "検索するだけでなく、開いているページを要約したり、比較や予約の下調べまで任せられるAIブラウザ。タブを行き来して情報を集める代わりに、見ているサイトの文脈を保ったまま質問できる。",
+      "image": "Comet iOS 14.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#8fb9b6"
+    },
+    "notion": {
+      "name": "Notion",
+      "tagline": "メモもタスクも一か所に",
+      "detail": "メモ、議事録、タスク、資料を同じ場所にまとめられるワークスペース。ページ同士をつなげて整理でき、検索やAIから必要な情報を呼び出せる。仕事の情報が複数アプリに散らばる人向け。",
+      "image": "Notion iOS 15.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#d9d9d9"
+    },
+    "wispr_flow": {
+      "name": "Wispr Flow",
+      "tagline": "話すだけで文章になる",
+      "detail": "声で話した内容を、句読点や言いよどみまで整えて文章にするAI音声キーボード。メールやSlackなど、いつものアプリ内で使える。長文を親指で打つより、まず話して下書きを作りたい人に向く。",
+      "image": "Wispr Flow iOS 1.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#d8d0b7"
+    },
+    "substack": {
+      "name": "Substack",
+      "tagline": "読みたい発信を直接追う",
+      "detail": "書き手のニュースレター、音声、動画をまとめて読めるアプリ。アルゴリズム任せのタイムラインではなく、選んだ人の新着を受け取れる。専門家やクリエイターの深い発信を追いたいときに便利。",
+      "image": "Substack iOS 23.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#ff6b35"
+    },
+    "too_good_to_go": {
+      "name": "Too Good To Go",
+      "tagline": "売れ残りを安く救う",
+      "detail": "近くの店で余りそうな食品を、割引された「サプライズバッグ」として予約できる。中身は受け取るまでのお楽しみ。外食費を抑えながら、まだ食べられる商品が捨てられるのも減らせる。",
+      "image": "Too Good To Go iOS 22.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#75c2a5"
+    },
+    "tide_guide": {
+      "name": "Tide Guide",
+      "tagline": "海に行く時間を外さない",
+      "detail": "世界中の観測地点から、潮の高さ、風、波、日の出や月の状態を確認できる海の天気アプリ。地図とグラフが見やすく、サーフィンや釣り、海辺の予定を感覚ではなく条件で決められる。",
+      "image": "Tide Guide iOS 14.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#58b7e8"
+    },
+    "pushr": {
+      "name": "pushr",
+      "tagline": "iPhoneが腕立てを数える",
+      "detail": "床に置いたiPhoneが顔との距離を追い、腕立て伏せの回数を自動で数える。セット数や休憩時間、連続記録も残せる。筋トレ中に画面を触ったり、自分で回数を数えたりする手間がなくなる。",
+      "image": "pushr iOS 2.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#bcbcbc"
+    },
+    "genies": {
+      "name": "Genies",
+      "tagline": "写真から自分の傾向を知る",
+      "detail": "日々のチェックインや写真、会話を重ねながら、自分の興味や気分を整理していくAIプロフィール。写真をきっかけに会話のテーマも出してくれる。普通のSNSより、自分を知ることに寄った使い方ができる。",
+      "image": "Genie iOS 0.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#c7b6ff"
+    },
+    "life_reset": {
+      "name": "Life Reset",
+      "tagline": "習慣をRPGみたいに続ける",
+      "detail": "目標を毎日のクエストに分け、達成するとXPや連続記録が増える習慣アプリ。運動、勉強、振り返りなどを一つのプログラムにできる。やる気よりゲーム感覚で継続したい人に合う。",
+      "image": "Life Reset iOS 77.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#f2b56b"
+    },
+    "quizlet": {
+      "name": "Quizlet",
+      "tagline": "暗記を小さな反復にする",
+      "detail": "単語や用語をカードにして、テストやゲーム形式で繰り返せる学習アプリ。自分で教材を作るだけでなく、公開されているセットも探せる。試験前の大量暗記を、短い復習に分けたいときに使いやすい。",
+      "image": "Quizlet iOS 55.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#8390ff"
+    },
+    "strava": {
+      "name": "Strava",
+      "tagline": "走った記録が次の一歩になる",
+      "detail": "ランニングやサイクリングの距離、ペース、ルートを記録し、過去の自分や仲間と比べられる。数字が残るので、なんとなく運動するより成長が見えやすい。続ける理由を作りたい人向け。",
+      "image": "Strava iOS 32.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#ff6b22"
+    },
+    "wabi": {
+      "name": "Wabi",
+      "tagline": "欲しいミニアプリを言葉で作る",
+      "detail": "「自分用の習慣トラッカーが欲しい」のように説明すると、コードを書かずにミニアプリを作れる。公開された作品を使ったり、自分向けに作り替えたりも可能。既製アプリが微妙に合わない人に面白い。",
+      "image": "Wabi iOS 2.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#9d8cff"
+    },
+    "acorns": {
+      "name": "Acorns",
+      "tagline": "おつり感覚で投資を始める",
+      "detail": "少額から自動で積み立てられる投資アプリ。日々の支出に合わせて無理のない額を回し、ポートフォリオ管理までまとめて任せられる。投資を勉強してから始めるより、まず小さく習慣にしたい人向け。",
+      "image": "Acorns iOS 33.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#78c95b"
+    },
+    "alan_mind": {
+      "name": "Alan Mind",
+      "tagline": "心の調子を言葉にする",
+      "detail": "気分の記録、呼吸、ジャーナリングを一つにまとめたメンタルケアアプリ。質問に沿って短く振り返るので、白紙の日記より続けやすい。頭の中が散らかった日に、自分の状態を落ち着いて見直せる。",
+      "image": "Alan Mind iOS 1.png",
+      "naturalWidth": 1125,
+      "naturalHeight": 2556,
+      "cropBottomPx": 120,
+      "accent": "#aa8bf2"
+    },
+    "atoms": {
+      "name": "Atoms",
+      "tagline": "小さな習慣を積み上げる",
+      "detail": "『Atomic Habits』の考え方をもとに、続けたい行動を小さく設計する習慣アプリ。目標の大きさではなく、毎日できる最小単位から始める。三日坊主を意思の弱さではなく、仕組みの問題として直したい人に合う。",
+      "image": "Atoms iOS 1.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#e0b64e"
+    },
+    "bump": {
+      "name": "Bump",
+      "tagline": "友達の今が地図でわかる",
+      "detail": "親しい友達と位置や近況を地図上で共有できるソーシャルアプリ。待ち合わせの確認だけでなく、近くにいる友達に気づいて自然に連絡できる。大人数のSNSより、身近な人との偶然を増やしたいときに使える。",
+      "image": "Bump iOS 38.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#f5b94c"
+    },
+    "creme": {
+      "name": "CREME",
+      "tagline": "料理を動画で再現する",
+      "detail": "シェフや料理家のレシピを、短い動画と手順で見られる料理アプリ。完成写真だけでなく、火加減や混ぜ方まで動きで確認できる。いつもの献立に飽きた日に、少し本格的な一皿へ挑戦しやすい。",
+      "image": "CREME iOS 25.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#e5a56f"
+    },
+    "craft": {
+      "name": "Craft",
+      "tagline": "アイデアを形にして共有する",
+      "detail": "メモや企画を見やすいページにまとめ、リンクですぐ共有できるドキュメントアプリ。画像、カード、表を組み合わせても崩れにくい。考えを整理するところから、人に見せる資料にするところまで一つで済む。",
+      "image": "Craft iOS 41.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#4ea3f2"
+    },
+    "fuse": {
+      "name": "Fuse",
+      "tagline": "お金をまとめて見える化する",
+      "detail": "支出、貯蓄、投資を同じ画面で整理できるマネーアプリ。複数の口座に散らばった数字を一つの流れとして見られるので、今月いくら使えて、どれだけ将来へ回せるかを判断しやすい。",
+      "image": "Fuse iOS 2.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#7d8cff"
+    },
+    "ladder": {
+      "name": "Ladder",
+      "tagline": "迷わない筋トレメニュー",
+      "detail": "コーチが組んだ週間プログラムに沿って運動できるトレーニングアプリ。今日は何を何回やるかが最初から決まっていて、動画でフォームも確認できる。ジムへ行ってからメニューを考えて止まる人向け。",
+      "image": "Ladder iOS 4.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#d58d68"
+    },
+    "linktree": {
+      "name": "Linktree",
+      "tagline": "自分のリンクを一か所に",
+      "detail": "SNS、作品、ショップ、問い合わせ先を一つのプロフィールページにまとめられる。リンクを追加するたびに自己紹介文を書き換える必要がなく、閲覧数も確認できる。複数の活動をしている人の名刺代わりになる。",
+      "image": "Linktree iOS 51.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#8eb4ff"
+    },
+    "mimo": {
+      "name": "Mimo",
+      "tagline": "スマホでコードを学ぶ",
+      "detail": "短いレッスンと演習で、Web開発やPythonを基礎から学べるプログラミング学習アプリ。読むだけでなく、その場でコードを入力して結果を確かめる。通勤時間を少しずつスキルへ変えたい人に向く。",
+      "image": "Mimo iOS 31.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#9277eb"
+    },
+    "open": {
+      "name": "Open",
+      "tagline": "呼吸と瞑想を生活に入れる",
+      "detail": "呼吸法、瞑想、軽い運動を映像でガイドしてくれるウェルネスアプリ。集中したい、眠りたい、気持ちを切り替えたいなど、今の目的からセッションを選べる。何もしない時間を自分で作れない日に便利。",
+      "image": "Open iOS 95.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#b89c79"
+    },
+    "origin": {
+      "name": "Origin",
+      "tagline": "資産全体を一画面で見る",
+      "detail": "口座、投資、負債をつないで純資産の変化を追えるパーソナルファイナンスアプリ。家計簿の一日単位より、長期でお金がどう増減しているかを見る設計。貯める目的まで含めて管理したい人向け。",
+      "image": "Origin iOS 18.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#79bf8b"
+    },
+    "speak": {
+      "name": "Speak",
+      "tagline": "AI相手に英会話する",
+      "detail": "AI講師との会話を中心に、声に出して英語を練習できるアプリ。単語を覚えるだけでなく、場面ごとの返し方を何度でも試せる。人とのレッスンは緊張するけれど、読む勉強だけでは話せない人にちょうどいい。",
+      "image": "Speak iOS 33.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#ff9a5f"
+    },
+    "tiimo": {
+      "name": "Tiimo",
+      "tagline": "今日やることをやさしく整理",
+      "detail": "予定とタスクを視覚的なタイムラインにして、次に何をするかを迷いにくくするプランナー。細かい時間管理より、朝の流れや集中する順番を組み立てるのが得意。頭の中だけで一日を管理して疲れる人向け。",
+      "image": "Tiimo iOS 32.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#d9be77"
+    },
+    "twitch": {
+      "name": "Twitch",
+      "tagline": "好きな配信をリアルタイムで",
+      "detail": "ゲーム、雑談、音楽などのライブ配信を視聴し、その場のチャットに参加できる。編集された動画とは違い、配信者と視聴者が同じ瞬間を共有するのが魅力。作業中に人の気配が欲しいときにも使える。",
+      "image": "Twitch iOS 10.png",
+      "naturalWidth": 1179,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#9c6cff"
+    },
+    "zing": {
+      "name": "Zing",
+      "tagline": "海外送金をわかりやすく",
+      "detail": "複数通貨の送金や両替を、手数料を確認しながら進められる国際マネーアプリ。旅行、留学、海外の家族への送金などで、銀行窓口より手続きを軽くしたいときに使える。使う前に対応地域は要確認。",
+      "image": "Zing iOS 3.png",
+      "naturalWidth": 1290,
+      "naturalHeight": 2916,
+      "cropBottomPx": 120,
+      "accent": "#65d78a"
+    },
+    "pillowtalk": {
+      "name": "pillowtalk",
+      "tagline": "一日の終わりに振り返る",
+      "detail": "写真や音声、短い文章で、その日の気分や出来事を残せるジャーナルアプリ。決まった型の日記ではなく、問いかけに答えるだけでも記録になる。寝る前に頭の中を外へ出して、翌日へ持ち越したくない人に。",
+      "image": "pillowtalk iOS 24.png",
+      "naturalWidth": 1180,
+      "naturalHeight": 2676,
+      "cropBottomPx": 120,
+      "accent": "#9bb0aa"
     }
   }
 }

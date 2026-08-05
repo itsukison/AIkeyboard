@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "slug": "001-mou-muri",
+  "mechanism": "taboo inner thought + immediately useful workplace translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "会社では\n「もう無理」って\n言えないから",
+    "support": "角が立たない\n言い換え、5選",
+    "image": "../app-intro/assets/thumbnails/_ (5).jpeg",
+    "position": "center 38%"
+  },
+  "phrases": [
+    {
+      "blunt": "「それ、\n聞いてません」",
+      "polished": "「認識に相違があるようなので、\n一度経緯を確認させてください」"
+    },
+    {
+      "blunt": "「今すぐは\n無理です」",
+      "polished": "「本日中の対応は難しいため、\n明日午前までお時間を\nいただけますか」"
+    },
+    {
+      "blunt": "「それ、私の仕事\nですか？」",
+      "polished": "「担当範囲を確認したうえで、\n進め方をご相談できればと\n思います」"
+    },
+    {
+      "blunt": "「何度も\n言いました」",
+      "polished": "「念のため、前回お伝えした\n内容を再度共有いたします」"
+    },
+    {
+      "blunt": "「今日はもう\n帰りたいです」",
+      "polished": "「本日はここまでとし、\n続きは明日対応させてください」"
+    }
+  ],
+  "cta": {
+    "headline": "毎回、言い換えを\n考えなくていい。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n送る前の迷いを短くします。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "会社で「もう無理」と言えない人へ。角が立たない言い換え5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#仕事術",
+      "#職場あるある",
+      "#ビジネス敬語"
+    ]
+  },
+  "hypothesis": "A taboo but highly recognizable inner thought should earn the first swipe, while five standalone rewrites should drive completion and saves before a delayed install CTA.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  },
+  "published": {
+    "at": "2026-08-04T13:16:16+09:00",
+    "bufferPostId": "6a716725e7bbda897d6b1f59",
+    "tiktokUrl": "https://tiktok.com/@keigobutton/video/7670025056667389191"
+  }
+}

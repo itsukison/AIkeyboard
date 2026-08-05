@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "006-phone-does-more",
+  "mechanism": "capability gap",
+  "hook": "そのiPhone、\nまだ半分しか\n使えてない",
+  "thumbnail": "_ (2).jpeg",
+  "swipe": "→ 4個目、入力まで変わる",
+  "apps": ["creme", "craft", "fuse", "keigobutton", "ladder"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①CREME ②Craft ③Fuse ④敬語ボタン ⑤Ladder\n\nこの中で使ってみたいのどれ？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "そのiPhone、まだ半分しか使えてない",
+  "tiktokDescription": "①CREME ②Craft ③Fuse ④敬語ボタン ⑤Ladder\n\n使ってみたいのはどれ？\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "A capability-gap hook should turn a broad utility mix into a concrete reason to swipe through every card.",
+  "approved": true
+}

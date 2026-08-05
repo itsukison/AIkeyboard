@@ -1,0 +1,14 @@
+version = 1
+id = "tiktok-daily-controller"
+kind = "cron"
+name = "TikTok daily controller"
+prompt = "Use [$tiktok-growth-loop](/Users/itsukison/Desktop/AIkeyboard/.agents/skills/tiktok-growth-loop/SKILL.md) in daily-controller mode. Follow docs/marketing/gtm/tiktok-autopilot.md. Reconcile Buffer and local state, capture due metrics, analyze comparable results, then use next-plan to maintain six future TikTok posts with exactly two line-story posts and one office-talk post per complete day. Automatically create the next numbered office-talk post when approved unpublished stock is empty, then render, inspect all seven slides, pass publishability checks, upload, schedule through Buffer, and record contentFormat and the Buffer ID. New LINE concepts still require approval. Leave anything that fails a gate as a draft and report the blocker."
+status = "ACTIVE"
+rrule = "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;BYHOUR=5;BYMINUTE=0"
+model = "gpt-5.6-sol"
+reasoning_effort = "medium"
+execution_environment = "local"
+target = { type = "projectless" }
+cwds = ["/Users/itsukison/Desktop/AIkeyboard"]
+created_at = 1785817805000
+updated_at = 1785817805000

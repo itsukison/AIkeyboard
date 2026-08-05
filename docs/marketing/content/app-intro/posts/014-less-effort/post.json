@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "014-less-effort",
+  "mechanism": "effort reduction",
+  "hook": "仕事を頑張らずに\n速くする\nアプリ5個",
+  "thumbnail": "_ (4).jpeg",
+  "swipe": "→ 4個目、コピペが消える",
+  "apps": ["comet", "wispr_flow", "notion", "keigobutton", "linktree"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Comet ②Wispr Flow ③Notion ④敬語ボタン ⑤Linktree\n\n一番時短になったアプリは？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #仕事効率化 #社会人 #敬語",
+  "tiktokTitle": "仕事を頑張らずに速くするアプリ5個",
+  "tiktokDescription": "①Comet ②Wispr Flow ③Notion ④敬語ボタン ⑤Linktree\n\n一番時短になったアプリは？\n\n#アプリ紹介 #仕事効率化 #社会人 #敬語 #iPhone",
+  "hypothesis": "Effort reduction should be more believable than generic productivity because every card removes a specific repeated task.",
+  "approved": true
+}

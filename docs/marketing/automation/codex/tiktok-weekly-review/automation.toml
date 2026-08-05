@@ -1,0 +1,14 @@
+version = 1
+id = "tiktok-weekly-review"
+kind = "cron"
+name = "TikTok weekly review"
+prompt = "Use [$tiktok-growth-loop](/Users/itsukison/Desktop/AIkeyboard/.agents/skills/tiktok-growth-loop/SKILL.md) in weekly-review mode. Follow docs/marketing/gtm/tiktok-autopilot.md. Analyze comparable 72-hour snapshots by contentFormat, compare line-story with office-talk, separate distribution wins from qualified-engagement wins, and review slot sample counts. Keep the two-line-story/one-office-talk daily mix and do not change posting times until every slot reaches the configured minimum sample size. Make only config-bounded changes."
+status = "ACTIVE"
+rrule = "RRULE:FREQ=WEEKLY;BYDAY=FR;BYHOUR=10;BYMINUTE=0"
+model = "gpt-5.6-sol"
+reasoning_effort = "medium"
+execution_environment = "local"
+target = { type = "projectless" }
+cwds = ["/Users/itsukison/Desktop/AIkeyboard"]
+created_at = 1785817805000
+updated_at = 1785817805000

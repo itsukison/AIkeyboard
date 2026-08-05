@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "005-secret-stack",
+  "mechanism": "secret / exclusivity",
+  "hook": "同僚に教えたくない\nアプリ、5個",
+  "thumbnail": "NO_ZE.jpeg",
+  "swipe": "→ 4個目、文章が一瞬で整う",
+  "apps": ["acorns", "alan_mind", "atoms", "keigobutton", "bump"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Acorns ②Alan Mind ③Atoms ④敬語ボタン ⑤Bump\n\nまだ知られてない推しアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "同僚に教えたくないアプリ、5個",
+  "tiktokDescription": "①Acorns ②Alan Mind ③Atoms ④敬語ボタン ⑤Bump\n\nまだ知られてない推しアプリある？\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "Exclusivity should make a mixed money, mental-health, habit, writing, and social stack feel worth saving.",
+  "approved": true
+}

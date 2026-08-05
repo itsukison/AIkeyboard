@@ -1,6 +1,6 @@
 # TikTok autonomous growth loop
 
-Last verified: **2026-07-29**. Owner: Itsuki.
+Last verified: **2026-08-04**. Owner: Itsuki.
 
 This file owns the autonomous TikTok operating policy. `content-strategy.md`
 owns positioning and measurement definitions, `spicy-content-bank.md` owns
@@ -10,11 +10,11 @@ mechanics.
 ## Current state
 
 The repository harness is installed and the first live manual production run
-completed successfully on 2026-07-29; the Codex scheduled tasks still require
-one-time creation in the desktop app's **Scheduled** screen. The first production mode is `approved_only`: approved content-bank
-episodes may be scheduled after real-rewrite verification and visual QA. New
-concepts may be generated and rendered automatically but require human approval
-before publication.
+completed successfully on 2026-07-29. Production mode is `approved_only`:
+LINE episodes may be scheduled after editorial approval, real-rewrite
+verification, and visual QA. The bounded `office-talk` format has standing
+approval for unattended variants, but each generated post must still pass its
+schema, asset-rights, line-break, visual-QA, and publishability gates.
 
 Configuration and durable run state live under `../automation/`. Create an empty
 `../automation/PAUSED` file to stop every external write at the beginning of the
@@ -47,17 +47,23 @@ explore content across the slots during that baseline period.
 3. Reconcile the local ledger against Buffer before calculating open slots.
 4. Keep six future posts scheduled without exceeding three per local day or the
    Buffer plan limit of ten scheduled posts.
-5. Allocate two proven-format `exploit` posts and one controlled `explore` post
-   per complete day.
-6. Generate episodes as declarative `episode.json` files and render them with
-   `scripts/marketing/render_tiktok_episode.py`.
+5. Run `python3 scripts/marketing/tiktok_agent_state.py next-plan` and allocate
+   two `line-story` posts and one `office-talk` post per complete day.
+   Treat the office-talk slot as the controlled `explore` allocation until the
+   format earns winner status. Rotate the formats across posting times so format
+   is not permanently confounded with slot performance.
+6. Generate LINE episodes as declarative `episode.json` files. For an
+   `office-talk` slot with no approved unpublished stock, create the next
+   numbered `post.json` automatically using the fixed seven-slide template,
+   approved image pool, five original Japanese workplace rewrites, and app-icon
+   CTA. Render with the owning format's build script.
 7. Enforce approval, real-rewrite, and visual-QA gates before any upload.
 8. Schedule through Buffer and record the accepted Buffer post immediately.
 
 Use this scheduled-task prompt:
 
 ```text
-Use $tiktok-growth-loop in daily-controller mode for the Japanese project. Reconcile Buffer and local state, capture due analytics snapshots, analyze comparable results, and safely fill the next six TikTok slots. Publish only episodes that pass every configured gate. Do not ask for approval during the unattended run; leave blocked concepts as drafts and report the blocker.
+Use $tiktok-growth-loop in daily-controller mode for the Japanese project. Reconcile Buffer and local state, capture due analytics snapshots, analyze comparable results, then use next-plan to fill the next six TikTok slots with exactly two line-story posts and one office-talk post per complete day. For office-talk, automatically create the next numbered seven-slide post when approved unpublished stock is empty, following its README, approved image pool, explicit line-break limits, app-icon CTA, render, visual QA, publishability check, upload, Buffer scheduling, and state recording. New LINE concepts still require approval. Do not ask for approval during the unattended run; leave anything that fails a gate as a draft and report the blocker.
 ```
 
 ## Publish monitor
@@ -65,7 +71,7 @@ Use $tiktok-growth-loop in daily-controller mode for the Japanese project. Recon
 Use this scheduled-task prompt:
 
 ```text
-Use $tiktok-growth-loop in publish-monitor mode for the Japanese project. Reconcile TikTok posts whose Buffer due time has passed, record sent links or errors, and report only failures or posts still not sent after a reasonable publishing window. Never create a replacement post automatically.
+Use $tiktok-growth-loop in publish-monitor mode for the Japanese project. Reconcile both line-story and office-talk TikTok posts whose Buffer due time has passed, record sent links or errors in the local ledger and owning post spec, and report only failures or posts still not sent after a reasonable publishing window. Never create a replacement post automatically.
 ```
 
 ## Weekly review
@@ -73,7 +79,7 @@ Use $tiktok-growth-loop in publish-monitor mode for the Japanese project. Reconc
 Use this scheduled-task prompt:
 
 ```text
-Use $tiktok-growth-loop in weekly-review mode for the Japanese project. Analyze comparable 72-hour TikTok snapshots, separate distribution wins from qualified-engagement wins, review exploit/explore balance and posting-slot sample counts, and recommend or make only config-bounded allocation changes. Do not change posting times until every slot meets the configured minimum sample size.
+Use $tiktok-growth-loop in weekly-review mode for the Japanese project. Analyze comparable 72-hour TikTok snapshots by contentFormat, separate distribution wins from qualified-engagement wins, compare line-story with office-talk, review exploit/explore balance and posting-slot sample counts, and recommend or make only config-bounded allocation changes. Keep the two-line-story/one-office-talk daily mix and do not change posting times until every slot meets the configured minimum sample size.
 ```
 
 ## Decision policy
@@ -93,18 +99,20 @@ Use $tiktok-growth-loop in weekly-review mode for the Japanese project. Analyze 
 
 ## Episode contract
 
-Use `../content/014-sick-day-pressure/episode.json` as the reference. Each spec
+Use `../content/line-story/episodes/014-sick-day-pressure/episode.json` as the reference. Each spec
 owns its scene, ordered slides, title, hashtags, hypothesis, experiment labels,
 and approval gates. The generic renderer injects the scene into the existing
 LINE-style and product-UI templates and produces up to ten 1080 × 1350 PNGs.
 
-The content hash printed by the renderer is the deduplication key stored with the
-Buffer post. A scheduled run must stop before upload if the same hash is already
-scheduled or sent.
+Office-talk posts use their own data-driven template and produce seven
+1080 × 1920 PNGs under `content/office-talk/posts/`. The content hash printed by
+the owning renderer is the deduplication key stored with the Buffer post. A
+scheduled run must stop before upload if the same content is already scheduled
+or sent.
 
 ## Enabling the tasks
 
-Create three standalone Codex scheduled tasks in the desktop app, select this
-project directory, use local-project mode, and paste the prompts above. Keep the
-Mac mini powered on, logged in, awake, and the desktop app running. Test each task
-manually before enabling its recurrence.
+The three standalone Codex scheduled tasks use the prompts above and this
+project directory in local-project mode. Keep the Mac mini powered on, logged
+in, awake, and the desktop app running. Test each task manually after changing
+its prompt or recurrence.

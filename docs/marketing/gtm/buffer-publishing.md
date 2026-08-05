@@ -47,6 +47,20 @@ The helper validates the file count and 1080 × 1350 dimensions, uploads
 `render/instagram/cap/*.png` in filename order, then prints the stable public
 URLs to use as ordered Buffer image assets.
 
+For an approved `office-talk` post, keep its native 1080 × 1920 TikTok render
+and pass the format explicitly:
+
+```bash
+python3 scripts/marketing/upload_buffer_slides.py \
+  docs/marketing/content/office-talk/posts/<post-folder> \
+  --render-subdir render/tiktok/cap \
+  --expected-height 1920 \
+  --remote-slug office-talk-<post-folder>
+```
+
+The default command and 1080 × 1350 validation remain unchanged for LINE
+episodes.
+
 If upload fails, inspect the CLI error. Do not fall back to API-key discovery.
 Check that the project is still linked and that the bucket exists with:
 

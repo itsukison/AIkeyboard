@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "009-mental-reset",
+  "mechanism": "emotional relief",
+  "hook": "しんどい日に\n開いてほしい\nアプリ5個",
+  "thumbnail": "_ (6).jpeg",
+  "swipe": "→ 4個目、返信の不安も減る",
+  "apps": ["pillowtalk", "ahead", "alan_mind", "keigobutton", "open"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①pillowtalk ②Ahead ③Alan Mind ④敬語ボタン ⑤Open\n\n気持ちを切り替えるとき何を使う？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #メンタルケア #社会人 #敬語",
+  "tiktokTitle": "しんどい日に開いてほしいアプリ5個",
+  "tiktokDescription": "①pillowtalk ②Ahead ③Alan Mind ④敬語ボタン ⑤Open\n\n気持ちの切り替え方も教えて。\n\n#アプリ紹介 #メンタルケア #社会人 #敬語 #iPhone",
+  "hypothesis": "An emotional-relief list should be more shareable because it is framed for both the viewer and someone they care about.",
+  "approved": true
+}

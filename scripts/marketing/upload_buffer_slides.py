@@ -29,10 +29,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("episode", type=Path)
     parser.add_argument("--validate-only", action="store_true")
+    parser.add_argument("--render-subdir", default="render/instagram/cap")
+    parser.add_argument("--expected-height", type=int, default=1350)
+    parser.add_argument("--remote-slug")
     args = parser.parse_args()
 
     episode = args.episode.resolve()
-    source = episode / "render" / "instagram" / "cap"
+    source = episode / args.render_subdir
     files = sorted(source.glob("*.png"))
     if not files:
         raise SystemExit(f"No PNG slides found in {source}")
@@ -45,10 +48,13 @@ def main() -> None:
 
     for path in files:
         size = dimensions(path)
-        if size != (1080, 1350):
-            raise SystemExit(f"{path.name} is {size[0]} × {size[1]}, expected 1080 × 1350")
+        if size != (1080, args.expected_height):
+            raise SystemExit(
+                f"{path.name} is {size[0]} × {size[1]}, "
+                f"expected 1080 × {args.expected_height}"
+            )
 
-    slug = episode.name
+    slug = args.remote_slug or episode.name
     if args.validate_only:
         print(f"Validated {len(files)} slides for {slug}")
         return

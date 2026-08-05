@@ -8,7 +8,10 @@ we test, keep, or kill.
 | Namespace | Format | Status | Owning GTM doc |
 |---|---|---|---|
 | `line-story/` | Fictional LINE-style workplace chat slideshow | In production, automated | `../gtm/spicy-content-bank.md` |
-| `app-intro/` | App-curation slideshow (hook image → 5 app cards → CTA) | Hook test, unpublished | `../gtm/viral-format-research.md` |
+| `app-intro/` | App-curation slideshow (hook image → 5 app cards) | Hook test | `../gtm/viral-format-research.md` |
+| `two-man-screen-record/` | Generated two-person hook → fixed real product proof | Prototype | `../gtm/viral-format-research.md` |
+| `office-talk/` | Japanese workplace before/after phrase slideshow | In production, automated | `../gtm/viral-format-research.md` |
+| `line-unfold-video/` | Progressive LINE chat reveal video | Visual prototype | `../gtm/viral-format-research.md` |
 
 ## line-story/
 
@@ -57,9 +60,23 @@ land in `render/instagram/cap/` on purpose: that is the layout
 `upload_buffer_slides.py` already expects, so the upload helper works unmodified
 once a post is approved.
 
-## Adding a third format
+## Adding another format
 
 Create a sibling directory with its own `template/`, its own input spec, and its
 own `README.md`, then add a row to the table above. Keep the render output at
 `render/instagram/cap/NN.png` (1080 × 1350) if the format should reuse the
 existing upload helper.
+
+## line-unfold-video/
+
+```
+line-unfold-video/
+├── README.md                  format and rendering contract
+├── build.py                   renders reveal states and assembles MP4
+├── template/line-unfold.html  deterministic 1080 × 1920 frame
+└── posts/NNN-slug/post.json   message geometry, timing, and placeholder copy
+```
+
+This format is a vertical video rather than Photo Mode. Empty bubble silhouettes
+establish the full conversation rhythm, then fill with text one at a time. It is
+not connected to the LINE-story episode bank or autonomous publishing flow.

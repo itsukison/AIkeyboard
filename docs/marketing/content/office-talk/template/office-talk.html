@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>職場の本音と言い換え</title>
+  <style>
+    :root {
+      --ink: #171619;
+      --muted: #777279;
+      --canvas: #f4f1eb;
+      --purple: #7056b5;
+      --hairline: #d8d2ca;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: #0e0d11; color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-feature-settings: "palt" 1; -webkit-font-smoothing: antialiased;
+    }
+    .frame {
+      position: fixed; top: 0; left: 0; width: 1080px; height: 1920px;
+      overflow: hidden; transform: scale(var(--canvas-scale, 1));
+      transform-origin: top left; background: var(--canvas);
+    }
+    section { position: absolute; inset: 0; display: none; }
+    body[data-slide="hook"] .hook,
+    body[data-slide="phrase"] .phrase,
+    body[data-slide="cta"] .cta { display: block; }
+    .brand {
+      display: inline-flex; align-items: center; gap: 15px;
+      color: var(--ink); font-size: 25px; font-weight: 760; letter-spacing: .14em;
+    }
+    .brand::before { content: ""; width: 34px; height: 3px; background: var(--purple); }
+
+    .hook .photo { position: absolute; inset: 0; }
+    .hook .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hook .veil {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(12,11,12,.16) 0%, rgba(12,11,12,.03) 34%, rgba(12,11,12,.82) 74%, #121113 100%);
+    }
+    .hook .top { position: absolute; top: 76px; left: 72px; right: 72px; padding-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,.52); }
+    .hook .brand { color: #fff; }
+    .hook .brand::before { background: #fff; }
+    .hook .copy { position: absolute; left: 72px; right: 72px; bottom: 104px; color: #fff; }
+    .hook .eyebrow { display: block; margin-bottom: 27px; font-size: 27px; font-weight: 700; letter-spacing: .16em; color: rgba(255,255,255,.72); }
+    .hook h1 { margin: 0; max-width: 940px; font-size: 91px; line-height: 1.19; font-weight: 790; letter-spacing: -.045em; white-space: pre; }
+    .hook .support { display: block; margin-top: 35px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,.42); font-size: 37px; line-height: 1.5; font-weight: 560; color: rgba(255,255,255,.82); white-space: pre; }
+    .hook .swipe { position: absolute; right: 0; bottom: 0; font-size: 27px; font-weight: 700; letter-spacing: .06em; color: #fff; }
+
+    .phrase { padding: 76px 72px 78px; background: var(--canvas); }
+    .phrase .header { display: flex; justify-content: space-between; align-items: center; }
+    .phrase .header { padding-bottom: 28px; border-bottom: 1px solid var(--hairline); }
+    .phrase .progress { font-size: 25px; font-weight: 650; letter-spacing: .13em; color: var(--muted); }
+    .phrase .stack { position: absolute; top: 50%; left: 72px; right: 72px; transform: translateY(-50%); }
+    .label { display: block; margin: 0 0 25px; font-size: 25px; font-weight: 700; letter-spacing: .2em; color: var(--muted); }
+    .card { font-size: 66px; line-height: 1.46; font-weight: 740; letter-spacing: -.035em; white-space: pre; }
+    .blunt-card { padding: 0 0 50px; color: var(--ink); border-bottom: 1px solid var(--hairline); }
+    .arrow { height: 108px; display: flex; align-items: center; justify-content: flex-start; color: var(--purple); font-size: 46px; font-weight: 400; }
+    .polished-card { padding: 0; color: var(--ink); }
+    .polished-label { color: var(--purple); }
+    .phrase .footer { position: absolute; left: 72px; right: 72px; bottom: 78px; padding-top: 24px; border-top: 1px solid var(--hairline); font-size: 24px; font-weight: 580; letter-spacing: .08em; color: var(--muted); }
+
+    .cta { padding: 76px 72px; background: var(--canvas); text-align: center; }
+    .cta .brand { position: absolute; top: 76px; left: 72px; right: 72px; padding-bottom: 28px; border-bottom: 1px solid var(--hairline); }
+    .cta h1 { margin: 0; position: absolute; top: 750px; left: 72px; right: 72px; font-size: 76px; line-height: 1.28; font-weight: 760; letter-spacing: -.045em; white-space: pre; }
+    .cta .detail { display: block; position: absolute; top: 1010px; left: 125px; right: 125px; font-size: 32px; line-height: 1.7; font-weight: 520; color: var(--muted); white-space: pre; }
+    .cta .product {
+      position: absolute; top: 310px; left: 50%; width: 340px; height: 340px;
+      overflow: visible; transform: translateX(-50%); background: transparent;
+    }
+    .cta .product img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .cta .action {
+      position: absolute; left: 72px; right: 72px; bottom: 120px; height: 124px;
+      border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+      color: var(--ink); font-size: 32px; font-weight: 700; letter-spacing: .02em;
+    }
+    .cta .action::after { content: "↗"; font-size: 43px; font-weight: 400; }
+  </style>
+</head>
+<body>
+  <div class="frame" id="frame">
+    <section class="hook">
+      <div class="photo"><img id="hook-img" alt=""></div>
+      <div class="veil"></div>
+      <div class="top"><span class="brand">職場の言い換え</span></div>
+      <div class="copy">
+        <span class="eyebrow" id="hook-eyebrow"></span>
+        <h1 id="hook-headline"></h1>
+        <span class="support" id="hook-support"></span>
+        <span class="swipe">5つ見る →</span>
+      </div>
+    </section>
+
+    <section class="phrase">
+      <div class="header"><span class="brand">職場の言い換え</span><span class="progress" id="progress"></span></div>
+      <div class="stack">
+        <span class="label">本音では</span>
+        <div class="card blunt-card" id="blunt"></div>
+        <div class="arrow">→</div>
+        <span class="label polished-label">角が立たない言い方</span>
+        <div class="card polished-card" id="polished"></div>
+      </div>
+      <span class="footer">送る前に、ひと呼吸。</span>
+    </section>
+
+    <section class="cta">
+      <span class="brand">敬語ボタン</span>
+      <h1 id="cta-headline"></h1>
+      <span class="detail" id="cta-detail"></span>
+      <div class="product"><img id="cta-img" alt=""></div>
+      <div class="action" id="cta-action"></div>
+    </section>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const get = (key, fallback = "") => params.get(key) ?? fallback;
+    const lines = (value) => value.replace(/\\n/g, "\n");
+    document.body.dataset.slide = get("slide", "hook");
+
+    if (document.body.dataset.slide === "hook") {
+      const image = document.getElementById("hook-img");
+      image.src = get("img"); image.style.objectPosition = get("position", "center");
+      document.getElementById("hook-eyebrow").textContent = get("eyebrow");
+      document.getElementById("hook-headline").textContent = lines(get("headline"));
+      document.getElementById("hook-support").textContent = lines(get("support"));
+    }
+    if (document.body.dataset.slide === "phrase") {
+      document.getElementById("progress").textContent = `${get("index")} / ${get("total")}`;
+      document.getElementById("blunt").textContent = lines(get("blunt"));
+      document.getElementById("polished").textContent = lines(get("polished"));
+    }
+    if (document.body.dataset.slide === "cta") {
+      document.getElementById("cta-headline").textContent = lines(get("headline"));
+      document.getElementById("cta-detail").textContent = lines(get("detail"));
+      document.getElementById("cta-action").textContent = get("action");
+      document.getElementById("cta-img").src = get("img");
+    }
+    function fit() {
+      const frame = document.getElementById("frame");
+      frame.style.setProperty("--canvas-scale", Math.min(1, window.innerWidth / 1080, window.innerHeight / 1920));
+    }
+    fit(); window.addEventListener("resize", fit);
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "011-build-and-learn",
+  "mechanism": "maker identity",
+  "hook": "見るだけを卒業する\nアプリ、5個",
+  "thumbnail": "_ (8).jpeg",
+  "swipe": "→ 4個目、書く速さも変わる",
+  "apps": ["atoms", "mimo", "craft", "keigobutton", "wabi"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Atoms ②Mimo ③Craft ④敬語ボタン ⑤Wabi\n\n今年つくれるようになりたいものは？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #勉強垢 #社会人 #敬語",
+  "tiktokTitle": "見るだけを卒業するアプリ、5個",
+  "tiktokDescription": "①Atoms ②Mimo ③Craft ④敬語ボタン ⑤Wabi\n\n今年つくりたいものは？\n\n#アプリ紹介 #勉強垢 #社会人 #敬語 #iPhone",
+  "hypothesis": "A maker-identity hook should unite learning, writing, habit, and no-code tools around action instead of consumption.",
+  "approved": true
+}

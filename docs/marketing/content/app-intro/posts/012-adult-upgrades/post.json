@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "012-adult-upgrades",
+  "mechanism": "adult-life upgrade",
+  "hook": "生活レベルが上がる\nアプリ、5個",
+  "thumbnail": "iPhone App Icon Mockup – iOS UI Preview.jpeg",
+  "swipe": "→ 4個目、仕事でも効く",
+  "apps": ["ladder", "speak", "tiimo", "keigobutton", "creme"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①Ladder ②Speak ③Tiimo ④敬語ボタン ⑤CREME\n\n生活を変えたアプリはどれ？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #自分磨き #社会人 #敬語",
+  "tiktokTitle": "生活レベルが上がるアプリ、5個",
+  "tiktokDescription": "①Ladder ②Speak ③Tiimo ④敬語ボタン ⑤CREME\n\n生活を変えたアプリはどれ？\n\n#アプリ紹介 #自分磨き #社会人 #敬語 #iPhone",
+  "hypothesis": "A broad adult-life upgrade promise should make fitness, language, planning, communication, and cooking feel like one coherent stack.",
+  "approved": true
+}

@@ -70,10 +70,47 @@ def next_slots(config: dict, state: dict, now: datetime, count: int) -> list[str
     return result
 
 
+def content_format_for_slot(config: dict, candidate: datetime) -> str:
+    slots = config["postingSlots"]
+    mix = config["experiments"]["contentMix"]
+    office_count = mix["officeTalkPostsPerDay"]
+    line_count = mix["lineStoryPostsPerDay"]
+    if office_count + line_count != len(slots):
+        raise SystemExit("daily content mix must equal the number of posting slots")
+    first_office_slot = candidate.date().toordinal() % len(slots)
+    office_slot_indexes = {
+        (first_office_slot + offset) % len(slots)
+        for offset in range(office_count)
+    }
+    slot = candidate.strftime("%H:%M")
+    return "office-talk" if slots.index(slot) in office_slot_indexes else "line-story"
+
+
+def next_plan(config: dict, state: dict, now: datetime, count: int) -> list[dict]:
+    timezone = ZoneInfo(config["timezone"])
+    plan = []
+    for due_at in next_slots(config, state, now, count):
+        due = parse_time(due_at).astimezone(timezone)
+        content_format = content_format_for_slot(config, due)
+        plan.append({
+            "dueAt": due.isoformat(timespec="minutes"),
+            "slot": due.strftime("%H:%M"),
+            "contentFormat": content_format,
+            "allocation": "explore" if content_format == "office-talk" else "exploit",
+        })
+    return plan
+
+
 def command_next_slots(args: argparse.Namespace, config: dict, state: dict) -> None:
     now = parse_time(args.now) if args.now else datetime.now().astimezone()
     count = args.count if args.count is not None else config["targetScheduledPosts"]
     print(json.dumps(next_slots(config, state, now, count), ensure_ascii=False, indent=2))
+
+
+def command_next_plan(args: argparse.Namespace, config: dict, state: dict) -> None:
+    now = parse_time(args.now) if args.now else datetime.now().astimezone()
+    count = args.count if args.count is not None else config["targetScheduledPosts"]
+    print(json.dumps(next_plan(config, state, now, count), ensure_ascii=False, indent=2))
 
 
 def command_record_post(args: argparse.Namespace, config: dict, state: dict, state_path: Path) -> None:
@@ -106,6 +143,7 @@ def command_record_post(args: argparse.Namespace, config: dict, state: dict, sta
     record = existing or {"bufferPostId": args.buffer_id, "metricsSnapshots": []}
     record.update({
         "episode": args.episode,
+        "contentFormat": args.content_format,
         "contentSha256": args.content_sha256,
         "dueAt": due.isoformat(timespec="seconds"),
         "status": args.status,
@@ -209,6 +247,21 @@ def command_analyze(args: argparse.Namespace, config: dict, state: dict) -> None
         slot: sum(1 for post, _ in rows if post.get("slot") == slot)
         for slot in config["postingSlots"]
     }
+    format_summary = {}
+    for content_format in ("line-story", "office-talk"):
+        format_rows = [
+            metrics for post, metrics in rows
+            if post.get("contentFormat", "line-story") == content_format
+        ]
+        engagement = [
+            item["engagementRate"] for item in format_rows
+            if isinstance(item.get("engagementRate"), (int, float))
+        ]
+        format_summary[content_format] = {
+            "sampleSize": len(format_rows),
+            "medianViews": statistics.median(item["views"] for item in format_rows) if format_rows else None,
+            "medianEngagementRate": statistics.median(engagement) if engagement else None,
+        }
     result = {
         "windowHours": window,
         "sampleSize": len(rows),
@@ -216,6 +269,7 @@ def command_analyze(args: argparse.Namespace, config: dict, state: dict) -> None
         "medianEngagementRate": median_engagement,
         "winners": winners,
         "slotCounts": slot_counts,
+        "formatSummary": format_summary,
         "timingOptimizationReady": all(
             count >= config["experiments"]["minimumSamplesPerSlot"]
             for count in slot_counts.values()
@@ -234,9 +288,14 @@ def main() -> None:
     slots.add_argument("--now")
     slots.add_argument("--count", type=int)
 
+    plan = commands.add_parser("next-plan")
+    plan.add_argument("--now")
+    plan.add_argument("--count", type=int)
+
     record = commands.add_parser("record-post")
     record.add_argument("--buffer-id", required=True)
     record.add_argument("--episode", required=True)
+    record.add_argument("--content-format", choices=["line-story", "office-talk"], default="line-story")
     record.add_argument("--content-sha256", required=True)
     record.add_argument("--due-at", required=True)
     record.add_argument("--status", choices=["scheduled", "sending", "sent", "error"], required=True)
@@ -269,7 +328,7 @@ def main() -> None:
     state_path = args.state.resolve()
     with state_lock(state_path):
         state = load_json(state_path)
-        if args.command == "next-slots":
+        if args.command in {"next-slots", "next-plan"}:
             if args.count is None:
                 now = parse_time(args.now) if args.now else datetime.now().astimezone()
                 scheduled = sum(
@@ -279,7 +338,10 @@ def main() -> None:
                     and parse_time(post["dueAt"]) > now
                 )
                 args.count = max(0, config["targetScheduledPosts"] - scheduled)
-            command_next_slots(args, config, state)
+            if args.command == "next-slots":
+                command_next_slots(args, config, state)
+            else:
+                command_next_plan(args, config, state)
         elif args.command == "record-post":
             command_record_post(args, config, state, state_path)
         elif args.command == "set-status":

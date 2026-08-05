@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "016-weirdly-useful",
+  "mechanism": "surprising specificity",
+  "hook": "誰が使うの？から\n手放せなくなった\nアプリ5個",
+  "thumbnail": "_ (3).jpeg",
+  "swipe": "→ 4個目、使うと戻れない",
+  "apps": ["too_good_to_go", "tide_guide", "pushr", "keigobutton", "genies"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Too Good To Go ②Tide Guide ③pushr ④敬語ボタン ⑤Genies\n\nニッチだけど便利なアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #便利アプリ #社会人 #敬語",
+  "tiktokTitle": "誰が使うの？から手放せなくなったアプリ5個",
+  "tiktokDescription": "①Too Good To Go ②Tide Guide ③pushr ④敬語ボタン ⑤Genies\n\nニッチな便利アプリも教えて。\n\n#アプリ紹介 #便利アプリ #社会人 #敬語 #iPhone",
+  "hypothesis": "Specific odd utilities should create curiosity and make the list memorable even when viewers do not need every app.",
+  "approved": true
+}

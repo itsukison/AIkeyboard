@@ -306,7 +306,7 @@
     <section class="tray">
       <!-- STATE A toolbar (敬語 = plain key; purple only when pressed) -->
       <div class="toolbar" aria-hidden="true">
-        <span class="pill keigo">敬語</span>
+        <span class="pill keigo" id="toolbar-command">敬語</span>
         <span class="pill more">…</span>
       </div>
 
@@ -333,7 +333,7 @@
       <!-- STATE B result overlay -->
       <div class="overlay">
         <div class="overlay-top" aria-hidden="true">
-          <span class="pill primary">敬語</span>
+          <span class="pill primary" id="result-command">敬語</span>
           <span class="close"><svg viewBox="0 0 48 48"><path d="M12 12 36 36M36 12 12 36"/></svg></span>
         </div>
         <div class="carousel">
@@ -366,6 +366,8 @@
     const setText = (id, key) => { const v = params.get(key); if (v !== null) document.querySelector(id).textContent = v; };
     setText("#draft", "draft");
     setText("#result", "result");
+    setText("#toolbar-command", "command");
+    setText("#result-command", "command");
 
     // conversation context above the raised keyboard — same messages as the story frames
     const avatarSvg = `<div class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>`;

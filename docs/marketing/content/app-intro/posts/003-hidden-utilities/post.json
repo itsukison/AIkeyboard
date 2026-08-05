@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "slug": "003-hidden-utilities",
+  "mechanism": "loss aversion / FOMO",
+  "hook": "入れてないだけで\\n損してるアプリ5個",
+  "thumbnail": "_ (1).jpeg",
+  "swipe": "→ 4個目、返信の手間が減る",
+  "apps": ["too_good_to_go", "tide_guide", "pushr", "keigobutton", "genies"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①Too Good To Go ②Tide Guide ③pushr ④敬語ボタン ⑤Genies\n\n他に入れとくべきアプリある？コメントで教えて\n\n#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語",
+  "tiktokTitle": "入れてないだけで損してるアプリ5個",
+  "tiktokDescription": "①Too Good To Go ②Tide Guide ③pushr ④敬語ボタン ⑤Genies\n\n他に入れとくべきアプリある？\n\n#アプリ紹介 #社会人 #仕事術 #敬語 #iPhone",
+  "hypothesis": "A loss-aversion hook should increase swipes by framing unfamiliar utilities as benefits the viewer is already missing.",
+  "approved": true,
+  "scheduled": {
+    "at": "2026-08-01T19:01:00+09:00",
+    "instagram": {
+      "account": "yuna_keigobutton",
+      "postId": "6a6c5b6fd4973fbee231738b"
+    },
+    "tiktok": {
+      "account": "ruka_keigobutton",
+      "postId": "6a6c5b80ee3b39943f2b4574"
+    }
+  }
+}

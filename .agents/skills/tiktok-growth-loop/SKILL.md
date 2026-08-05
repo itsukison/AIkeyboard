@@ -54,31 +54,39 @@ sample count. Do not optimize on views alone.
 
 ## Fill the queue
 
-1. Run `python3 scripts/marketing/tiktok_agent_state.py next-slots` and reconcile
-   those results with Buffer's scheduled queue. Keep at most six future posts and
+1. Run `python3 scripts/marketing/tiktok_agent_state.py next-plan` and reconcile
+   that format-aware plan with Buffer's scheduled queue. Keep at most six future posts and
    never exceed Buffer's ten-post plan limit or three posts on a local calendar day.
-2. Allocate each complete day as two `exploit` posts and one `explore` post.
-   Rotate allocations and content families across 09:30, 12:30, and 18:30 JST so
-   content strength is not permanently confounded with posting time.
-3. Prefer approved remaining stock in `spicy-content-bank.md`. When stock is
-   exhausted, generate a new episode spec from proven structures, but leave it
-   unapproved unless the source concept is already explicitly approved.
-4. Copy `docs/marketing/content/line-story/episodes/014-sick-day-pressure/episode.json` as the
-   structural reference. Give each new episode its own content directory and
-   `episode.json`.
+2. Follow `experiments.contentMix` from `config.json`: each complete day gets
+   two `line-story` posts and one `office-talk` post. The office-talk post is the
+   `explore` allocation until that format earns winner status. Rotate formats
+   across 09:30, 12:30, and 18:30 JST so format strength is not permanently
+   confounded with posting time.
+3. Prefer approved remaining LINE stock in `spicy-content-bank.md`. For every
+   planned `office-talk` slot, prefer an approved unpublished post; when none
+   exists, automatically create the next numbered post from the bounded format
+   contract and approved hook-image pool in its README. This standing approval
+   applies only to `office-talk`; new LINE concepts still require approval unless
+   their source concept is explicitly approved.
+4. For LINE content, copy
+   `docs/marketing/content/line-story/episodes/014-sick-day-pressure/episode.json`
+   as the structural reference. For office-talk, follow its format README and
+   `post.json` contract. Give each new post its own content directory.
 5. Test every displayed rewrite with the shipping product. Set
    `approval.rewriteVerified` only after the displayed candidate matches the real
    output or the copy is explicitly labeled according to the content rules.
-6. Render with `python3 scripts/marketing/render_tiktok_episode.py <episode.json>`.
+6. Render LINE with `python3 scripts/marketing/render_tiktok_episode.py <episode.json>`
+   and office-talk with `python3 docs/marketing/content/office-talk/build.py <slug>`.
    Visually inspect every output image. Set `approval.visualQA` only after checking
    wrapping, clipping, scene continuity, result legibility, and bottom safe space.
-7. Run the renderer with `--check-publishable`. Do not upload or create a Buffer
+7. Run the owning renderer with `--validate-only --check-publishable`. Do not upload or create a Buffer
    post when this gate fails.
 8. Use `$buffer-publish-content` to upload and create a `customScheduled`
    automatic TikTok post. Use the spec title as `metadata.tiktok.title`, join only
    the spec's hashtags into `text`, and attach the ordered image URLs.
-9. Record the Buffer ID, content hash, due time, slot, allocation, and hypothesis
-   with `tiktok_agent_state.py record-post` immediately after Buffer accepts it.
+9. Record the Buffer ID, content hash, due time, slot, content format,
+   allocation, and hypothesis with `tiktok_agent_state.py record-post`
+   immediately after Buffer accepts it.
 
 ## Reconcile publication
 

@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "slug": "001-foreign-girlfriend",
+  "duration": 45,
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/english-result.png",
+      "command": "英訳",
+      "draft": "また会いたい。今度は二人でご飯に行かない？",
+      "result": "I'd love to see you again. Would you like to have dinner together sometime?"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        { "side": "me", "text": "俺、彼女できた", "time": "22:08", "read": "既読" },
+        { "side": "other", "text": "は？", "time": "22:08" },
+        { "side": "other", "text": "誰", "time": "22:08" },
+        { "side": "me", "text": "先週バーにいた\nフランス人の子", "time": "22:09", "read": "既読" },
+        { "side": "other", "text": "お前英語話せないじゃん", "time": "22:09" },
+        { "side": "me", "text": "全然話せない", "time": "22:09", "read": "既読" },
+        { "side": "other", "text": "じゃあどうやって\n口説いたんだよ", "time": "22:10" },
+        { "side": "me", "text": "毎日英語でLINEした", "time": "22:10", "read": "既読" },
+        { "side": "other", "text": "だから英語できないだろ", "time": "22:10" },
+        { "side": "me", "text": "これ使った", "time": "22:11", "read": "既読" }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        { "side": "me", "type": "image", "src": "assets/english-result.png", "width": 580, "height": 438, "time": "22:11", "read": "既読" },
+        { "side": "other", "text": "何これ", "time": "22:11" },
+        { "side": "me", "text": "敬語ボタン", "time": "22:11", "read": "既読" },
+        { "side": "other", "text": "敬語じゃないじゃん", "time": "22:12" },
+        { "side": "me", "text": "英訳ボタンもある", "time": "22:12", "read": "既読" },
+        { "side": "me", "text": "日本語打って英訳押したら\nそのまま送れる", "time": "22:12", "read": "既読" },
+        { "side": "other", "text": "チートやん", "time": "22:13" },
+        { "side": "other", "text": "会った時どうすんの", "time": "22:13" },
+        { "side": "me", "text": "そこは笑顔", "time": "22:13", "read": "既読" },
+        { "side": "other", "text": "会話できないだろ", "time": "22:14" }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        { "side": "me", "text": "昨日それ聞いた", "time": "22:16", "read": "既読" },
+        { "side": "other", "text": "なんて言われた？", "time": "22:16" },
+        { "side": "me", "text": "「実は日本語話せるよ」って", "time": "22:16", "read": "既読" },
+        { "side": "other", "text": "は？", "time": "22:17" },
+        { "side": "me", "text": "普通にペラペラだった", "time": "22:17", "read": "既読" },
+        { "side": "other", "text": "じゃあお前だけずっと\n翻訳使ってたの？", "time": "22:17" },
+        { "side": "me", "text": "うん", "time": "22:18", "read": "既読" },
+        { "side": "other", "text": "なんで教えてくれなかったんだよ", "time": "22:18" },
+        { "side": "me", "text": "英語頑張ってるのが\n可愛かったって", "time": "22:18", "read": "既読" },
+        { "side": "other", "text": "敬語ボタン関係なく\n勝ち組で腹立つ", "time": "22:19" }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "英語0点でフランス人の彼女できた友達",
+    "hashtags": ["#恋愛", "#LINE", "#英語", "#翻訳", "#AIキーボード"]
+  },
+  "approval": {
+    "status": "draft",
+    "resultVerified": false,
+    "visualQA": true
+  }
+}

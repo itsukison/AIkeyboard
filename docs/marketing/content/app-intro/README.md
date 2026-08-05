@@ -3,7 +3,8 @@
 A second format, separate from the LINE-story system. Structure comes from the
 serial-curation and aesthetic-image-hook rows in `../../gtm/viral-format-research.md`.
 
-**Status: one post rendered, not approved, not published.**
+**Status: four posts rendered. Posts 002–003 are scheduled for 2026-08-01 on
+Instagram and TikTok; post 004 remains an unapproved draft.**
 
 Instagram sizing only — 1080 × 1350. TikTok's 1080 × 1920 is intentionally not
 produced yet; the template carries a single frame size, so adding it later means
@@ -30,17 +31,29 @@ exceeds it.
 - `apps.json` is a **library** of app cards: name, tagline, detail copy,
   screenshot, natural dimensions, crop, accent colour.
 - `post.json` picks which app ids a post shows, **and in what order**, plus the
-  hook and its image.
+  hook, its image, caption, and any per-post screenshot override.
 
 The rule for the series: **each post introduces different apps, except 敬語ボタン,
 which appears in every post.** So an app id should be reused across posts only
 for `keigobutton`. Adding a post means adding new apps to the library, not
 recycling the last post's five.
 
+`build.py` enforces this across every post before rendering. It rejects both a
+reused third-party app id and the same screenshot assigned to two different app
+ids.
+
+Keep used and unused screenshots together in `assets/apps/`. Do not move used
+files into another folder: `apps.json` is the source of truth, moving files
+would break its paths, and a folder split would duplicate the state already
+enforced by the post manifests.
+
 Our app sits at position 4 of 5: deep enough that the list has already earned
 credibility, early enough that viewers who drop before the last card still see
 it. The unifying theme is apps a working adult keeps for self-improvement, which
 is what makes 敬語ボタン belong rather than read as an ad.
+
+Rotate the owned screenshot with `appImageOverrides`: dark → light → chat, then
+repeat. The current sequence is 001 dark, 002 light, 003 chat, 004 dark.
 
 ## Card layout
 
@@ -51,17 +64,18 @@ per card at a readable 29 px, versus the two lines a stacked layout allowed.
 Copy column order: index badge → app name → tagline in the app's accent colour →
 hairline → detail paragraph.
 
-## Current post
+## Post inventory
 
-`001-identity-callout` — identity / aspiration mechanism.
+| Post | Mechanism | Apps | 敬語ボタン |
+|---|---|---|---|
+| `001-identity-callout` | Identity / aspiration | Ahead, stoic., Clubhouse, 敬語ボタン, Duolingo | dark |
+| `002-workplace-signal` | Social threat at work | Comet, Notion, Wispr Flow, 敬語ボタン, Substack | light |
+| `003-hidden-utilities` | Loss aversion / FOMO | Too Good To Go, Tide Guide, pushr, 敬語ボタン, Genies | chat |
+| `004-better-than-books` | Contrarian replacement | Life Reset, Quizlet, Strava, 敬語ボタン, Wabi | dark |
 
-```text
-頭よく見える人の
-iPhoneに入ってる
-アプリ、5個
-```
-
-Apps: `Ahead → stoic. → Clubhouse → 敬語ボタン → Duolingo`. Image: `🐰.jpeg`.
+The 12 newly supplied third-party screenshots produce exactly three additional
+posts at four new third-party apps per post. All 12 are now allocated, so a
+fifth post needs four new third-party screenshots.
 
 Hook lines are hard-wrapped with `\n` and kept to ≤9 full-width characters per
 line: at 82 px on a 1080 px frame the usable width is 952 px, so a longer line
@@ -69,34 +83,20 @@ overflows.
 
 ## Hook variants for later posts
 
-Written and line-broken, waiting on new app screenshots. Each is a different
-mechanism, and each stays compatible with any self-improvement app set.
+The first three variants are now posts 002–004. One written variant remains:
 
 | Mechanism | Hook | Suggested image |
 |---|---|---|
-| Loss aversion / FOMO | 入れてないだけで／損してるアプリ5個 | `_ (1).jpeg` device mockup |
-| Contrarian replacement | 自己啓発本より、／このアプリ5個 | blank-icon mockup |
-| Social threat at work | 「仕事できない人」／だと思われる理由、／スマホの中にある | `_ (4).jpeg` face-obscured selfie |
 | Secret / exclusivity | 同僚に教えたくない／アプリ、5個 | `NO_ZE.jpeg` selfie |
 
-The social-threat hook is the closest to the product's real positioning, so it
-is the most informative one to run next — it reads whether the
-workplace-judgment angle travels outside the LINE-story format. The
-secret/exclusivity hook is a save-rate hypothesis, not a reach one; judge it on
-saves.
+This is a save-rate hypothesis, not a reach one; judge it on saves. It still
+needs four new third-party screenshots before it can become post 005.
 
 ## Caption
 
-```text
-①Ahead ②stoic ③Clubhouse ④敬語ボタン ⑤Duolingo
-
-他に入れとくべきアプリある？コメントで教えて
-
-#iphone神アプリ #アプリ紹介 #社会人 #仕事術 #敬語
-```
-
-Five hashtags, matching the publishing runbook's limit. The caption names
-敬語ボタン as ④ plainly rather than hiding that it is ours.
+Each `post.json` owns its finished caption. Captions name the five apps, ask one
+comment question, and carry five hashtags matching the publishing limit.
+敬語ボタン is named plainly as ④ rather than hiding that it is ours.
 
 With no CTA slide, the comment prompt is the post's single ask, which satisfies
 the one-CTA-per-post rule in `viral-format-research.md`. It also sources app
@@ -122,11 +122,10 @@ bundle directly and have the same latent problem.
 
 ## Screenshot cropping
 
-`assets/apps/*.webp` are Mobbin-sourced and carry a `curated by Mobbin` bar
-across the bottom 120 px (identical on all five, re-confirmed for
-`duolingo.webp`). The template clips it by deriving an aspect ratio from
-`naturalWidth / (naturalHeight - cropBottomPx)` and top-aligning the image
-inside a container with `overflow: hidden`. The original files are never
+Mobbin-sourced screenshots carry a `curated by Mobbin` bar across the bottom.
+Each affected entry declares `cropBottomPx`; the template derives an aspect
+ratio from `naturalWidth / (naturalHeight - cropBottomPx)` and top-aligns the
+image inside a container with `overflow: hidden`. The original files are never
 modified.
 
 An app entry may carry `"pending": true` while it is using a stand-in
@@ -135,12 +134,12 @@ screenshot; such cards render a loud 「スクショ差し替え前 / 投稿不�
 
 ## Before this can be published
 
-1. **Confirm image rights.** The hook is a real, identifiable person. Itsuki
-   confirmed rights on 2026-07-30; that confirmation is the only thing standing
-   behind it.
+1. **Confirm image rights for real-person hooks.** Rights for post 001 were
+   confirmed by Itsuki on 2026-07-30. Itsuki confirmed all selfie hook assets
+   are cleared for use on 2026-07-31.
 2. **Do not publish through the poke-mcp path.** `validatePublishRequest()`
    requires the LINE fiction disclosure in every caption, which does not apply
-   to this format and would have to change first.
+   to this format. Use the separately connected Zernio accounts after approval.
 
 ## Unused assets
 

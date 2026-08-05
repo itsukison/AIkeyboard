@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-30T14:02:44+09:00",
+  "updatedAt": "2026-08-04T14:04:45+09:00",
   "posts": [
     {
       "bufferPostId": "6a698c75e9aefbbb12a847bb",
@@ -40,6 +40,20 @@
       "hypothesis": "A low-risk lunch-break violation will test whether everyday office comedy can retain the winning conflict-first structure.",
       "externalLink": "https://tiktok.com/@keigobutton/video/7668158186515352840",
       "sentAt": "2026-07-30T03:31:53+00:00"
+    },
+    {
+      "bufferPostId": "6a716725e7bbda897d6b1f59",
+      "metricsSnapshots": [],
+      "episode": "001-mou-muri",
+      "contentFormat": "office-talk",
+      "contentSha256": "508cceba50bf4445ec07d20ba09c360e63b0e039443358de754b4a4114da91af",
+      "dueAt": "2026-08-04T13:14:29+09:00",
+      "status": "sent",
+      "slot": "12:30",
+      "allocation": "explore",
+      "hypothesis": "A taboo but highly recognizable inner thought should earn the first swipe, while five standalone rewrites should drive completion and saves before a delayed install CTA.",
+      "externalLink": "https://tiktok.com/@keigobutton/video/7670025056667389191",
+      "sentAt": "2026-08-04T04:16:16+00:00"
     }
   ]
 }
