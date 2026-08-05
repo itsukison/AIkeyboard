@@ -8,7 +8,7 @@
     "hypothesis": "A curiosity hook built around an impossible creative brief will test everyday office comedy without changing the slideshow body or product reveal timing."
   },
   "approval": {
-    "status": "pending",
+    "status": "approved",
     "rewriteVerified": true,
     "rewriteVerificationMethod": "manual-copy-labelled",
     "visualQA": true
@@ -17,27 +17,127 @@
     "name": "上司",
     "day": "今日",
     "messages": [
-      { "side": "boss", "text": "この案、もう少しバズる感じに直しといて", "time": "10:18" },
-      { "side": "me", "text": "修正の方向性を揃えるため、重視する指標と変更したい箇所を具体的にご共有いただけますでしょうか。", "time": "10:25", "read": "既読" },
-      { "side": "boss", "text": "そこはセンスで分かるでしょ。若いんだし", "time": "10:26" },
-      { "side": "me", "text": "認識のずれを避けるため、判断基準を言語化していただけますと助かります。基準を確認後、修正案をご提示いたします。", "time": "10:31", "read": "既読" }
+      {
+        "side": "boss",
+        "text": "この案、もう少しバズる感じに直しといて",
+        "time": "10:18"
+      },
+      {
+        "side": "me",
+        "text": "修正の方向性を揃えるため、重視する指標と変更したい箇所を具体的にご共有いただけますでしょうか。",
+        "time": "10:25",
+        "read": "既読"
+      },
+      {
+        "side": "boss",
+        "text": "そこはセンスで分かるでしょ。若いんだし",
+        "time": "10:26"
+      },
+      {
+        "side": "me",
+        "text": "認識のずれを避けるため、判断基準を言語化していただけますと助かります。基準を確認後、修正案をご提示いたします。",
+        "time": "10:31",
+        "read": "既読"
+      }
     ]
   },
   "slides": [
-    { "template": "line-chat", "params": { "step": "0", "hook": "『もっとバズる感じ』が\n修正指示の全部", "hooktag": "丁寧にキレる。" } },
-    { "template": "line-chat", "params": { "step": "1" }, "caption": "『バズる感じ』の定義は、ない" },
-    { "template": "line-chat", "params": { "step": "1", "innervoice": "お前の脳内は\n共有フォルダじゃない" } },
-    { "template": "product-ui", "params": { "state": "toolbar", "step": "1", "draft": "バズる感じでは分かりません。修正点を具体的に言ってください。" }, "caption": "曖昧な指示を、確認事項に変える" },
-    { "template": "product-ui", "params": { "state": "result", "step": "1", "draft": "バズる感じでは分かりません。修正点を具体的に言ってください。", "result": "修正の方向性を揃えるため、重視する指標と変更したい箇所を具体的にご共有いただけますでしょうか。" }, "caption": "投稿用に作成した返信例" },
-    { "template": "line-chat", "params": { "step": "3" }, "caption": "今度は『若いんだしセンスで』" },
-    { "template": "product-ui", "params": { "state": "toolbar", "step": "3", "draft": "センスでは判断できません。基準を言葉にしてください。" }, "caption": "センスの前に、判断基準が必要" },
-    { "template": "product-ui", "params": { "state": "result", "step": "3", "draft": "センスでは判断できません。基準を言葉にしてください。", "result": "認識のずれを避けるため、判断基準を言語化していただけますと助かります。基準を確認後、修正案をご提示いたします。" }, "caption": "投稿用に作成した返信例" },
-    { "template": "line-chat", "params": { "step": "4" }, "caption": "説明不足？それともセンス不足？" },
-    { "template": "line-chat", "params": { "step": "4", "cta": "1", "ctatag": "丁寧にキレる。" } }
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "0",
+        "hook": "『もっとバズる感じ』が\n修正指示の全部",
+        "hooktag": "丁寧にキレる。"
+      }
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "1"
+      },
+      "caption": "『バズる感じ』の定義は、ない"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "1",
+        "innervoice": "お前の脳内は\n共有フォルダじゃない"
+      }
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "toolbar",
+        "step": "1",
+        "draft": "バズる感じでは分かりません。修正点を具体的に言ってください。"
+      },
+      "caption": "曖昧な指示を、確認事項に変える"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "result",
+        "step": "1",
+        "draft": "バズる感じでは分かりません。修正点を具体的に言ってください。",
+        "result": "修正の方向性を揃えるため、重視する指標と変更したい箇所を具体的にご共有いただけますでしょうか。"
+      },
+      "caption": "投稿用に作成した返信例"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "3"
+      },
+      "caption": "今度は『若いんだしセンスで』"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "toolbar",
+        "step": "3",
+        "draft": "センスでは判断できません。基準を言葉にしてください。"
+      },
+      "caption": "センスの前に、判断基準が必要"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "result",
+        "step": "3",
+        "draft": "センスでは判断できません。基準を言葉にしてください。",
+        "result": "認識のずれを避けるため、判断基準を言語化していただけますと助かります。基準を確認後、修正案をご提示いたします。"
+      },
+      "caption": "投稿用に作成した返信例"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "4"
+      },
+      "caption": "説明不足？それともセンス不足？"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "4",
+        "cta": "1",
+        "ctatag": "丁寧にキレる。"
+      }
+    }
   ],
   "publish": {
     "title": "『もっとバズる感じで』しか言わない上司に、丁寧にキレる。",
-    "hashtags": ["#職場あるある", "#敬語", "#社会人", "#上司", "#クリエイター"],
-    "experiment": { "allocation": "explore", "hookFamily": "curiosity-vague-brief", "productRevealSlide": 4 }
+    "hashtags": [
+      "#職場あるある",
+      "#敬語",
+      "#社会人",
+      "#上司",
+      "#クリエイター"
+    ],
+    "experiment": {
+      "allocation": "explore",
+      "hookFamily": "curiosity-vague-brief",
+      "productRevealSlide": 4
+    }
   }
 }

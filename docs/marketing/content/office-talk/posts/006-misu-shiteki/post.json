@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "006-misu-shiteki",
+  "mechanism": "mistake-callout inner monologue + accountable-without-excuses translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "ミスを指摘されて\n言い訳したいけど\n言えないから",
+    "support": "潔く見える\n謝り方、5選",
+    "image": "../app-intro/assets/thumbnails/2.jpeg",
+    "position": "center 50%"
+  },
+  "phrases": [
+    {
+      "blunt": "「先に言って\nくれれば」",
+      "polished": "「早めに共有いただけると、\n助かります」"
+    },
+    {
+      "blunt": "「そんなつもり\nじゃなかったです」",
+      "polished": "「意図が伝わっておらず、\n申し訳ございません」"
+    },
+    {
+      "blunt": "「聞いてないので\nわからないです」",
+      "polished": "「認識が及んでおらず、\n確認いたします」"
+    },
+    {
+      "blunt": "「前から\n気になってました」",
+      "polished": "「以前から懸念していた点\nでもありました」"
+    },
+    {
+      "blunt": "「次は\n気をつけます」",
+      "polished": "「今後同様のことが\n起きないよう対応します」"
+    }
+  ],
+  "cta": {
+    "headline": "言い訳より、\n言い方を整える。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n指摘された直後でも、迷わず送れます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "ミスを指摘されたときの本音。潔く見える謝り方5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#仕事術",
+      "#職場あるある",
+      "#謝罪"
+    ]
+  },
+  "hypothesis": "A mistake-callout moment is high-frequency and emotionally loaded; testing it should reveal whether the accountable-without-excuses framing sustains completion as well as the overload framing did.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  }
+}

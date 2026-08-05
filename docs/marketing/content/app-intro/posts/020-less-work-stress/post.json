@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "020-less-work-stress",
+  "mechanism": "stress reduction, low effort",
+  "hook": "仕事のストレスが\n減っていく\nアプリ5個",
+  "thumbnail": "4.jpeg",
+  "swipe": "→ 4個目、地味に一番効く",
+  "apps": ["comet", "craft", "ladder", "keigobutton", "fuse"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Comet ②Craft ③Ladder ④敬語ボタン ⑤Fuse\n\n仕事がラクになったアプリ教えて\n\n#アプリ紹介 #仕事効率化 #社会人 #敬語 #iPhone",
+  "tiktokTitle": "仕事のストレスが減っていくアプリ5個",
+  "tiktokDescription": "①Comet ②Craft ③Ladder ④敬語ボタン ⑤Fuse\n\n仕事がラクになったアプリ教えて\n\n#アプリ紹介 #仕事効率化 #社会人 #敬語 #iPhone",
+  "hypothesis": "Framing around stress reduction rather than pure efficiency should test a more emotional hook for the same productivity-tool category.",
+  "approved": true
+}

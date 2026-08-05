@@ -1,0 +1,188 @@
+{
+  "version": 2,
+  "slug": "009-shift-swap",
+  "duration": 45,
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/keigo-result.png",
+      "command": "敬語",
+      "draft": "明日のシフト代われませんか？用事があるので",
+      "result": "大変恐れ入りますが、明日は私用のため、シフトを代わっていただけないでしょうか。ご検討いただけますと幸いです。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "詰んだ",
+          "time": "20:11",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何が",
+          "time": "20:11"
+        },
+        {
+          "side": "me",
+          "text": "明日のシフト\n代わってほしいって\n言えない",
+          "time": "20:12",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "店長に？",
+          "time": "20:12"
+        },
+        {
+          "side": "me",
+          "text": "怖いんだよね",
+          "time": "20:12",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "断られそうで？",
+          "time": "20:13"
+        },
+        {
+          "side": "me",
+          "text": "うん",
+          "time": "20:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "でも用事あるじゃん",
+          "time": "20:13"
+        },
+        {
+          "side": "me",
+          "text": "だから困ってる",
+          "time": "20:14",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "LINEで頼めば？",
+          "time": "20:14"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/keigo-result.png",
+          "width": 580,
+          "height": 438,
+          "time": "20:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何それ丁寧",
+          "time": "20:16"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "20:16",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "打った文章を\nそのまま敬語にしてくれる",
+          "time": "20:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "そのまま店長に送るの？",
+          "time": "20:17"
+        },
+        {
+          "side": "me",
+          "text": "うん送った",
+          "time": "20:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "早いな",
+          "time": "20:18"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "OKきた",
+          "time": "20:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "はやい",
+          "time": "20:25"
+        },
+        {
+          "side": "me",
+          "text": "「大丈夫だよ」だって",
+          "time": "20:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "良かったじゃん",
+          "time": "20:26"
+        },
+        {
+          "side": "me",
+          "text": "しかも\n「言い方丁寧だね」って",
+          "time": "20:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ敬語ボタンのおかげじゃん",
+          "time": "20:27"
+        },
+        {
+          "side": "me",
+          "text": "内緒にしとく",
+          "time": "20:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "言えよ",
+          "time": "20:27"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "店長にシフト交換をLINEで頼んだ結果",
+    "hashtags": [
+      "#バイト",
+      "#シフト",
+      "#敬語",
+      "#社会人",
+      "#AIキーボード"
+    ]
+  },
+  "approval": {
+    "status": "needs-rework",
+    "resultVerified": false,
+    "visualQA": true,
+    "qualityIssue": "Rendered via build.py only: silent MP4, no BGM/sound pass, no shipping-app verification. The 001-007 videos on this account went through an additional device-side pass (BGM + polish) that this session could not reproduce. Do not schedule until that pass happens."
+  }
+}

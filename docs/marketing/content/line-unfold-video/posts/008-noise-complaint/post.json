@@ -1,0 +1,210 @@
+{
+  "version": 2,
+  "slug": "008-noise-complaint",
+  "duration": 45,
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/keigo-result.png",
+      "command": "敬語",
+      "draft": "夜中に洗濯機を回す音がうるさいので静かにしてほしいです",
+      "result": "夜分に失礼いたします。夜間の洗濯機の音が気になっており、可能な範囲でご配慮いただけますと幸いです。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "また上の階うるさい",
+          "time": "23:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "また？",
+          "time": "23:41"
+        },
+        {
+          "side": "me",
+          "text": "夜中の2時に\n洗濯機回してる",
+          "time": "23:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "直接言えば？",
+          "time": "23:42"
+        },
+        {
+          "side": "me",
+          "text": "怖くて無理",
+          "time": "23:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "管理会社は？",
+          "time": "23:43"
+        },
+        {
+          "side": "me",
+          "text": "土日は繋がらない",
+          "time": "23:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "貼り紙は？",
+          "time": "23:44"
+        },
+        {
+          "side": "me",
+          "text": "余計揉めそう",
+          "time": "23:44",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どうすんの",
+          "time": "23:45"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/keigo-result.png",
+          "width": 580,
+          "height": 438,
+          "time": "23:47",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何それ",
+          "time": "23:47"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "23:47",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "キーボードで打って\n敬語押すだけ",
+          "time": "23:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "直接文句じゃん",
+          "time": "23:48"
+        },
+        {
+          "side": "me",
+          "text": "でも丁寧に見える",
+          "time": "23:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それで送ったの？",
+          "time": "23:49"
+        },
+        {
+          "side": "me",
+          "text": "郵便受けに入れた",
+          "time": "23:49",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "勇気あるな",
+          "time": "23:49"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "返事来た",
+          "time": "9:02",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え、直接？",
+          "time": "9:02"
+        },
+        {
+          "side": "me",
+          "text": "手紙で",
+          "time": "9:03",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "なんて？",
+          "time": "9:03"
+        },
+        {
+          "side": "me",
+          "text": "「気づかず\n失礼しました」って",
+          "time": "9:03",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "普通に良い人じゃん",
+          "time": "9:04"
+        },
+        {
+          "side": "me",
+          "text": "拍子抜けした",
+          "time": "9:04",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "揉めなくてよかったな",
+          "time": "9:04"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタンのおかげ",
+          "time": "9:05",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それもう友達に紹介しろ",
+          "time": "9:05"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "上の階がうるさくて出した苦情文、意外な結末",
+    "hashtags": [
+      "#ご近所トラブル",
+      "#敬語",
+      "#一人暮らし",
+      "#マンション",
+      "#AIキーボード"
+    ]
+  },
+  "approval": {
+    "status": "needs-rework",
+    "resultVerified": false,
+    "visualQA": true,
+    "qualityIssue": "Rendered via build.py only: silent MP4, no BGM/sound pass, no shipping-app verification. The 001-007 videos on this account went through an additional device-side pass (BGM + polish) that this session could not reproduce. Do not schedule until that pass happens."
+  }
+}

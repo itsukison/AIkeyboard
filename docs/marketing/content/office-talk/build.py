@@ -11,9 +11,6 @@ from pathlib import Path
 
 
 def find_chrome() -> str:
-    chrome = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-    if chrome.is_file():
-        return str(chrome)
     shells = sorted(
         (Path.home() / "Library/Caches/ms-playwright").glob(
             "chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell"
@@ -22,6 +19,7 @@ def find_chrome() -> str:
     )
     if shells:
         return str(shells[0])
+    chrome = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
     return str(chrome)
 
 

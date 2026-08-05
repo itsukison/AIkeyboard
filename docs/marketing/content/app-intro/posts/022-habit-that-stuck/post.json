@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "022-habit-that-stuck",
+  "mechanism": "identity change / surprising persistence",
+  "hook": "三日坊主だった\n自分が変わった\nアプリ5個",
+  "thumbnail": "aulyci.jpeg",
+  "swipe": "→ 4個目、気づいたら続いてる",
+  "apps": ["tide_guide", "genies", "notion", "keigobutton", "alan_mind"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Tide Guide ②Genies ③Notion ④敬語ボタン ⑤Alan Mind\n\n三日坊主から変われたアプリある？\n\n#アプリ紹介 #習慣化 #社会人 #敬語 #iPhone",
+  "tiktokTitle": "三日坊主だった自分が変わったアプリ5個",
+  "tiktokDescription": "①Tide Guide ②Genies ③Notion ④敬語ボタン ⑤Alan Mind\n\n三日坊主から変われたアプリある？\n\n#アプリ紹介 #習慣化 #社会人 #敬語 #iPhone",
+  "hypothesis": "An identity-change narrative should test whether framing persistence as a personal transformation outperforms the earlier plain routine-reset framing.",
+  "approved": true
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "003-teiji-taikin",
+  "mechanism": "end-of-day pressure inner monologue + low-friction leave-on-time translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "定時で帰りたい\nって、\n言えないから",
+    "support": "気を遣わない\n退勤の言い方、5選",
+    "image": "../app-intro/assets/thumbnails/_ (2).jpeg",
+    "position": "center 30%"
+  },
+  "phrases": [
+    {
+      "blunt": "「今日は\n早く帰りたいです」",
+      "polished": "「本日は定時で退勤し、\n続きは明日対応します」"
+    },
+    {
+      "blunt": "「残業は\nしたくないです」",
+      "polished": "「本日は難しいため、\n明日対応いたします」"
+    },
+    {
+      "blunt": "「その仕事、\n他の人でも」",
+      "polished": "「担当を確認したうえで、\nご相談できますか」"
+    },
+    {
+      "blunt": "「先に言って\nほしかったです」",
+      "polished": "「事前に共有いただけると、\n助かります」"
+    },
+    {
+      "blunt": "「今日は\n予定があります」",
+      "polished": "「本日は先の予定がございまして、\n失礼いたします」"
+    }
+  ],
+  "cta": {
+    "headline": "帰りたい気持ちを、\n言葉にするだけ。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n退勤の言い方も、迷わず送れます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "定時で帰りたいと言えない人へ。気を遣わない退勤フレーズ5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#仕事術",
+      "#職場あるある",
+      "#定時退勤"
+    ]
+  },
+  "hypothesis": "A widely shared end-of-day boundary should earn the first swipe, while five leave-on-time rewrites test whether the format travels beyond overload-specific frustration.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  }
+}

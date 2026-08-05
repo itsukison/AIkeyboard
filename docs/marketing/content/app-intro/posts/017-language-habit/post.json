@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "017-language-habit",
+  "mechanism": "habit-formation aspiration",
+  "hook": "英語も習慣も\n続けたくなる\nアプリ5個",
+  "thumbnail": "1.jpeg",
+  "swipe": "→ 4個目、毎日ちょっとずつ",
+  "apps": ["duolingo", "quizlet", "speak", "keigobutton", "tiimo"],
+  "appImageOverrides": {
+    "keigobutton": "keigolight.jpeg"
+  },
+  "caption": "①Duolingo ②Quizlet ③Speak ④敬語ボタン ⑤Tiimo\n\n続けられてるアプリ教えて\n\n#アプリ紹介 #英語学習 #社会人 #敬語 #iPhone",
+  "tiktokTitle": "英語も習慣も続けたくなるアプリ5個",
+  "tiktokDescription": "①Duolingo ②Quizlet ③Speak ④敬語ボタン ⑤Tiimo\n\n続けられてるアプリある？\n\n#アプリ紹介 #英語学習 #社会人 #敬語 #iPhone",
+  "hypothesis": "A language/habit-learning angle should reach a different self-improvement audience than the finance and productivity themes already tested.",
+  "approved": true
+}

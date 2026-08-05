@@ -8,7 +8,7 @@
     "hypothesis": "The proven conflict-first slideshow may earn qualified discussion when the boundary separates team learning from naming an individual publicly."
   },
   "approval": {
-    "status": "pending",
+    "status": "approved",
     "rewriteVerified": true,
     "rewriteVerificationMethod": "manual-copy-labelled",
     "visualQA": true
@@ -17,28 +17,132 @@
     "name": "チーム連絡",
     "day": "今日",
     "messages": [
-      { "side": "boss", "text": "今回の遅れは担当者の確認漏れです。皆さんも同じミスをしないように", "time": "14:06" },
-      { "side": "boss", "text": "@あなた 次から気をつけてください", "time": "14:06" },
-      { "side": "me", "text": "改善点は真摯に受け止めますが、個人へのフィードバックは個別にお伝えいただけますでしょうか。再発防止策は整理のうえ、チームにも共有いたします。", "time": "14:14", "read": "既読" },
-      { "side": "boss", "text": "共有しないと、みんなのためにならないよ", "time": "14:15" },
-      { "side": "me", "text": "再発防止策の共有と、個人を名指しした指摘は別のものと考えております。今後の個別指導は直接お願いいたします。", "time": "14:20", "read": "既読" }
+      {
+        "side": "boss",
+        "text": "今回の遅れは担当者の確認漏れです。皆さんも同じミスをしないように",
+        "time": "14:06"
+      },
+      {
+        "side": "boss",
+        "text": "@あなた 次から気をつけてください",
+        "time": "14:06"
+      },
+      {
+        "side": "me",
+        "text": "改善点は真摯に受け止めますが、個人へのフィードバックは個別にお伝えいただけますでしょうか。再発防止策は整理のうえ、チームにも共有いたします。",
+        "time": "14:14",
+        "read": "既読"
+      },
+      {
+        "side": "boss",
+        "text": "共有しないと、みんなのためにならないよ",
+        "time": "14:15"
+      },
+      {
+        "side": "me",
+        "text": "再発防止策の共有と、個人を名指しした指摘は別のものと考えております。今後の個別指導は直接お願いいたします。",
+        "time": "14:20",
+        "read": "既読"
+      }
     ]
   },
   "slides": [
-    { "template": "line-chat", "params": { "step": "0", "hook": "グループチャットで\n名指しする上司", "hooktag": "丁寧にキレる。" } },
-    { "template": "line-chat", "params": { "step": "2" }, "caption": "全員の前で、名指しの注意" },
-    { "template": "line-chat", "params": { "step": "2", "innervoice": "指導じゃなくて\n公開処刑ですよね？" } },
-    { "template": "product-ui", "params": { "state": "toolbar", "step": "2", "draft": "全員の前で名指しするのはやめてください。注意は個別にしてください。" }, "caption": "ミスは直す。でも、見せしめにはならない" },
-    { "template": "product-ui", "params": { "state": "result", "step": "2", "draft": "全員の前で名指しするのはやめてください。注意は個別にしてください。", "result": "改善点は真摯に受け止めますが、個人へのフィードバックは個別にお伝えいただけますでしょうか。" }, "caption": "投稿用に作成した返信例" },
-    { "template": "line-chat", "params": { "step": "4" }, "caption": "すると『みんなのため』" },
-    { "template": "product-ui", "params": { "state": "toolbar", "step": "4", "draft": "再発防止の共有と、個人を名指しすることは別です。" }, "caption": "共有と公開指導を、分けて伝える" },
-    { "template": "product-ui", "params": { "state": "result", "step": "4", "draft": "再発防止の共有と、個人を名指しすることは別です。", "result": "再発防止策の共有と、個人を名指しした指摘は別のものと考えております。今後の個別指導は直接お願いいたします。" }, "caption": "投稿用に作成した返信例" },
-    { "template": "line-chat", "params": { "step": "5" }, "caption": "名指しの注意、指導？公開処刑？" },
-    { "template": "line-chat", "params": { "step": "5", "cta": "1", "ctatag": "丁寧にキレる。" } }
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "0",
+        "hook": "グループチャットで\n名指しする上司",
+        "hooktag": "丁寧にキレる。"
+      }
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "2"
+      },
+      "caption": "全員の前で、名指しの注意"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "2",
+        "innervoice": "指導じゃなくて\n公開処刑ですよね？"
+      }
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "toolbar",
+        "step": "2",
+        "draft": "全員の前で名指しするのはやめてください。注意は個別にしてください。"
+      },
+      "caption": "ミスは直す。でも、見せしめにはならない"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "result",
+        "step": "2",
+        "draft": "全員の前で名指しするのはやめてください。注意は個別にしてください。",
+        "result": "改善点は真摯に受け止めますが、個人へのフィードバックは個別にお伝えいただけますでしょうか。"
+      },
+      "caption": "投稿用に作成した返信例"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "4"
+      },
+      "caption": "すると『みんなのため』"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "toolbar",
+        "step": "4",
+        "draft": "再発防止の共有と、個人を名指しすることは別です。"
+      },
+      "caption": "共有と公開指導を、分けて伝える"
+    },
+    {
+      "template": "product-ui",
+      "params": {
+        "state": "result",
+        "step": "4",
+        "draft": "再発防止の共有と、個人を名指しすることは別です。",
+        "result": "再発防止策の共有と、個人を名指しした指摘は別のものと考えております。今後の個別指導は直接お願いいたします。"
+      },
+      "caption": "投稿用に作成した返信例"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "5"
+      },
+      "caption": "名指しの注意、指導？公開処刑？"
+    },
+    {
+      "template": "line-chat",
+      "params": {
+        "step": "5",
+        "cta": "1",
+        "ctatag": "丁寧にキレる。"
+      }
+    }
   ],
   "publish": {
     "title": "全員の前で名指しする上司に、丁寧にキレる。",
-    "hashtags": ["#上司と部下", "#敬語", "#仕事辞めたい", "#社会人", "#職場あるある"],
-    "experiment": { "allocation": "exploit", "hookFamily": "workplace-boundary", "productRevealSlide": 4 }
+    "hashtags": [
+      "#上司と部下",
+      "#敬語",
+      "#仕事辞めたい",
+      "#社会人",
+      "#職場あるある"
+    ],
+    "experiment": {
+      "allocation": "exploit",
+      "hookFamily": "workplace-boundary",
+      "productRevealSlide": 4
+    }
   }
 }

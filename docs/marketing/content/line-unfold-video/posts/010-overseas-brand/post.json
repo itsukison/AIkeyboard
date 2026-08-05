@@ -1,0 +1,162 @@
+{
+  "version": 2,
+  "slug": "010-overseas-brand",
+  "duration": 45,
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/eitrans-result.png",
+      "command": "英訳",
+      "draft": "日本にも発送していただけますか？",
+      "result": "Would it be possible to ship this product to Japan as well?"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "海外の\nコスメブランドに\n聞きたいことある",
+          "time": "13:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "英語で？",
+          "time": "13:31"
+        },
+        {
+          "side": "me",
+          "text": "無理",
+          "time": "13:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "翻訳サイト使えば？",
+          "time": "13:32"
+        },
+        {
+          "side": "me",
+          "text": "不自然になりそう",
+          "time": "13:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どうすんの",
+          "time": "13:33"
+        },
+        {
+          "side": "me",
+          "text": "これ使ってみる",
+          "time": "13:33",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/eitrans-result.png",
+          "width": 580,
+          "height": 438,
+          "time": "13:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何それ",
+          "time": "13:35"
+        },
+        {
+          "side": "me",
+          "text": "英訳ボタン",
+          "time": "13:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "日本語打つだけで\n自然な英語になる",
+          "time": "13:36",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "そのまま送るの？",
+          "time": "13:36"
+        },
+        {
+          "side": "me",
+          "text": "うん送った",
+          "time": "13:37",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "返信来た",
+          "time": "9:14",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何て？",
+          "time": "9:14"
+        },
+        {
+          "side": "me",
+          "text": "「対応できます」だって",
+          "time": "9:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "マジで",
+          "time": "9:15"
+        },
+        {
+          "side": "me",
+          "text": "普通に\n通じるんだな",
+          "time": "9:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "英語できないの\nバレなかったな",
+          "time": "9:16"
+        },
+        {
+          "side": "me",
+          "text": "うん\nバレてない",
+          "time": "9:16",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "海外ブランドへの問い合わせ、英語0点でも送れた話",
+    "hashtags": [
+      "#英語",
+      "#海外通販",
+      "#英訳",
+      "#AIキーボード",
+      "#コスメ"
+    ]
+  },
+  "approval": {
+    "status": "needs-rework",
+    "resultVerified": false,
+    "visualQA": true,
+    "qualityIssue": "Rendered via build.py only: silent MP4, no BGM/sound pass, no shipping-app verification. The 001-007 videos on this account went through an additional device-side pass (BGM + polish) that this session could not reproduce. Do not schedule until that pass happens."
+  }
+}

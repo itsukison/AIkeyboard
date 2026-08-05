@@ -1,0 +1,162 @@
+{
+  "version": 2,
+  "slug": "011-old-boss-advice",
+  "duration": 45,
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/keigo-result.png",
+      "command": "敬語",
+      "draft": "お久しぶりです。転職について相談したいので時間もらえますか？",
+      "result": "ご無沙汰しております。転職についてご相談したいことがあり、お時間をいただけますと幸いです。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "転職しようか迷ってる",
+          "time": "22:01",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰かに相談した？",
+          "time": "22:01"
+        },
+        {
+          "side": "me",
+          "text": "前の上司に\n聞いてみたいけど",
+          "time": "22:02",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "気まずくない？",
+          "time": "22:02"
+        },
+        {
+          "side": "me",
+          "text": "疎遠だし",
+          "time": "22:03",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "連絡してみれば",
+          "time": "22:03"
+        },
+        {
+          "side": "me",
+          "text": "文章が思いつかない",
+          "time": "22:03",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/keigo-result.png",
+          "width": 580,
+          "height": 438,
+          "time": "22:05",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "急に丁寧じゃん",
+          "time": "22:05"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "22:06",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "普通の文章を\n打つだけでいい",
+          "time": "22:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それで送ったの？",
+          "time": "22:06"
+        },
+        {
+          "side": "me",
+          "text": "うん",
+          "time": "22:07",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "OK来た",
+          "time": "8:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "はやい",
+          "time": "8:30"
+        },
+        {
+          "side": "me",
+          "text": "「いつでもいいよ」だって",
+          "time": "8:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "優しいじゃん",
+          "time": "8:31"
+        },
+        {
+          "side": "me",
+          "text": "覚えてたのかな\n心配だった",
+          "time": "8:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "文章がしっかりしてたから\n安心したんじゃない",
+          "time": "8:32"
+        },
+        {
+          "side": "me",
+          "text": "それ敬語ボタンのおかげ",
+          "time": "8:33",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "疎遠だった元上司に転職相談を送った結果",
+    "hashtags": [
+      "#転職",
+      "#敬語",
+      "#社会人",
+      "#元上司",
+      "#AIキーボード"
+    ]
+  },
+  "approval": {
+    "status": "needs-rework",
+    "resultVerified": false,
+    "visualQA": true,
+    "qualityIssue": "Rendered via build.py only: silent MP4, no BGM/sound pass, no shipping-app verification. The 001-007 videos on this account went through an additional device-side pass (BGM + polish) that this session could not reproduce. Do not schedule until that pass happens."
+  }
+}

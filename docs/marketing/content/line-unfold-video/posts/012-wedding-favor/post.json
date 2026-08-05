@@ -1,0 +1,150 @@
+{
+  "version": 2,
+  "slug": "012-wedding-favor",
+  "duration": 45,
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/keigo-result.png",
+      "command": "敬語",
+      "draft": "余興は苦手なので他の人にお願いしたいです",
+      "result": "せっかくのお声がけ、大変嬉しく思います。あいにく人前でのことが苦手なため、今回は他の方にお願いできればと思います。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "友達の結婚式で\n余興頼まれた",
+          "time": "19:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "やるの？",
+          "time": "19:21"
+        },
+        {
+          "side": "me",
+          "text": "人前とか\n無理なタイプ",
+          "time": "19:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "断れば？",
+          "time": "19:22"
+        },
+        {
+          "side": "me",
+          "text": "せっかく頼まれたのに\n断りづらい",
+          "time": "19:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "でも無理なら無理でしょ",
+          "time": "19:23"
+        },
+        {
+          "side": "me",
+          "text": "文章考えるの\n難しい",
+          "time": "19:24",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "敬語ボタンで\n変換した",
+          "time": "19:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それそのまま送ったら\n気まずくない",
+          "time": "19:26"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/keigo-result.png",
+          "width": 580,
+          "height": 438,
+          "time": "19:27",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "感じよく\n断れる文章になる",
+          "time": "19:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "見せて",
+          "time": "19:27"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "20:02",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "反応は？",
+          "time": "20:02"
+        },
+        {
+          "side": "me",
+          "text": "「全然大丈夫、\n聞いてくれてありがとう」って",
+          "time": "20:03",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "良かったじゃん",
+          "time": "20:03"
+        },
+        {
+          "side": "me",
+          "text": "断ったのに\n感謝された",
+          "time": "20:04",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "文章の力すごいな",
+          "time": "20:04"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "結婚式の余興、丁寧に断ったら感謝された話",
+    "hashtags": [
+      "#結婚式",
+      "#余興",
+      "#敬語",
+      "#友達",
+      "#AIキーボード"
+    ]
+  },
+  "approval": {
+    "status": "needs-rework",
+    "resultVerified": false,
+    "visualQA": true,
+    "qualityIssue": "Rendered via build.py only: silent MP4, no BGM/sound pass, no shipping-app verification. The 001-007 videos on this account went through an additional device-side pass (BGM + polish) that this session could not reproduce. Do not schedule until that pass happens."
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "007-nomikai-kotowaru",
+  "mechanism": "social-invite refusal inner monologue + relationship-preserving decline translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "飲み会の誘いを\n「行きたくない」\nって言えないから",
+    "support": "気を悪くさせない\n断り方、5選",
+    "image": "../app-intro/assets/thumbnails/_ (6).jpeg",
+    "position": "center 40%"
+  },
+  "phrases": [
+    {
+      "blunt": "「行きたく\nないです」",
+      "polished": "「今回は都合が合わず、\n次回参加できればと」"
+    },
+    {
+      "blunt": "「今回は\nいいです」",
+      "polished": "「またお声がけいただけると\n嬉しいです」"
+    },
+    {
+      "blunt": "「その日は\n無理です」",
+      "polished": "「あいにく予定がございまして、\n失礼いたします」"
+    },
+    {
+      "blunt": "「そのメンバー\nは無理です」",
+      "polished": "「今回は見送らせて\nいただきます」"
+    },
+    {
+      "blunt": "「毎回\n強制ですか」",
+      "polished": "「参加は任意でしょうか、\n確認させてください」"
+    }
+  ],
+  "cta": {
+    "headline": "断っても、\n関係は壊さない。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n誘いを断る一言も、迷わず送れます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "飲み会を断りたい人へ。気を悪くさせない言い方5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#飲み会",
+      "#仕事術",
+      "#職場あるある"
+    ]
+  },
+  "hypothesis": "Declining a social invite without damaging the relationship is a distinct anxiety from task-boundary posts; testing it should show whether the format also works for social rather than task friction.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  }
+}

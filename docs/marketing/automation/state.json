@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-04T14:04:45+09:00",
+  "updatedAt": "2026-08-05T11:53:30+09:00",
   "posts": [
     {
       "bufferPostId": "6a698c75e9aefbbb12a847bb",
@@ -54,6 +54,123 @@
       "hypothesis": "A taboo but highly recognizable inner thought should earn the first swipe, while five standalone rewrites should drive completion and saves before a delayed install CTA.",
       "externalLink": "https://tiktok.com/@keigobutton/video/7670025056667389191",
       "sentAt": "2026-08-04T04:16:16+00:00"
+    },
+    {
+      "bufferPostId": "6a72a538c82d97b511b98500",
+      "metricsSnapshots": [],
+      "episode": "002-dakikomanai",
+      "contentFormat": "office-talk",
+      "contentSha256": "86de69362bb4376247edfe98d3608ae9a44ddb5f76738f51843b037fc8ced546",
+      "dueAt": "2026-08-06T12:30:00+09:00",
+      "status": "scheduled",
+      "slot": "12:30",
+      "allocation": "explore",
+      "hypothesis": "A recognizable workload-overflow hook should broaden office-talk beyond generalized frustration, while five specific boundary-setting rewrites test whether utility can sustain swipes before the delayed product CTA."
+    },
+    {
+      "bufferPostId": "6a72feb4e8285be9cbb9fa3c",
+      "metricsSnapshots": [],
+      "episode": "003-teiji-taikin",
+      "contentFormat": "office-talk",
+      "contentSha256": "e56c07f62ff01e4240f151e0355dccced74d016821f1dedc801cc44182be69d6",
+      "dueAt": "2026-08-05T20:30:00+09:00",
+      "status": "scheduled",
+      "slot": "20:30",
+      "allocation": "explore",
+      "hypothesis": "A widely shared end-of-day boundary should earn the first swipe, while five leave-on-time rewrites test whether the format travels beyond overload-specific frustration."
+    },
+    {
+      "bufferPostId": "6a72feb933c8aa2ecbbf9b40",
+      "metricsSnapshots": [],
+      "episode": "014-sick-day-pressure",
+      "contentFormat": "line-story",
+      "dueAt": "2026-08-06T09:30:00+09:00",
+      "status": "scheduled",
+      "slot": "09:30",
+      "allocation": "exploit",
+      "hypothesis": "A familiar sick-day boundary with an early product reveal can earn qualified workplace engagement."
+    },
+    {
+      "bufferPostId": "6a72febee180ea520644d5ae",
+      "metricsSnapshots": [],
+      "episode": "004-kaigi-hanron",
+      "contentFormat": "office-talk",
+      "contentSha256": "6286267bb455ac6dbd6be677067d80d3c89aec54f36af2178aee6100c507137b",
+      "dueAt": "2026-08-06T18:30:00+09:00",
+      "status": "scheduled",
+      "slot": "18:30",
+      "allocation": "explore",
+      "hypothesis": "A recognizable meeting-disagreement moment should broaden office-talk into a second high-frequency workplace context, testing whether the phrase-swap payoff still drives completion."
+    },
+    {
+      "bufferPostId": "6a72fec3c1d274ef42b1fa2e",
+      "metricsSnapshots": [],
+      "episode": "018-public-shaming",
+      "contentFormat": "line-story",
+      "dueAt": "2026-08-07T09:30:00+09:00",
+      "status": "scheduled",
+      "slot": "09:30",
+      "allocation": "exploit",
+      "hypothesis": "A public group-chat callout extends the workplace-boundary format into a shame-driven variant of the winning conflict-first structure."
+    },
+    {
+      "bufferPostId": "6a72fec9d4aaf05a5629a400",
+      "metricsSnapshots": [],
+      "episode": "005-tanomare-kotowaru",
+      "contentFormat": "office-talk",
+      "contentSha256": "b71c7c062816141b6d37030c50776b115f0a9a88b09e8555b2a4bdb04f259721",
+      "dueAt": "2026-08-07T12:30:00+09:00",
+      "status": "scheduled",
+      "slot": "12:30",
+      "allocation": "explore",
+      "hypothesis": "A favor-request refusal is a distinct workplace friction from overload and disagreement; testing it should show whether the format's payoff generalizes across boundary-setting contexts."
+    },
+    {
+      "bufferPostId": "6a72fed229943ee9a4295679",
+      "metricsSnapshots": [],
+      "episode": "006-misu-shiteki",
+      "contentFormat": "office-talk",
+      "contentSha256": "6eb1d719574bf8bce64621f7fcc037f824f24d9def4d24db4cd8a3dda7b30e99",
+      "dueAt": "2026-08-07T18:30:00+09:00",
+      "status": "scheduled",
+      "slot": "18:30",
+      "allocation": "explore",
+      "hypothesis": "A mistake-callout moment is high-frequency and emotionally loaded; testing it should reveal whether the accountable-without-excuses framing sustains completion as well as the overload framing did."
+    },
+    {
+      "bufferPostId": "6a72fed7e180ea520644d6f0",
+      "metricsSnapshots": [],
+      "episode": "019-vague-brief-viral",
+      "contentFormat": "line-story",
+      "dueAt": "2026-08-08T09:30:00+09:00",
+      "status": "scheduled",
+      "slot": "09:30",
+      "allocation": "explore",
+      "hypothesis": "A curiosity-driven vague-brief hook tests whether an ambiguous, less taboo premise can still sustain the workplace-boundary format's completion rate."
+    },
+    {
+      "bufferPostId": "6a72fedde180ea520644d72a",
+      "metricsSnapshots": [],
+      "episode": "007-nomikai-kotowaru",
+      "contentFormat": "office-talk",
+      "contentSha256": "ca9d612ddb1f2fff57ed2d30bcd7cae52436ac41d7032ea6ff7f12eff990dbc3",
+      "dueAt": "2026-08-08T12:30:00+09:00",
+      "status": "scheduled",
+      "slot": "12:30",
+      "allocation": "explore",
+      "hypothesis": "Declining a social invite without damaging the relationship is a distinct anxiety from task-boundary posts; testing it should show whether the format also works for social rather than task friction."
+    },
+    {
+      "bufferPostId": "6a72fee3e180ea520644d7a2",
+      "metricsSnapshots": [],
+      "episode": "008-fujori-claim",
+      "contentFormat": "office-talk",
+      "contentSha256": "68e931138e31d7610f9e1e94ead23a20d178eb81a9c30fcf50bd954632100081",
+      "dueAt": "2026-08-08T18:30:00+09:00",
+      "status": "scheduled",
+      "slot": "18:30",
+      "allocation": "explore",
+      "hypothesis": "Customer-facing complaint handling is a higher-stakes context than internal workplace friction; testing it should show whether the phrase-swap payoff still lands when the audience is external."
     }
   ]
 }

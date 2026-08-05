@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "019-money-savvy",
+  "mechanism": "quiet-competence aspiration",
+  "hook": "気づいたら\nお金に強くなる\nアプリ5個",
+  "thumbnail": "3.jpeg",
+  "swipe": "→ 4個目、収入管理がラクになる",
+  "apps": ["acorns", "origin", "zing", "keigobutton", "linktree"],
+  "appImageOverrides": {
+    "keigobutton": "keigobutton.jpeg"
+  },
+  "caption": "①Acorns ②Origin ③Zing ④敬語ボタン ⑤Linktree\n\nお金の管理、何のアプリ使ってる？\n\n#アプリ紹介 #お金の管理 #社会人 #敬語 #iPhone",
+  "tiktokTitle": "気づいたらお金に強くなるアプリ5個",
+  "tiktokDescription": "①Acorns ②Origin ③Zing ④敬語ボタン ⑤Linktree\n\nお金の管理、何のアプリ使ってる？\n\n#アプリ紹介 #お金の管理 #社会人 #敬語 #iPhone",
+  "hypothesis": "Money-management competence is a durable self-improvement angle that should perform similarly to the earlier finance-themed post.",
+  "approved": true
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "021-hidden-perks",
+  "mechanism": "loss aversion / FOMO",
+  "hook": "知らないと\n損してる系\nアプリ5個",
+  "thumbnail": "5.jpeg",
+  "swipe": "→ 4個目、生活が地味に変わる",
+  "apps": ["too_good_to_go", "wispr_flow", "pushr", "keigobutton", "creme"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①Too Good To Go ②Wispr Flow ③pushr ④敬語ボタン ⑤CREME\n\n知らないと損してるアプリ、他にある？\n\n#アプリ紹介 #便利アプリ #社会人 #敬語 #iPhone",
+  "tiktokTitle": "知らないと損してる系アプリ5個",
+  "tiktokDescription": "①Too Good To Go ②Wispr Flow ③pushr ④敬語ボタン ⑤CREME\n\n知らないと損してるアプリ、他にある？\n\n#アプリ紹介 #便利アプリ #社会人 #敬語 #iPhone",
+  "hypothesis": "A fresh loss-aversion combination (different from the identical too_good_to_go/tide_guide/pushr/genies quartet used twice already) should test whether the mechanism still works with new pairings.",
+  "approved": true
+}

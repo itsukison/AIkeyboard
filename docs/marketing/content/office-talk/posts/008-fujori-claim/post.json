@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "008-fujori-claim",
+  "mechanism": "unreasonable-complaint inner monologue + composed customer-facing translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "理不尽な\nクレームに\n言い返せないから",
+    "support": "冷静に見える\n対応の仕方、5選",
+    "image": "../app-intro/assets/thumbnails/1.jpeg",
+    "position": "center 30%"
+  },
+  "phrases": [
+    {
+      "blunt": "「それは\nこちらのせいでは\nないです」",
+      "polished": "「状況を確認のうえ、\n改めてご説明いたします」"
+    },
+    {
+      "blunt": "「言ってること\nおかしいです」",
+      "polished": "「認識に相違があるようなので、\n一度整理させてください」"
+    },
+    {
+      "blunt": "「そこまで\n言われる筋合い\nないです」",
+      "polished": "「ご期待に沿えず\n申し訳ございません」"
+    },
+    {
+      "blunt": "「無理な\n要求ですね」",
+      "polished": "「対応可能な範囲を\nご案内いたします」"
+    },
+    {
+      "blunt": "「もう\n知りません」",
+      "polished": "「引き続き\n誠意を持って対応します」"
+    }
+  ],
+  "cta": {
+    "headline": "冷静さも、\n言葉で作れる。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n理不尽な場面でも、冷静に送れます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "理不尽なクレームに言い返せない人へ。冷静に見える対応5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#クレーム対応",
+      "#仕事術",
+      "#職場あるある"
+    ]
+  },
+  "hypothesis": "Customer-facing complaint handling is a higher-stakes context than internal workplace friction; testing it should show whether the phrase-swap payoff still lands when the audience is external.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  }
+}

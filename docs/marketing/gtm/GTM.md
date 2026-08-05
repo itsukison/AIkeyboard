@@ -49,6 +49,8 @@ References inside a routed file are not instructions to preload them.
 | Starting a brand-new content format | `../content/README.md` §Adding a third format, then `viral-format-research.md` for the mass-production eligibility rule | The existing content banks |
 | Publish or schedule approved social content through Buffer | `buffer-publishing.md`, then the owning content bank + relevant episode/template README | Metrics and research unless evaluating results |
 | Run or configure the autonomous TikTok loop | `tiktok-autopilot.md`, then only the files it routes to | Unrelated GTM research and outreach |
+| Which account posts what, or changing per-account cadence | `posting-policy.md` | Content banks unless changing copy too |
+| Continuing the 2026-08-05 four-account reorg | `2026-08-05-reorg-handoff.md`, then `posting-policy.md` | Everything else until the open items there are resolved |
 | Website SEO / GEO, keyword targeting, llms.txt | `seo-geo.md` | Content and metrics files unless a number is needed |
 | Writing a new page for the website | `seo-geo.md` §設計方針 first, then §キーワードマップ | Everything else |
 | Competitor, ASO, or JP-market question | `research/jp-market.md` | Other research files |
@@ -74,6 +76,8 @@ detail elsewhere.
 | `spicy-content-bank.md` | Provocative concepts and production-ready scripts for the existing LINE-style slideshow system |
 | `buffer-publishing.md` | Rendering, media upload, Buffer publishing, monitoring, result recording |
 | `tiktok-autopilot.md` | Autonomous TikTok cadence, gates, feedback policy, and scheduled-task prompts |
+| `posting-policy.md` | Current per-account format assignment and cadence across Buffer + Zernio + Instagram, cross-posting pattern, content-reuse rules |
+| `2026-08-05-reorg-handoff.md` | Point-in-time record of what the 2026-08-05 four-account reorg actually finished vs. left open — not a standing policy doc |
 | `research/*.md` | Point-in-time external evidence; read only for its named question |
 | `../content/README.md` | Which content formats exist, their directory layout, and the code paths bound to each |
 | `../content/app-intro/README.md` | The app-curation slideshow format: slide spec, card-copy library, hook queue, caption, publish blockers |

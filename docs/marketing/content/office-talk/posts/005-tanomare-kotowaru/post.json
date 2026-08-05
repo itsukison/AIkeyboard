@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "005-tanomare-kotowaru",
+  "mechanism": "favor-request refusal inner monologue + polite-decline translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "頼まれごとを\n「無理です」\nって断れないから",
+    "support": "気まずくならない\n断り方、5選",
+    "image": "../app-intro/assets/thumbnails/_ (1).jpeg",
+    "position": "center 45%"
+  },
+  "phrases": [
+    {
+      "blunt": "「それ\n無理です」",
+      "polished": "「今の業務量では難しく、\n別の方に頼めますか」"
+    },
+    {
+      "blunt": "「なんで\n私なんですか」",
+      "polished": "「担当の割り振りについて、\n確認させてください」"
+    },
+    {
+      "blunt": "「今日は\n無理です」",
+      "polished": "「本日は難しいので、\n明日以降でもよいですか」"
+    },
+    {
+      "blunt": "「それ、\n自分の仕事じゃ\nないです」",
+      "polished": "「担当範囲を確認したうえで、\nお手伝いできればと思います」"
+    },
+    {
+      "blunt": "「毎回\n私に来ますね」",
+      "polished": "「割り振りに偏りがあれば、\n共有いただけますか」"
+    }
+  ],
+  "cta": {
+    "headline": "断る言葉も、\nすぐ用意できる。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n断りにくい場面でも、迷わず送れます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "頼まれごとを断れない人へ。気まずくならない断り方5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#仕事術",
+      "#職場あるある",
+      "#断り方"
+    ]
+  },
+  "hypothesis": "A favor-request refusal is a distinct workplace friction from overload and disagreement; testing it should show whether the format's payoff generalizes across boundary-setting contexts.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  }
+}

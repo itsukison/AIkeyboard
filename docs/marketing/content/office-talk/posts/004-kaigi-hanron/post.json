@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "slug": "004-kaigi-hanron",
+  "mechanism": "meeting-disagreement inner monologue + tactful pushback translations",
+  "hook": {
+    "eyebrow": "社会人の本音",
+    "headline": "会議で\n「違うと思います」\nって言えないから",
+    "support": "波風立てない\n反論の仕方、5選",
+    "image": "../app-intro/assets/thumbnails/_ (3).jpeg",
+    "position": "center 35%"
+  },
+  "phrases": [
+    {
+      "blunt": "「それ、\n違うと思います」",
+      "polished": "「別の視点もあるかと思うので、\n共有してもよいですか」"
+    },
+    {
+      "blunt": "「それ、\nもう決まった\n話ですか」",
+      "polished": "「決定事項か確認のうえ、\nコメントできればと思います」"
+    },
+    {
+      "blunt": "「意味が\nわからないです」",
+      "polished": "「恐れ入りますが、\n少し補足いただけますか」"
+    },
+    {
+      "blunt": "「今\n言う意味ある？」",
+      "polished": "「タイミングについても、\n一度確認したいです」"
+    },
+    {
+      "blunt": "「賛成\nしてないです」",
+      "polished": "「懸念点もあるため、\n一緒に検討できればと」"
+    }
+  ],
+  "cta": {
+    "headline": "言いたいことを、\n角を立てずに。",
+    "detail": "入力した文章を、キーボードからそのまま敬語に。\n会議の一言も、迷わず送れます。",
+    "action": "App Storeで「敬語ボタン」",
+    "image": "../../../assets/marketing/iconbgremoved.png"
+  },
+  "publish": {
+    "title": "会議で反論できない人へ。波風立てない伝え方5選",
+    "hashtags": [
+      "#敬語",
+      "#社会人",
+      "#会議",
+      "#仕事術",
+      "#職場あるある"
+    ]
+  },
+  "hypothesis": "A recognizable meeting-disagreement moment should broaden office-talk into a second high-frequency workplace context, testing whether the phrase-swap payoff still drives completion.",
+  "approval": {
+    "status": "approved",
+    "visualQA": true
+  }
+}

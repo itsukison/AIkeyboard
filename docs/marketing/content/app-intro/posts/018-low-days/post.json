@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "slug": "018-low-days",
+  "mechanism": "emotional relief in a low moment",
+  "hook": "気分が沈む日に\n開いてほしい\nアプリ5個",
+  "thumbnail": "2.jpeg",
+  "swipe": "→ 4個目、頭の中が整理される",
+  "apps": ["stoic", "ahead", "clubhouse", "keigobutton", "atoms"],
+  "appImageOverrides": {
+    "keigobutton": "keigochat.jpeg"
+  },
+  "caption": "①stoic. ②Ahead ③Clubhouse ④敬語ボタン ⑤Atoms\n\n気分が沈んだ日に使うアプリある？\n\n#アプリ紹介 #メンタルケア #社会人 #敬語 #iPhone",
+  "tiktokTitle": "気分が沈む日に開いてほしいアプリ5個",
+  "tiktokDescription": "①stoic. ②Ahead ③Clubhouse ④敬語ボタン ⑤Atoms\n\n気分が沈んだ日に使うアプリある？\n\n#アプリ紹介 #メンタルケア #社会人 #敬語 #iPhone",
+  "hypothesis": "A low-mood emotional-relief framing should test whether the format works for comfort-seeking, not just aspiration or curiosity.",
+  "approved": true
+}
