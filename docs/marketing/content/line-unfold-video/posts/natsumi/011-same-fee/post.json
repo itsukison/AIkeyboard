@@ -1,0 +1,228 @@
+{
+  "version": 2,
+  "slug": "011-same-fee",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "新人と部長が同じ6千円っておかしくないですか？払えません。",
+      "result": "会費のことでご相談です。今月は少し厳しいので、次回から新人分だけ金額を分けていただくことは可能でしょうか。今回は参加させてください。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "歓迎会の案内きた",
+          "time": "20:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "自分の歓迎会でしょ",
+          "time": "20:15"
+        },
+        {
+          "side": "me",
+          "text": "そう",
+          "time": "20:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いいじゃん",
+          "time": "20:16"
+        },
+        {
+          "side": "me",
+          "text": "会費6千円",
+          "time": "20:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "20:18"
+        },
+        {
+          "side": "me",
+          "text": "全員同額",
+          "time": "20:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "部長も？",
+          "time": "20:19"
+        },
+        {
+          "side": "me",
+          "text": "部長も",
+          "time": "20:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "まあ普通じゃない？",
+          "time": "20:20"
+        },
+        {
+          "side": "me",
+          "text": "手取り18万で6千円",
+          "time": "20:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "20:21"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "しかも私の歓迎会",
+          "time": "20:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "自分を歓迎する会に払うんだ",
+          "time": "20:23"
+        },
+        {
+          "side": "me",
+          "text": "そう",
+          "time": "20:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは言われてみると変",
+          "time": "20:24"
+        },
+        {
+          "side": "other",
+          "text": "正しいけど、初月でそれ送る？",
+          "time": "20:25"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "20:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "20:26"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "20:26",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "幹事の先輩に送った",
+          "time": "20:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返事",
+          "time": "20:28"
+        },
+        {
+          "side": "me",
+          "text": "「相談してみる」",
+          "time": "20:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "優しい",
+          "time": "20:29"
+        },
+        {
+          "side": "me",
+          "text": "当日",
+          "time": "20:30",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "会費、集められなかった",
+          "time": "20:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "20:31"
+        },
+        {
+          "side": "me",
+          "text": "部長が全部出してた",
+          "time": "20:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "最初から？",
+          "time": "20:32"
+        },
+        {
+          "side": "me",
+          "text": "毎年そうらしい",
+          "time": "20:33",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "会費6千円は建前だって",
+          "time": "20:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "先に言ってよ",
+          "time": "20:34"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "歓迎会の会費が全員同額だった",
+    "hashtags": [
+      "#飲み会",
+      "#会費",
+      "#新人",
+      "#職場あるある",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

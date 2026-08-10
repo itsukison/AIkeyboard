@@ -1,0 +1,231 @@
+{
+  "version": 2,
+  "slug": "007-name-not-listed",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "昨日は帰ってすみません。私のせいでご迷惑をおかけしました。本当にすみません。",
+      "result": "昨日はお先に失礼しました。対応してくださった皆さん、ありがとうございました。今日は私が巻き取ります。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "名前が載ってない",
+          "time": "08:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何の話",
+          "time": "08:35"
+        },
+        {
+          "side": "me",
+          "text": "朝のグループチャット",
+          "time": "08:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「昨日は残って対応してくれた皆さん、ありがとう」",
+          "time": "08:36",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "08:37"
+        },
+        {
+          "side": "me",
+          "text": "5人の名前が書いてある",
+          "time": "08:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あなたは",
+          "time": "08:38"
+        },
+        {
+          "side": "me",
+          "text": "ない",
+          "time": "08:39",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "帰ったの",
+          "time": "08:40"
+        },
+        {
+          "side": "me",
+          "text": "定時で",
+          "time": "08:40",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "仕事は終わってた",
+          "time": "08:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "終わってても、みんな残ってるとこで帰る？",
+          "time": "08:41"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "名前の横にスタンプついてる",
+          "time": "08:42",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "👏が5人分",
+          "time": "08:43",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "私の昨日の報告には何もついてない",
+          "time": "08:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…それはきつい",
+          "time": "08:44"
+        },
+        {
+          "side": "other",
+          "text": "全員見えてるとこでそれは嫌味になる",
+          "time": "08:45"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "08:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "08:46"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "08:46",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "投稿した",
+          "time": "08:47",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "反応は",
+          "time": "08:48"
+        },
+        {
+          "side": "me",
+          "text": "誰も何も言わない",
+          "time": "08:48",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "30秒くらい",
+          "time": "08:49",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "部長が👍つけた",
+          "time": "08:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "よかったじゃん",
+          "time": "08:50"
+        },
+        {
+          "side": "me",
+          "text": "同期からDMきた",
+          "time": "08:51",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「あれ、私も定時で帰ってた」",
+          "time": "08:51",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「名前ないの、2人だけ」",
+          "time": "08:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "08:53"
+        },
+        {
+          "side": "other",
+          "text": "それわざと…？",
+          "time": "08:53"
+        },
+        {
+          "side": "me",
+          "text": "部長から個別にきた「ちょっといい？」",
+          "time": "08:54",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "定時で帰った翌朝、名前がなかった",
+    "hashtags": [
+      "#職場あるある",
+      "#定時退社",
+      "#上司",
+      "#社会人",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

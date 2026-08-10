@@ -1,0 +1,228 @@
+{
+  "version": 2,
+  "slug": "025-casual-to-hr",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "さっきのめっちゃ失礼でしたすみません！！了解ですって打ちました！！",
+      "result": "先ほどの返信、言葉遣いが適切ではありませんでした。承知いたしました、とお伝えすべきところでした。失礼いたしました。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "やらかした",
+          "time": "10:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何",
+          "time": "10:15"
+        },
+        {
+          "side": "me",
+          "text": "人事からのメール",
+          "time": "10:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "10:16"
+        },
+        {
+          "side": "me",
+          "text": "「面接、来週火曜で大丈夫ですか」",
+          "time": "10:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "普通",
+          "time": "10:18"
+        },
+        {
+          "side": "me",
+          "text": "「了解です！」って返した",
+          "time": "10:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…",
+          "time": "10:19"
+        },
+        {
+          "side": "me",
+          "text": "LINEのノリで",
+          "time": "10:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "会社のメールで？",
+          "time": "10:20"
+        },
+        {
+          "side": "me",
+          "text": "うん",
+          "time": "10:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわあ",
+          "time": "10:21"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送信取り消しない",
+          "time": "10:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "メールだからね",
+          "time": "10:23"
+        },
+        {
+          "side": "me",
+          "text": "5分後に気づいた",
+          "time": "10:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "遅い",
+          "time": "10:24"
+        },
+        {
+          "side": "other",
+          "text": "またそれ",
+          "time": "10:25"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "10:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "10:26"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "10:26",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "10:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返信は",
+          "time": "10:28"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "10:28",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「大丈夫ですよ」",
+          "time": "10:29",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "よかったじゃん",
+          "time": "10:30"
+        },
+        {
+          "side": "me",
+          "text": "続きがある",
+          "time": "10:30",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「火曜、私も同席します」",
+          "time": "10:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "10:31"
+        },
+        {
+          "side": "me",
+          "text": "「最終面接なので」",
+          "time": "10:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "10:33"
+        },
+        {
+          "side": "me",
+          "text": "この人、面接官だった",
+          "time": "10:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "10:34"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "人事にタメ口で返信した",
+    "hashtags": [
+      "#就活",
+      "#人事",
+      "#社会人",
+      "#敬語",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

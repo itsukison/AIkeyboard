@@ -1,0 +1,231 @@
+{
+  "version": 2,
+  "slug": "019-drunk-three-messages",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "昨日のは酔ってました！！全部忘れてください！！！すみません！！",
+      "result": "昨夜は失礼しました。酔っていたとはいえ、送るべき内容ではありませんでした。お騒がせしてすみません。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "起きたら終わってた",
+          "time": "07:12",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何が",
+          "time": "07:12"
+        },
+        {
+          "side": "me",
+          "text": "昨日の記憶がない",
+          "time": "07:13",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "先輩に送ってる",
+          "time": "07:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何を",
+          "time": "07:14"
+        },
+        {
+          "side": "me",
+          "text": "それが分からない",
+          "time": "07:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "見ればいいじゃん",
+          "time": "07:15"
+        },
+        {
+          "side": "me",
+          "text": "怖くて開けてない",
+          "time": "07:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "開けて",
+          "time": "07:17"
+        },
+        {
+          "side": "me",
+          "text": "開けた",
+          "time": "07:17",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「先輩っていつも私のこと見てますよね」",
+          "time": "07:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は",
+          "time": "07:18"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "まだある",
+          "time": "07:19",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "3通も",
+          "time": "07:20"
+        },
+        {
+          "side": "other",
+          "text": "先輩からしたら普通に怖いよ",
+          "time": "07:20"
+        },
+        {
+          "side": "me",
+          "text": "既読ついてる",
+          "time": "07:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "余計おかしい",
+          "time": "07:22"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "07:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "07:23"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "07:23",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "07:24",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "既読",
+          "time": "07:25"
+        },
+        {
+          "side": "me",
+          "text": "ついた",
+          "time": "07:25",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "入力中",
+          "time": "07:26",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "消えた",
+          "time": "07:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "07:27"
+        },
+        {
+          "side": "me",
+          "text": "またついた",
+          "time": "07:28",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "07:28",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「昨日のって、どれのこと？」",
+          "time": "07:29",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どれ？",
+          "time": "07:30"
+        },
+        {
+          "side": "me",
+          "text": "スクロールした",
+          "time": "07:30",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「ボイスメッセージ 17秒」",
+          "time": "07:31",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "酔って先輩に送ったやつ、内容を覚えてない",
+    "hashtags": [
+      "#誤爆",
+      "#飲み会",
+      "#先輩",
+      "#社内恋愛",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

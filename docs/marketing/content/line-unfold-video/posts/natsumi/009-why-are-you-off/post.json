@@ -1,0 +1,227 @@
+{
+  "version": 2,
+  "slug": "009-why-are-you-off",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "有給に理由いりますか？権利ですよね。理由は言いたくないです。",
+      "result": "来週の三日間、私用でお休みをいただきたいです。業務は前倒しで片付けて、引き継ぎもまとめてお渡しします。ご確認お願いします。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "有給の申請を出した",
+          "time": "11:05",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いつ",
+          "time": "11:05"
+        },
+        {
+          "side": "me",
+          "text": "来週の3日",
+          "time": "11:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何かあるの",
+          "time": "11:06"
+        },
+        {
+          "side": "me",
+          "text": "友達の結婚式",
+          "time": "11:07",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いいじゃん",
+          "time": "11:08"
+        },
+        {
+          "side": "me",
+          "text": "上司に理由聞かれた",
+          "time": "11:08",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "答えたの",
+          "time": "11:09"
+        },
+        {
+          "side": "me",
+          "text": "正直に言った",
+          "time": "11:10",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "で？",
+          "time": "11:10"
+        },
+        {
+          "side": "me",
+          "text": "「それ、優先度低くない？」",
+          "time": "11:11",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は？",
+          "time": "11:11"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "other",
+          "text": "式は土曜でしょ",
+          "time": "11:12"
+        },
+        {
+          "side": "me",
+          "text": "前泊と後泊がいる",
+          "time": "11:13",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "沖縄",
+          "time": "11:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "なら要るじゃん",
+          "time": "11:14"
+        },
+        {
+          "side": "other",
+          "text": "正論だけど、それ言うと来年きつくなるよ",
+          "time": "11:15"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "11:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "11:16"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "11:16",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "11:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "通った？",
+          "time": "11:18"
+        },
+        {
+          "side": "me",
+          "text": "5分で承認された",
+          "time": "11:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あっさり",
+          "time": "11:19"
+        },
+        {
+          "side": "me",
+          "text": "そのあとカレンダー見た",
+          "time": "11:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "11:20"
+        },
+        {
+          "side": "me",
+          "text": "上司、同じ週に4日休んでる",
+          "time": "11:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "11:21"
+        },
+        {
+          "side": "me",
+          "text": "理由の欄",
+          "time": "11:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何て",
+          "time": "11:23"
+        },
+        {
+          "side": "me",
+          "text": "空欄",
+          "time": "11:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "私はそれ許せないかも",
+          "time": "11:24"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "有給の理由を聞かれた",
+    "hashtags": [
+      "#有給",
+      "#職場あるある",
+      "#上司",
+      "#社会人",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

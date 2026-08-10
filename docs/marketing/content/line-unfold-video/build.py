@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 import argparse
 import copy
+import hashlib
 import json
 import re
 import subprocess
 import tempfile
 import urllib.parse
 from pathlib import Path
+from typing import Optional
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = (HERE / "template/line-unfold.html").as_uri()
 PRODUCT_TEMPLATE = (HERE.parent / "line-story/templates/product-ui/product-ui.html").as_uri()
 WIDTH, HEIGHT = 1080, 1920
-SLUG = re.compile(r"^\d{3}-[a-z0-9-]+$")
+# A post lives at posts/<slug> or posts/<bank>/<slug>, so the two content banks
+# (Saya anthology, yuri serial) keep physically separate trees and independent
+# numbering.
+SLUG = re.compile(r"^(?:[a-z0-9-]+/)?\d{3}-[a-z0-9-]+$")
+BGM_DIR = HERE / "bgm"
+DATING_TRACKS = {"dating.m4a", "dating2.m4a", "dating3.m4a"}
+BGM_FADE = 1.5
 
 
 def find_chrome() -> Path:
@@ -34,10 +42,30 @@ def fail(message: str) -> None:
     raise SystemExit(message)
 
 
+# .bubble is max-width 620 with 28px side padding, so text has 564px before it
+# wraps to a second line. Measured against the template's own font at 36px:
+# full-width Japanese ~35px/char, ASCII ~18px. A wrapped bubble is legal (the
+# template wraps since 2026-08-09) but usually reads better shortened.
+BUBBLE_TEXT_WIDTH = 564
+
+
+def estimate_width(text: str) -> int:
+    return sum(18 if ord(ch) < 0x2E80 else 35 for ch in text)
+
+
+def report_wraps(spec: dict) -> None:
+    pages = spec.get("pages") or [{"messages": spec.get("messages", [])}]
+    for page_index, page in enumerate(pages, 1):
+        for message_index, message in enumerate(page.get("messages", []), 1):
+            for line in message.get("text", "").split("\n"):
+                if estimate_width(line) > BUBBLE_TEXT_WIDTH:
+                    print(f"wraps to 2 lines: page {page_index} message {message_index} — {line}")
+
+
 def validate(slug: str, spec: dict) -> None:
     if spec.get("version") not in {1, 2}:
         fail("post.json version must be 1 or 2")
-    if not SLUG.fullmatch(slug) or spec.get("slug") != slug:
+    if not SLUG.fullmatch(slug) or spec.get("slug") != Path(slug).name:
         fail(f"invalid or mismatched slug: {slug}")
     if not isinstance(spec.get("duration"), (int, float)) or spec["duration"] <= 0:
         fail("duration must be positive")
@@ -121,11 +149,51 @@ def render_product_assets(spec: dict, post_dir: Path, output: Path) -> None:
             f"--screenshot={source}",
             f"{PRODUCT_TEMPLATE}?{query}",
         ], check=True, timeout=120, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Default 1105 is where the composer sits with a single-line draft. A
+        # longer draft wraps and pushes the composer up, so those assets lower
+        # cropTop to keep the first line inside the frame.
+        crop_top = asset.get("cropTop", 1105)
         subprocess.run([
             "ffmpeg", "-y", "-i", str(source),
-            "-vf", "crop=1080:815:0:1105",
+            "-vf", f"crop={WIDTH}:{HEIGHT - crop_top}:0:{crop_top}",
             str(destination),
         ], check=True, timeout=120, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def pick_bgm(slug: str, spec: dict) -> Optional[Path]:
+    pinned = spec.get("bgm")
+    if pinned:
+        if pinned not in DATING_TRACKS:
+            fail(f"bgm must be one of {sorted(DATING_TRACKS)} — got {pinned}")
+        track = BGM_DIR / pinned
+        if not track.is_file():
+            fail(f"missing bgm track: {track}")
+        return track
+    pool = sorted(p for p in BGM_DIR.glob("*") if p.name in DATING_TRACKS)
+    if not pool:
+        return None
+    digest = hashlib.sha256(slug.encode("utf-8")).digest()
+    return pool[int.from_bytes(digest[:8], "big") % len(pool)]
+
+
+def mux_bgm(video: Path, track: Path, duration: float) -> None:
+    fade_start = max(0.0, duration - BGM_FADE)
+    mixed = video.with_name(f"{video.stem}-bgm{video.suffix}")
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-i", str(video),
+        "-stream_loop", "-1", "-i", str(track),
+        "-filter_complex",
+        f"[1:a]atrim=0:{duration:.3f},asetpts=N/SR/TB,"
+        f"loudnorm=I=-14:TP=-1.5:LRA=11,"
+        f"afade=t=out:st={fade_start:.3f}:d={BGM_FADE},"
+        f"aresample=48000[a]",
+        "-map", "0:v", "-map", "[a]",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
+        "-movflags", "+faststart", "-t", f"{duration:.3f}",
+        str(mixed),
+    ], check=True, timeout=180, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    mixed.replace(video)
 
 
 def resolve_asset_uris(spec: dict, post_dir: Path) -> dict:
@@ -191,6 +259,14 @@ def build(slug: str) -> None:
         ], check=True, timeout=180, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     finally:
         concat.unlink(missing_ok=True)
+
+    track = pick_bgm(slug, spec)
+    if track:
+        mux_bgm(video, track, duration)
+        origin = "pinned" if spec.get("bgm") else 'UNPINNED — set "bgm" in post.json to choose a mood'
+        print(f"bgm: {track.name} ({origin})")
+    else:
+        print("bgm: none (empty pool) — video is silent")
     print(video.relative_to(HERE))
 
 
@@ -204,6 +280,7 @@ def main() -> None:
         fail(f"unknown post: {args.slug}")
     spec = json.loads(manifest.read_text(encoding="utf-8"))
     validate(args.slug, spec)
+    report_wraps(spec)
     if args.validate_only:
         print(f"Valid: {manifest}")
     else:

@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "034-wedding-budget",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "人数で割るべきでしょ。うちの方が3人多いだけで折半はない",
+      "result": "費用の分け方、もう一度だけ話させてください。折半か人数割りかで、どちらが正しいという話にはしたくないです。ただ黙って進めると、後で残る気がしています。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "式が止まってる",
+          "time": "21:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何で",
+          "time": "21:25"
+        },
+        {
+          "side": "me",
+          "text": "お金",
+          "time": "21:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いくら",
+          "time": "21:26"
+        },
+        {
+          "side": "me",
+          "text": "300万",
+          "time": "21:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "で",
+          "time": "21:28"
+        },
+        {
+          "side": "me",
+          "text": "うちは人数で割ろうって言った",
+          "time": "21:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "普通じゃない？",
+          "time": "21:29"
+        },
+        {
+          "side": "me",
+          "text": "向こうは折半",
+          "time": "21:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それも普通",
+          "time": "21:30"
+        },
+        {
+          "side": "me",
+          "text": "差、3人分",
+          "time": "21:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "3人で止まってるの",
+          "time": "21:31"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "うちの母が言い出した",
+          "time": "21:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "筋の話になると終わらない",
+          "time": "21:33"
+        },
+        {
+          "side": "me",
+          "text": "彼は何も言わない",
+          "time": "21:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それが一番きつい",
+          "time": "21:34"
+        },
+        {
+          "side": "me",
+          "text": "彼に送ったのこれ",
+          "time": "21:35",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "21:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "21:36"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "21:36",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "21:37",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "彼は",
+          "time": "21:38"
+        },
+        {
+          "side": "me",
+          "text": "電話してきた",
+          "time": "21:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "お",
+          "time": "21:39"
+        },
+        {
+          "side": "me",
+          "text": "「うちの親、全部出すつもりだった」",
+          "time": "21:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は？",
+          "time": "21:40"
+        },
+        {
+          "side": "me",
+          "text": "「言い出せなかったらしい」",
+          "time": "21:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "なんで",
+          "time": "21:41"
+        },
+        {
+          "side": "me",
+          "text": "「先に折半って言われたから」",
+          "time": "21:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "21:43"
+        },
+        {
+          "side": "me",
+          "text": "母に電話しないといけない",
+          "time": "21:43",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "何て言えばいいと思う",
+          "time": "21:44",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "結婚式の費用で両家が止まった",
+    "hashtags": [
+      "#結婚",
+      "#結婚式",
+      "#両家",
+      "#お金",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

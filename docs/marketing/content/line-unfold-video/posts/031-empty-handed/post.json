@@ -1,0 +1,232 @@
+{
+  "version": 2,
+  "slug": "031-empty-handed",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "毎回手ぶらなの気になってる。うちの親にも見られてるんだけど",
+      "result": "今度うちに来るとき、何か持ってきてもらえたら嬉しい。金額じゃなくて、母が気にしてるみたいで。言いそびれてたけど、ずっと引っかかってた。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "小さい話していい？",
+          "time": "21:00",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どうぞ",
+          "time": "21:00"
+        },
+        {
+          "side": "me",
+          "text": "彼、うちの実家に来るとき",
+          "time": "21:01",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "毎回手ぶら",
+          "time": "21:01",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "毎回？",
+          "time": "21:02"
+        },
+        {
+          "side": "me",
+          "text": "3回とも",
+          "time": "21:03",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あなたは向こうの実家に",
+          "time": "21:03"
+        },
+        {
+          "side": "me",
+          "text": "毎回3千円くらいの菓子折り",
+          "time": "21:04",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "差が",
+          "time": "21:05"
+        },
+        {
+          "side": "me",
+          "text": "彼は悪気ない",
+          "time": "21:05",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "たぶん本当に気づいてない",
+          "time": "21:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "気づいてないのが一番きつい",
+          "time": "21:06"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "昨日母に言われた",
+          "time": "21:07",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「彼くん、今回も何も無かったね」",
+          "time": "21:08",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "21:08"
+        },
+        {
+          "side": "me",
+          "text": "「別にいいのよ」って言い方で",
+          "time": "21:09",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "一番よくないやつ",
+          "time": "21:10"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "21:10",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "21:11"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "21:11",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "21:12",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "反応",
+          "time": "21:13"
+        },
+        {
+          "side": "me",
+          "text": "既読",
+          "time": "21:13",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "長い",
+          "time": "21:14",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "21:15",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「ごめん、気づいてなかった」",
+          "time": "21:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "だよね",
+          "time": "21:16"
+        },
+        {
+          "side": "me",
+          "text": "続きがある",
+          "time": "21:16",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「初めて行った日、お母さんに言われて」",
+          "time": "21:17",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「気を遣わないでねって」",
+          "time": "21:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "21:18"
+        },
+        {
+          "side": "me",
+          "text": "母に確認できてない",
+          "time": "21:19",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "彼だけ手ぶらで実家に来る",
+    "hashtags": [
+      "#実家",
+      "#挨拶",
+      "#カップル",
+      "#手土産",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}
