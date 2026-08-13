@@ -170,9 +170,9 @@ export class ConfirmationStore {
 
 export async function readMarketingContext(route: "general" | "spicy" | "publishing"): Promise<string> {
   const paths = [resolve(repoRoot, "docs/marketing/gtm/GTM.md")];
-  if (route === "general") paths.push(resolve(repoRoot, "docs/marketing/gtm/content-strategy.md"));
-  if (route === "spicy") paths.push(resolve(repoRoot, "docs/marketing/gtm/spicy-content-bank.md"));
-  if (route === "publishing") paths.push(resolve(repoRoot, "docs/marketing/gtm/buffer-publishing.md"));
+  if (route === "general") paths.push(resolve(repoRoot, "docs/marketing/gtm/content-ops/content-strategy.md"));
+  if (route === "spicy") paths.push(resolve(repoRoot, "docs/marketing/gtm/content-ops/spicy-content-bank.md"));
+  if (route === "publishing") paths.push(resolve(repoRoot, "docs/marketing/gtm/content-ops/buffer-publishing.md"));
   const documents = await Promise.all(paths.map(async (path) => `# Source: ${path}\n\n${await readFile(path, "utf8")}`));
   return documents.join("\n\n---\n\n");
 }

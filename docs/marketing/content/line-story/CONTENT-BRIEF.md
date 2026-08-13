@@ -2,7 +2,7 @@
 
 Self-contained context for generating short-form content episodes. Copy this whole
 file into any AI session, then use the generation prompt at the bottom. Point of
-truth for strategy is `../../gtm/GTM.md` and `../../gtm/content-strategy.md`; this is the
+truth for strategy is `../../gtm/GTM.md` and `../../gtm/content-ops/content-strategy.md`; this is the
 working distillation for content production. Last updated 2026-07-21.
 
 ---

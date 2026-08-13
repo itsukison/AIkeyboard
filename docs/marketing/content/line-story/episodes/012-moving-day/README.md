@@ -1,6 +1,6 @@
 # Post 012 — 「丁寧にキレる。」#11 上司の引っ越し、報酬はピザ
 
-Comedy-first episode (`../../../../gtm/spicy-content-bank.md` §16). The boss books
+Comedy-first episode (`../../../../gtm/content-ops/spicy-content-bank.md` §16). The boss books
 the employee's Sunday, labor, and car for his personal move — compensated with
 one pizza. The employee declines both the favor and the car; the boss calls
 her stingy; the final reply refuses the personal errand regardless of

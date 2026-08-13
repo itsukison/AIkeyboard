@@ -1,6 +1,27 @@
 # Weekly GTM Review Log
 
 Newest first. Template at bottom.
+Note: entries before 2026-08-13 reference `metrics-baseline.md` and `churn-signals.md`, which were
+consolidated into `retention-and-users.md` + `hypothesis-ledger.md` on that date. The references are
+left as written because these are dated records of what happened at the time.
+
+---
+
+## 2026-08-13 (independent retention diagnosis + doc consolidation)
+
+**Numbers**: users 3,318 | signups 8.6/day (was ~21/day on 08-02) | AI WAU 163 (−22% WoW) | W1 (first-rewrite) 9.4–16.0% | opt-ins 569
+**Phase**: 0. Gate A activation ≥25% (11.5% ❌) + Gate B activated W2 ≥25% (13–18% ❌)
+**What happened**: Independent pass over PostHog full history + Supabase, including the ~1,500 consented raw-text rewrites no prior investigation had opened. Then consolidated five overlapping metrics docs into `retention-and-users.md` + `hypothesis-ledger.md`, moved six content docs to `content-ops/`, and dropped the expired 08-05 reorg handoff.
+**Learned**:
+1. **Retention is flat across all seven weekly cohorts and four onboarding versions.** Onboarding is not the lever; four shipped interventions produced no measurable movement.
+2. **Full Access is the binding structural gate.** 51% of onboarding starters never confirm it; that group tries a rewrite 10.8% vs 50.4%. Detection bias inflates the gap but does not explain it away.
+3. **~49% of AI invocations are fired at text that needs no rewrite or isn't a message** — already-polite 短文, fragments, ≤3-char mistaps (including mid-romaji slips, direct evidence for the toolbar mis-tap hypothesis). 10.5% of rewrites return candidate 1 byte-identical to the input.
+4. **Satisfaction is not sufficient.** Two accepts on day 0 → only 41% return, 17.9% active at d7. ~59% of demonstrably-satisfied users still leave. This constrains every quality-only remedy.
+5. **The desktop free-text precedent doesn't exist in telemetry** — `desktop.rewrite_events` has no per-request instruction field, and only 130 events from 6 users. But it *does* have the `status` enum (= the missing `ai_rewrite_failed`) and `host_app_bundle_id` that mobile lacks.
+**Next (≤3)**:
+1. Ship `ai_rewrite_invoked` + `dismissed_within_2s` and copy desktop's `status` enum — the two cheapest missing data points, both gating bigger decisions.
+2. Server-side no-op suppression test (return 「この文章はすでに自然です」 instead of three identical cards), randomized on user hash, zero client work.
+3. Decide the free-text question on the refinement row only, with the <10% usage kill gate — not as a new input-bar button.
 
 ---
 

@@ -1,6 +1,6 @@
 # Post 016 — 「丁寧にキレる。」ランチ会議
 
-Approved Content Bank episode from `../../../../gtm/spicy-content-bank.md` §11.
+Approved Content Bank episode from `../../../../gtm/content-ops/spicy-content-bank.md` §11.
 This is the lower-risk explore post in the batch: the same conflict-first format,
 but everyday office comedy instead of a severe boundary violation.
 

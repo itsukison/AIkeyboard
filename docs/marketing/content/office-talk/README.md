@@ -23,7 +23,7 @@ The reference combines four mechanisms in one very cheap format:
 
 The 20k result is one directional reference, not proof of a repeatable winner.
 This format still needs comparable 72-hour tests under the winner policy in
-`../../gtm/tiktok-autopilot.md`.
+`../../gtm/content-ops/tiktok-autopilot.md`.
 
 ## Japanese adaptation
 
@@ -57,7 +57,7 @@ TikTok Photo Mode allows ten images; `build.py` fails if the post exceeds that.
 
 The body is deliberately fixed-shape and data-driven. A post changes only the
 hook image/copy, five phrase pairs, CTA copy, and caption. It therefore passes
-the mass-production test in `../../gtm/viral-format-research.md`: at least 20
+the mass-production test in `../../gtm/content-ops/viral-format-research.md`: at least 20
 credible variants can be produced without bespoke acting or product capture.
 
 ## CTA
@@ -112,7 +112,7 @@ fixed format, not for a new format or a change to the CTA.
 - Set `approval.status` to `approved` only inside this bounded format. Set
   `approval.visualQA` only after inspecting all seven rendered images.
 - Run `build.py <slug> --validate-only --check-publishable` before upload, then
-  upload with the office-talk flags in `../../gtm/buffer-publishing.md`.
+  upload with the office-talk flags in `../../gtm/content-ops/buffer-publishing.md`.
 
 ## Reference screenshots
 

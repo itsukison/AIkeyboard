@@ -1,6 +1,6 @@
 # Post 002 — 「丁寧にキレる。」#1 セクハラ上司
 
-First episode of the 丁寧にキレる。 series (`../../../../gtm/spicy-content-bank.md` §1).
+First episode of the 丁寧にキレる。 series (`../../../../gtm/content-ops/spicy-content-bank.md` §1).
 Full two-round flow: a creepy boss crosses a line, the inner monologue is furious,
 敬語ボタン turns it into a firm-but-polite boundary, the boss brushes it off, and the
 final reply holds the line even harder.

@@ -1,6 +1,6 @@
 # Post 007 — 「丁寧にキレる。」#6 既読ついてるよね？
 
-After-hours boundary episode (`../../../../gtm/spicy-content-bank.md` §8). At 22:47 the
+After-hours boundary episode (`../../../../gtm/content-ops/spicy-content-bank.md` §8). At 22:47 the
 boss uses the read receipt as proof the employee owes a reply. The employee defers
 to the next morning; the boss haggles it down to "it takes 30 seconds"; the final
 reply treats even 30 seconds as work.

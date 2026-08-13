@@ -1,7 +1,7 @@
 # Two-man hook + fixed screen proof
 
 This directory owns production state for the two-person workplace-hook format.
-Strategy and evidence stay in `../../gtm/viral-format-research.md`; the reusable
+Strategy and evidence stay in `../../gtm/content-ops/viral-format-research.md`; the reusable
 creative rules stay in the `produce-two-man-screen-hook` skill.
 
 ## Current production baseline

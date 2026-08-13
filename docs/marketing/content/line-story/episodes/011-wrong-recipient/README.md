@@ -1,6 +1,6 @@
 # Post 011 — 「丁寧にキレる。」#10 上司の誤爆（褒めとけば残業してくれる）
 
-Wrong-recipient comedy episode (`../../../../gtm/spicy-content-bank.md` §14). The
+Wrong-recipient comedy episode (`../../../../gtm/content-ops/spicy-content-bank.md` §14). The
 boss accidentally sends the employee his own strategy for extracting overtime
 from her — then asks her to ignore it. She confirms she saw it and sets the
 overtime boundary; the boss retreats to 「忘れて」; the final reply keeps it

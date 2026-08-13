@@ -70,6 +70,17 @@ this reason. **Do not schedule them as-is.** Either:
 3. accept fewer line-unfold posts per cycle (7 existing videos instead of 12)
    until this is resolved.
 
+## Known open issue — Instagram duplicate-content 409
+
+On 2026-08-05, scheduling `app-intro/011-build-and-learn` to Instagram
+(`6a6b7765df17280d93f65ff5`) failed with a **409 "exact content already
+scheduled/posted within 24h"** and was never retried or explained. Before
+assuming it is safe to just substitute a different slug into that slot, check
+whether 011 was already published to this account previously — via
+`posts_list_posts` with `source: "external"` or the analytics sync tool. If
+this recurs on other slugs, it is a cross-posting duplicate-detection problem,
+not a one-off.
+
 ## Automation status
 
 The three Codex scheduled tasks under `~/.codex/automations/` —

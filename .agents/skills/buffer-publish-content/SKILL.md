@@ -7,7 +7,7 @@ description: Produce, upload, schedule, publish, and monitor 敬語ボタン soc
 
 Read `/Users/itsuki/Desktop/key/Japanese/AGENTS.md`, then read
 `docs/marketing/gtm/GTM.md` and follow its content route. Read
-`docs/marketing/gtm/buffer-publishing.md` completely before any upload or Buffer
+`docs/marketing/gtm/content-ops/buffer-publishing.md` completely before any upload or Buffer
 write.
 
 Keep strategy in the routed GTM files and operational details in the publishing

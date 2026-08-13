@@ -1,6 +1,6 @@
 # Post 003 — 「丁寧にキレる。」#2 土曜朝の業務LINE
 
-Second episode of the 丁寧にキレる。 series (`../../../../gtm/spicy-content-bank.md` §2).
+Second episode of the 丁寧にキレる。 series (`../../../../gtm/content-ops/spicy-content-bank.md` §2).
 A boss sends a “Monday is fine” request at 7:04 on Saturday, then quietly turns it
 into a Monday-morning deadline. The employee refuses weekend work in round one and
 refuses the invented deadline in round two.

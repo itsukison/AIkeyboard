@@ -1,6 +1,6 @@
 # Post 008 — 「丁寧にキレる。」#7 「いい感じに直しといて」
 
-Creative-work comedy episode (`../../../../gtm/spicy-content-bank.md` §17). The entire
+Creative-work comedy episode (`../../../../gtm/content-ops/spicy-content-bank.md` §17). The entire
 revision brief is 「もっといい感じに」. The employee asks for specifics; the boss
 delegates the criteria to 「センス」; the final reply asks for the decision
 criteria in words — politely refusing the mind-reading.

@@ -174,7 +174,7 @@ Web版（Cerebras）は「りです。」を返した。若者スラングを解
 
 ## ターゲット読者（website ICP）
 
-`content-strategy.md` のICPと同一だが、検索行動として言い直す。
+`content-ops/content-strategy.md` のICPと同一だが、検索行動として言い直す。
 
 | # | 読者 | 検索する瞬間 | 刺さるページ |
 |---|---|---|---|

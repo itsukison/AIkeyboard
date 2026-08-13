@@ -1,6 +1,6 @@
 # Post 009 — 「丁寧にキレる。」#8 有給の使い道を審査される
 
-Paid-leave boundary episode (`../../../../gtm/spicy-content-bank.md` §7). The boss
+Paid-leave boundary episode (`../../../../gtm/content-ops/spicy-content-bank.md` §7). The boss
 interrogates the employee about what the leave is for, then pressures them to
 move it out of the busy season. The employee declines to disclose the reason
 and keeps the dates; the boss guilt-trips with 「チームのこと」; the final

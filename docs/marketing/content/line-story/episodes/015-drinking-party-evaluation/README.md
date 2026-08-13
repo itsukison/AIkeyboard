@@ -1,6 +1,6 @@
 # Post 015 — 「丁寧にキレる。」飲み会と評価
 
-Approved Content Bank episode from `../../../../gtm/spicy-content-bank.md` §5.
+Approved Content Bank episode from `../../../../gtm/content-ops/spicy-content-bank.md` §5.
 It keeps the winning conflict-first chat structure while testing a high-disagreement
 workplace boundary.
 

@@ -1,6 +1,6 @@
 # Post 013 — 「丁寧にキレる。」#12 音声メッセージ（7:42）
 
-Comedy-reset episode (`../../../../gtm/spicy-content-bank.md` §18). The boss sends a
+Comedy-reset episode (`../../../../gtm/content-ops/spicy-content-bank.md` §18). The boss sends a
 seven-minute voice memo and delegates both listening and summarizing it to the
 whole team via the employee. She asks for the decisions in writing; the boss
 tells her to listen at double speed; the final reply puts the write-up back on

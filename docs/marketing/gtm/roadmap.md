@@ -1,10 +1,10 @@
 # Roadmap — 3億円イグジットへの道 (2026-07 → 2027-04)
 
-Written 2026-07-18. Grounded in `metrics-baseline.md` + `research/`. Review monthly, adjust freely — phases overlap on purpose.
+Written 2026-07-18. Grounded in `retention-and-users.md` + `research/`. Review monthly, adjust freely — phases overlap on purpose.
 
 ## The strategy in one paragraph
 
-The exit is a **strategic acquisition (Simeji-type, 数億円レンジ)** sold as a set: (1) the only keyboard-native 敬語変換 product in an empty positioning, (2) a growing **consented in-situ preference-data pipeline** no buyer can replicate in a lab, (3) real revenue proving willingness-to-pay. None of these alone reaches 3億 (see `research/exit-comps.md`); together they justify it. Downloads are an input, not the story — 1M downloads is **not** required. The binding constraint today is **activation** — only 11.5% of installs ever reach the value moment, while the users who do reach it retain at ~30% W1 (revised 2026-07-30; see `metrics-baseline.md` → Retention definition v2) — so everything starts there.
+The exit is a **strategic acquisition (Simeji-type, 数億円レンジ)** sold as a set: (1) the only keyboard-native 敬語変換 product in an empty positioning, (2) a growing **consented in-situ preference-data pipeline** no buyer can replicate in a lab, (3) real revenue proving willingness-to-pay. None of these alone reaches 3億 (see `research/exit-comps.md`); together they justify it. Downloads are an input, not the story — 1M downloads is **not** required. The binding constraint today is **activation** — only 11.5% of installs ever reach the value moment, while the users who do reach it retain at ~30% W1 (revised 2026-07-30; see `retention-and-users.md` §2) — so everything starts there.
 
 ## Honest timeline assessment
 
@@ -17,10 +17,10 @@ The exit is a **strategic acquisition (Simeji-type, 数億円レンジ)** sold a
 **Goal: get more users to the value moment. Do not spend on acquisition until the two-part gate
 below is green.**
 
-**Gate rewritten 2026-07-30 after the retention-definition fix (`metrics-baseline.md` →
-Retention definition v2).** Retention of *activated* users is ~30% W1 / ~16% W2 — not a crisis, though
+**Gate rewritten 2026-07-30 after the retention-definition fix (`retention-and-users.md` §2).**
+Retention of *activated* users is ~30% W1 / ~16% W2 — not a crisis, though
 there is no comparable external benchmark for this denominator, so don't call it top-quartile
-(`metrics-baseline.md` carries the caveat). The constraint moved one step earlier: only **11.5% of installs ever
+(`retention-and-users.md` §2 carries the caveat). The constraint moved one step earlier: only **11.5% of installs ever
 activate**, and 61% of users who try a rewrite never keep one. Note the old wording ("W1 ≥25% of
 activated users") would now read **green at 30%** and unlock acquisition spend — that would be an
 artifact of changing the denominator, not progress. The gate is therefore restated on the metric
@@ -34,9 +34,9 @@ that still shows the leak:
 Both must hold on two consecutive weekly cohorts before any acquisition spend.
 
 - [ ] **Fix measurement first**: resolve the PostHog identity case-mismatch (uppercase vs lowercase UUID → split persons, deflates retention); decide the canonical keyboard-DAU metric given `keyboard_usage_day` undercounts (extension can't send analytics — consider flushing usage days from App Group whenever container opens, and accept ai_rewrite DAU as the reliable floor).
-- [ ] **Interview the core**: ~67 users have 5+ active days. In-app prompt or email (they have accounts) — why do they stay? What do they rewrite? (Power-user 感謝信 wave already running since Jul 11 — see `churn-signals.md`.)
-- [ ] **Churn diagnosis**: 1,597 one-day users. Email survey (~200 sent Jul 13–16) already confirms (a) keyboard feel/parity is the top named reason and (b) AI accuracy second — see `churn-signals.md` for the running tally and the standing email playbook (weekly churn survey, monthly power-user interviews, winback after fixes). Remaining hypotheses to instrument: keyboard_enabled (barely fires today), Full Access drop-off.
-- [ ] **Second ICP (revisit — do not over-index yet)**: Chinese speakers are the largest *volume* segment (RED-driven) but retain ~half as well as Japanese/organic — zh-locale W1 15% vs ja 29%; 89% one-and-done vs 75% (`metrics-baseline.md` → Retention by segment). Real as an acquisition + early-revenue channel (RED works), but the higher-quality audience is Japanese/organic, and the exit story needs business-Japanese. So: acquire via RED/ZH (ASO ZH keywords, RED/WeChat, Chinese-mode), keep product + data positioning on business Japanese. NOT confirmed as the primary target.
+- [ ] **Interview the core**: ~67 users have 5+ active days. In-app prompt or email (they have accounts) — why do they stay? What do they rewrite? (Power-user 感謝信 wave already running since Jul 11 — see `outreach-log.md`.)
+- [ ] **Churn diagnosis**: 1,597 one-day users. Email survey (~200 sent Jul 13–16) already confirms (a) keyboard feel/parity is the top named reason and (b) AI accuracy second — see `outreach-log.md` for the running tally and the standing email playbook (weekly churn survey, monthly power-user interviews, winback after fixes). Remaining hypotheses to instrument: keyboard_enabled (barely fires today), Full Access drop-off.
+- [ ] **Second ICP (revisit — do not over-index yet)**: Chinese speakers are the largest *volume* segment (RED-driven) but retain ~half as well as Japanese/organic — zh-locale W1 15% vs ja 29%; 89% one-and-done vs 75% (`retention-and-users.md` §7). Real as an acquisition + early-revenue channel (RED works), but the higher-quality audience is Japanese/organic, and the exit story needs business-Japanese. So: acquire via RED/ZH (ASO ZH keywords, RED/WeChat, Chinese-mode), keep product + data positioning on business Japanese. NOT confirmed as the primary target.
 - [ ] **Ship the feedback endpoint** (AGENTS.md §8): only 17% of rewrite events record `selected_index`. This is both a product signal and the data asset itself. Target ≥90% coverage.
 - [ ] **Attack the try → keep leak** (the new #1 item, from the funnel above): 2,322 users tried a
       rewrite, only 908 kept one. Instrument *why* a generated candidate gets discarded — the
@@ -72,7 +72,7 @@ Channels ranked by evidence (see `research/jp-market.md`, `research/benchmarks.m
 
 ## Phase 3 — Exit process (Oct → Dec → 2027)
 
-- [ ] Metrics one-pager + data room (auto-refreshed from `metrics-baseline.md` history).
+- [ ] Metrics one-pager + data room (auto-refreshed from `retention-and-users.md` §10 history).
 - [ ] Narrative deck: 敬語×ビジネス日本語 niche独占 / consented in-situ preference pipeline (structural: SB Intuitions runs内製 annotation teams — our data is what they can't make) / revenue trajectory / team.
 - [ ] Outreach order (from `research/exit-comps.md`): ① PKSHA (most active small-cap AI acquirer), ② SB Intuitions・ELYZA/KDDI・rinna (data story), ③ ジャストシステム・Baidu Japan・LINEヤフー (product synergy), ④ kubell・SmartHR・リクルート (distribution buy). Consider M&Aクラウド / banker for process pressure.
 - [ ] BATNA: keep compounding to April 2027 新社会人 season — subscribers and pairs both grow, and seasonal demand peaks exactly then.

@@ -1,6 +1,6 @@
 # Post 006 — 「丁寧にキレる。」#5 3分後の進捗確認
 
-Comedy-first episode (`../../../../gtm/spicy-content-bank.md` §15). The boss requests
+Comedy-first episode (`../../../../gtm/content-ops/spicy-content-bank.md` §15). The boss requests
 overnight work at 23:58, then asks for a progress update at 0:01 — three minutes
 later. The employee reports there is nothing to report; the boss settles for
 「ざっくりでいいから」; the final reply still refuses the overnight deadline.

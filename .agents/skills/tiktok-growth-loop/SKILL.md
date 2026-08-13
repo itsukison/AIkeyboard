@@ -7,7 +7,7 @@ description: Run the 敬語ボタン autonomous TikTok slideshow feedback loop. 
 
 Read `/Users/itsuki/Desktop/key/Japanese/AGENTS.md`, then read
 `docs/marketing/gtm/GTM.md` and
-`docs/marketing/gtm/tiktok-autopilot.md`. Follow its routed references and use
+`docs/marketing/gtm/content-ops/tiktok-autopilot.md`. Follow its routed references and use
 `$buffer-publish-content` for every Buffer upload, schedule, publish, or monitor
 operation.
 

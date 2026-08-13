@@ -1,7 +1,7 @@
 # app-intro — app-curation slideshow
 
 A second format, separate from the LINE-story system. Structure comes from the
-serial-curation and aesthetic-image-hook rows in `../../gtm/viral-format-research.md`.
+serial-curation and aesthetic-image-hook rows in `../../gtm/content-ops/viral-format-research.md`.
 
 **Status: four posts rendered. Posts 002–003 are scheduled for 2026-08-01 on
 Instagram and TikTok; post 004 remains an unapproved draft.**

@@ -1,6 +1,6 @@
 # Post 005 — 「丁寧にキレる。」#4 金曜17:58の「簡単な修正」
 
-Client-work episode (`../../../../gtm/spicy-content-bank.md` §3). At 17:58 on Friday a
+Client-work episode (`../../../../gtm/content-ops/spicy-content-bank.md` §3). At 17:58 on Friday a
 client requests an "easy" same-day fix. The employee declines and offers Monday
 morning; the client haggles it down to "it'll only take 5 minutes"; the final
 reply holds the line without insulting the client.

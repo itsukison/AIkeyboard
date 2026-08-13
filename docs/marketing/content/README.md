@@ -7,11 +7,11 @@ we test, keep, or kill.
 
 | Namespace | Format | Status | Owning GTM doc |
 |---|---|---|---|
-| `line-story/` | Fictional LINE-style workplace chat slideshow | In production, automated | `../gtm/spicy-content-bank.md` |
-| `app-intro/` | App-curation slideshow (hook image → 5 app cards) | Hook test | `../gtm/viral-format-research.md` |
-| `two-man-screen-record/` | Generated two-person hook → fixed real product proof | Prototype | `../gtm/viral-format-research.md` |
-| `office-talk/` | Japanese workplace before/after phrase slideshow | In production, automated | `../gtm/viral-format-research.md` |
-| `line-unfold-video/` | Progressive LINE chat reveal video | Visual prototype | `../gtm/viral-format-research.md` |
+| `line-story/` | Fictional LINE-style workplace chat slideshow | In production, automated | `../gtm/content-ops/spicy-content-bank.md` |
+| `app-intro/` | App-curation slideshow (hook image → 5 app cards) | Hook test | `../gtm/content-ops/viral-format-research.md` |
+| `two-man-screen-record/` | Generated two-person hook → fixed real product proof | Prototype | `../gtm/content-ops/viral-format-research.md` |
+| `office-talk/` | Japanese workplace before/after phrase slideshow | In production, automated | `../gtm/content-ops/viral-format-research.md` |
+| `line-unfold-video/` | Progressive LINE chat reveal video | Visual prototype | `../gtm/content-ops/viral-format-research.md` |
 
 ## line-story/
 

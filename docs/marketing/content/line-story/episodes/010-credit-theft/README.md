@@ -1,6 +1,6 @@
 # Post 010 — 「丁寧にキレる。」#9 先輩の提案（私の資料）
 
-Credit-theft episode (`../../../../gtm/spicy-content-bank.md` §6). After the meeting,
+Credit-theft episode (`../../../../gtm/content-ops/spicy-content-bank.md` §6). After the meeting,
 the senior coworker brags that the director loved "his" proposal — a copy of
 the junior's document from the day before. The employee corrects the record
 politely; the senior waves it off as 「チームの成果」; the final reply keeps

@@ -1,6 +1,6 @@
 # Post 004 — 「丁寧にキレる。」#3 セクハラ上司・続編（嫁には内緒）
 
-Sequel to 002 (`../../../../gtm/spicy-content-bank.md` §13). The married boss tries again —
+Sequel to 002 (`../../../../gtm/content-ops/spicy-content-bank.md` §13). The married boss tries again —
 this time adding 「嫁には内緒で笑」, which removes his own "it was a joke" escape
 route. The employee declines the secret invite, the boss hides behind 「冗談」, and
 the final reply closes that door too.
