@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "033-reaching-for-wallet",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "財布出すフリするのやめてほしい。出す気ないなら最初から",
+      "result": "言い方が難しいんだけど、会計のとき毎回気を遣わせてる気がしてて。俺が出すのは全然いい。ただ、出すつもりがない日は普通にしててくれた方が楽かもしれない。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "細かい男だと思われたくない",
+          "time": "22:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "もう思ってる",
+          "time": "22:30"
+        },
+        {
+          "side": "me",
+          "text": "彼女の話",
+          "time": "22:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "22:31"
+        },
+        {
+          "side": "me",
+          "text": "会計のとき",
+          "time": "22:32",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "毎回、財布に手をかける",
+          "time": "22:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "偉いじゃん",
+          "time": "22:33"
+        },
+        {
+          "side": "me",
+          "text": "開けたことは一度もない",
+          "time": "22:34",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "22:35"
+        },
+        {
+          "side": "me",
+          "text": "半年で一度も",
+          "time": "22:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ数えてたの",
+          "time": "22:36"
+        },
+        {
+          "side": "me",
+          "text": "数えるつもりはなかった",
+          "time": "22:36",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "この前",
+          "time": "22:37",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "彼女が並んでた",
+          "time": "22:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "お",
+          "time": "22:38"
+        },
+        {
+          "side": "me",
+          "text": "戻ったら俺のカード持ってた",
+          "time": "22:39",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "22:40"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "22:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "22:41"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "22:41",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "22:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返信",
+          "time": "22:43"
+        },
+        {
+          "side": "me",
+          "text": "早い",
+          "time": "22:43",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「私、待ってるだけなんだけど」",
+          "time": "22:44",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "ん？",
+          "time": "22:45"
+        },
+        {
+          "side": "me",
+          "text": "「あなたが『いいよ』って言うの」",
+          "time": "22:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "22:46"
+        },
+        {
+          "side": "me",
+          "text": "「一回でも黙ってたことある？」",
+          "time": "22:46",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…ない？",
+          "time": "22:47"
+        },
+        {
+          "side": "me",
+          "text": "ない",
+          "time": "22:48",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "俺、一度も言わせてなかった",
+          "time": "22:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは",
+          "time": "22:49"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "彼女が財布に手をかけるだけの話",
+    "hashtags": [
+      "#カップル",
+      "#奢る",
+      "#恋愛",
+      "#お金",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

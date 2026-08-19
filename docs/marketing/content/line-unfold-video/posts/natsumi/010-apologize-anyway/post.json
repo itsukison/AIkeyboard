@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "010-apologize-anyway",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "こちらのミスではありません。先方の指示が間違っていました。",
+      "result": "このたびはご迷惑をおかけしました。行き違いが起きないよう、次回から仕様は書面で相互確認させてください。改めてお詫び申し上げます。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "謝罪メールを書いてる",
+          "time": "16:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "またミス？",
+          "time": "16:40"
+        },
+        {
+          "side": "me",
+          "text": "うちのミスじゃない",
+          "time": "16:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "じゃあ何で謝るの",
+          "time": "16:41"
+        },
+        {
+          "side": "me",
+          "text": "それが分からない",
+          "time": "16:42",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "先方が仕様を間違えて伝えてきた",
+          "time": "16:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "証拠は",
+          "time": "16:43"
+        },
+        {
+          "side": "me",
+          "text": "メールに残ってる",
+          "time": "16:44",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "なら言えば",
+          "time": "16:45"
+        },
+        {
+          "side": "me",
+          "text": "部長が「謝れ」って",
+          "time": "16:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は？",
+          "time": "16:46"
+        },
+        {
+          "side": "me",
+          "text": "「うちが謝った方が早い」",
+          "time": "16:46",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "さっき先方が社内共有してた",
+          "time": "16:47",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "先方って、うちのこと？",
+          "time": "16:48"
+        },
+        {
+          "side": "me",
+          "text": "うち",
+          "time": "16:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは腹立つ",
+          "time": "16:49"
+        },
+        {
+          "side": "other",
+          "text": "正しいけど、送れないでしょ",
+          "time": "16:50"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "16:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "16:51"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "16:51",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "16:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "反応",
+          "time": "16:53"
+        },
+        {
+          "side": "me",
+          "text": "先方から返信きた",
+          "time": "16:53",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「書面確認、助かります」",
+          "time": "16:54",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "認めてはないんだ",
+          "time": "16:55"
+        },
+        {
+          "side": "me",
+          "text": "認めてない",
+          "time": "16:55",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "部長からもきた",
+          "time": "16:56",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何て",
+          "time": "16:56"
+        },
+        {
+          "side": "me",
+          "text": "「知ってる。うちのミスじゃない」",
+          "time": "16:57",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "知ってて言わせたの",
+          "time": "16:58"
+        },
+        {
+          "side": "me",
+          "text": "「それでも謝るのが仕事」",
+          "time": "16:58",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ、納得できる？",
+          "time": "16:59"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "先方のミスをこっちが謝る",
+    "hashtags": [
+      "#取引先",
+      "#謝罪",
+      "#職場あるある",
+      "#社会人",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

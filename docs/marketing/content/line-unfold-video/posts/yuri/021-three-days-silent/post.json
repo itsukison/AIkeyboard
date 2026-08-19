@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "021-three-days-silent",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "ごめん最近ほんとに忙しくて、全然スマホ見れてなかった",
+      "result": "3日も返せてなくてごめん。忙しかったのは本当だけど、返さなかった理由はそれだけじゃない。ちゃんと話したいから、明日電話してもいい？"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "3日、返してない",
+          "time": "23:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰に",
+          "time": "23:30"
+        },
+        {
+          "side": "me",
+          "text": "付き合ってる人",
+          "time": "23:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何で",
+          "time": "23:31"
+        },
+        {
+          "side": "me",
+          "text": "分からない",
+          "time": "23:32",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "返すタイミング逃した",
+          "time": "23:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "内容は",
+          "time": "23:33"
+        },
+        {
+          "side": "me",
+          "text": "「今週どこかで会える？」",
+          "time": "23:34",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "普通じゃん",
+          "time": "23:35"
+        },
+        {
+          "side": "me",
+          "text": "普通だから返しにくい",
+          "time": "23:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "分かる",
+          "time": "23:36"
+        },
+        {
+          "side": "me",
+          "text": "今から言い訳を作る",
+          "time": "23:36",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "other",
+          "text": "使えるけど",
+          "time": "23:37"
+        },
+        {
+          "side": "me",
+          "text": "え",
+          "time": "23:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "この3日で4回上げてる",
+          "time": "23:38"
+        },
+        {
+          "side": "me",
+          "text": "……",
+          "time": "23:39",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "見られてるよ絶対",
+          "time": "23:40"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "23:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "23:41"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "23:41",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "23:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "既読",
+          "time": "23:43"
+        },
+        {
+          "side": "me",
+          "text": "すぐ",
+          "time": "23:43",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "返ってきた",
+          "time": "23:44",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「ストーリー、毎回見てたよ」",
+          "time": "23:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "23:45"
+        },
+        {
+          "side": "me",
+          "text": "続く",
+          "time": "23:46",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「返せない時があるのは分かる」",
+          "time": "23:46",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いい人だ",
+          "time": "23:47"
+        },
+        {
+          "side": "me",
+          "text": "「でも今の文、あなたの言葉じゃないよね」",
+          "time": "23:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "23:48"
+        },
+        {
+          "side": "me",
+          "text": "何て返せばいい",
+          "time": "23:49",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "既読無視3日目に言い訳を作った",
+    "hashtags": [
+      "#既読無視",
+      "#恋愛",
+      "#LINE",
+      "#言い訳",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

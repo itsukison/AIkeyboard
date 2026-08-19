@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "029-wedding-loan",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "ねえ、3万のことなんだけど、そろそろ返せる？半年たってるよ",
+      "result": "言いにくいんだけど、式のとき立て替えた分、覚えてる？急がなくていいんだけど、忘れられてたらこのまま言えなくなりそうだから、一度だけ聞かせて。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "3万円の話していい",
+          "time": "19:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "貸したの？",
+          "time": "19:20"
+        },
+        {
+          "side": "me",
+          "text": "立て替えた",
+          "time": "19:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰に",
+          "time": "19:21"
+        },
+        {
+          "side": "me",
+          "text": "ミナの結婚式",
+          "time": "19:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "19:23"
+        },
+        {
+          "side": "me",
+          "text": "ミナの分のご祝儀、私が包んだ",
+          "time": "19:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "なんで",
+          "time": "19:24"
+        },
+        {
+          "side": "me",
+          "text": "当日、財布忘れたって",
+          "time": "19:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "19:25"
+        },
+        {
+          "side": "me",
+          "text": "半年たった",
+          "time": "19:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返ってきてない？",
+          "time": "19:26"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "催促するの細かい？",
+          "time": "19:27",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "昨日ストーリー上がってた",
+          "time": "19:28",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "新しいバッグ",
+          "time": "19:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "19:29"
+        },
+        {
+          "side": "other",
+          "text": "でも人の金の使い方だしな",
+          "time": "19:30"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "19:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "19:31"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "19:31",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "19:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返事は",
+          "time": "19:33"
+        },
+        {
+          "side": "me",
+          "text": "すぐきた",
+          "time": "19:33",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「ごめん、忘れてた」",
+          "time": "19:34",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "よかった",
+          "time": "19:35"
+        },
+        {
+          "side": "me",
+          "text": "まだある",
+          "time": "19:35",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「あの日、あなたのご祝儀袋」",
+          "time": "19:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「名前書いてなかったよ」",
+          "time": "19:36",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "19:37"
+        },
+        {
+          "side": "me",
+          "text": "「新婦側、誰からか分からないままだった」",
+          "time": "19:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…",
+          "time": "19:38"
+        },
+        {
+          "side": "me",
+          "text": "私、何を立て替えてたんだろ",
+          "time": "19:39",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "ご祝儀を立て替えて半年たった",
+    "hashtags": [
+      "#友達",
+      "#お金",
+      "#結婚式",
+      "#ご祝儀",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

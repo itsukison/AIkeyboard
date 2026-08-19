@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "024-screenshot-circle",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "あのスクショ、私が回したんじゃないです！！信じてください！！",
+      "result": "スクリーンショットの件、私が最初に送ったのは事実です。回した経緯を説明したいのではなく、そこは謝らせてください。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "スクショが回ってる",
+          "time": "19:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何の",
+          "time": "19:45"
+        },
+        {
+          "side": "me",
+          "text": "私が送ったやつ",
+          "time": "19:46",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰に送った",
+          "time": "19:46"
+        },
+        {
+          "side": "me",
+          "text": "一人だけ",
+          "time": "19:47",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "内容",
+          "time": "19:48"
+        },
+        {
+          "side": "me",
+          "text": "同期の話",
+          "time": "19:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "悪口？",
+          "time": "19:49"
+        },
+        {
+          "side": "me",
+          "text": "…寄りではある",
+          "time": "19:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それが回ったの",
+          "time": "19:50"
+        },
+        {
+          "side": "me",
+          "text": "4人経由して",
+          "time": "19:51",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "本人に届いた？",
+          "time": "19:51"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "本人から連絡きた",
+          "time": "19:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "終わり",
+          "time": "19:53"
+        },
+        {
+          "side": "other",
+          "text": "見せて",
+          "time": "19:53"
+        },
+        {
+          "side": "me",
+          "text": "「私が回したんじゃないです！！」",
+          "time": "19:54",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "回したのは事実でしょ",
+          "time": "19:55"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "19:55",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "19:56"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "19:56",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "19:57",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返事",
+          "time": "19:58"
+        },
+        {
+          "side": "me",
+          "text": "こない",
+          "time": "19:58",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "既読もつかない",
+          "time": "19:59",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "1時間",
+          "time": "20:00",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "別の子からきた",
+          "time": "20:00",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「私も同じの持ってる」",
+          "time": "20:01",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "20:01"
+        },
+        {
+          "side": "me",
+          "text": "「あなたを撮ったスクショ」",
+          "time": "20:02",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "20:03"
+        },
+        {
+          "side": "me",
+          "text": "「回ってるの、一枚じゃないよ」",
+          "time": "20:03",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ何枚あるの",
+          "time": "20:04"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "回したスクショが本人に届いた",
+    "hashtags": [
+      "#スクショ",
+      "#人間関係",
+      "#LINE",
+      "#職場",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

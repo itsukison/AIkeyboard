@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "013-whose-idea",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "あの案、私が出したものです。議事録も訂正してもらえますか。",
+      "result": "議事録の件で一点確認です。先週の案について、私の発言分が反映されていないようでした。記録として残るところなので、修正をお願いできますか。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "自分の案が消えた",
+          "time": "15:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どういうこと",
+          "time": "15:30"
+        },
+        {
+          "side": "me",
+          "text": "先週の会議",
+          "time": "15:31",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "私が出した案",
+          "time": "15:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "15:32"
+        },
+        {
+          "side": "me",
+          "text": "今日の役員会で",
+          "time": "15:33",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "上司が自分の案として説明してた",
+          "time": "15:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あるある",
+          "time": "15:34"
+        },
+        {
+          "side": "me",
+          "text": "あるあるで済ませたくない",
+          "time": "15:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "議事録は",
+          "time": "15:35"
+        },
+        {
+          "side": "me",
+          "text": "見た",
+          "time": "15:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "上司の名前になってる",
+          "time": "15:36",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "other",
+          "text": "でもさ",
+          "time": "15:37"
+        },
+        {
+          "side": "me",
+          "text": "分かってる",
+          "time": "15:38",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "でも名前ごと消える必要ある？",
+          "time": "15:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "ない",
+          "time": "15:39"
+        },
+        {
+          "side": "other",
+          "text": "そのまま送ると角が立つ",
+          "time": "15:40"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "15:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "15:41"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "15:41",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "総務に送った",
+          "time": "15:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "上司じゃなく？",
+          "time": "15:43"
+        },
+        {
+          "side": "me",
+          "text": "議事録は総務が書いてる",
+          "time": "15:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "頭いい",
+          "time": "15:44"
+        },
+        {
+          "side": "me",
+          "text": "返事きた",
+          "time": "15:45",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「こちらの記載ミスです」",
+          "time": "15:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "15:46"
+        },
+        {
+          "side": "me",
+          "text": "「役員会では、彼女の案ですと説明されていました」",
+          "time": "15:46",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "15:47"
+        },
+        {
+          "side": "me",
+          "text": "上司、言ってた",
+          "time": "15:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "じゃあ何も起きてない",
+          "time": "15:48"
+        },
+        {
+          "side": "me",
+          "text": "私だけが疑ってた",
+          "time": "15:49",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "会議で言った案が上司のものになった",
+    "hashtags": [
+      "#会議",
+      "#手柄",
+      "#上司",
+      "#職場あるある",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}
