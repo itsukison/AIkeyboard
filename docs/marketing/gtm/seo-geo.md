@@ -1,6 +1,6 @@
 # SEO / GEO — keigobutton.com
 
-Last updated: **2026-07-30**. Owner: Itsuki. Scope: the web property only
+Last updated: **2026-08-18**. Owner: Itsuki. Scope: the web property only
 (`web/` in the repo). ASO lives in `research/jp-market.md`; this file owns the
 website's audience, keyword map, page inventory, and the design rules new pages
 must follow.
@@ -14,6 +14,12 @@ must follow.
 占めており、新規ドメインでも入れる。一方 `「了解しました」言い換え` 系は
 マイナビ・楽天・アメックス・タウンワークが埋めており、当面入れない。
 GEO（llms.txt）は競合ゼロで、いま置くだけで先行できる。
+
+> **追記（2026-08-18）。上の結論は日本語の「くさび」については今も正しいが、
+> それが到達できる上限を書いていない。** 実測すると `敬語チェック` は1ページ目に
+> いて1日約4表示——このクラスタは**勝てるが小さい**。1日1,000表示にはカテゴリ
+> （デスクトップのAI書き換え）と場面別ロングテールが要る。
+> 詳細は §前提の修正（2026-08-16 その2）と §英語クラスタ。
 
 ## 前提の修正（2026-07-28）
 
@@ -76,6 +82,35 @@ Grammarly `/desktop`、Raycast、Superhuman、Obsidian）は **例外なく `/` 
   英語UIのボタンは英語を書く（`AppLanguage.writesJapanese`）ので、
   英語で敬語ツールを出すのは製品にも購入者にも合っていなかった
 
+### ドキュメントページのUI（2026-08-18）
+
+英語クラスタの初版は本文を46remで止めたまま左寄せにし、`shell`（1280px）の右に
+約500pxの空白を残していた。関連記事グリッドだけが全幅だったため、
+**「狭い」ではなく「片寄っている」**という見え方になっていた。
+
+- **中央寄せの `mac-doc__wrap`（66rem = 本文46rem + gap + レール15rem）**に統一。
+  h1・本文・FAQ・CTA・関連カードが**同じ左端**を共有する
+- **空いた右カラムは目次レール**（`mac-doc__toc`、sticky）。中央寄せで空白を
+  消すだけにしなかったのは、この種のページが**通読ではなく走査**されるため。
+  6〜9分・h2が5〜8本ある比較記事にはナビゲーションのほうが価値がある
+- レールは `tableOfContents(blocks)` から生成。**本文にあって目次に無い見出しが
+  作れない**構造にしてある（手書き目次が必ず腐るのを避ける）
+- 1080px以下は本文上のカードに変わる（`order: -1`）。**目次が記事の下に出るのは
+  ただの飾り**なので、順序は必ず本文より前に保つこと
+
+**フッターは「ページタイトルの一覧」にしない。** 初版は英語ガイドのh1をそのまま
+ナビ列に並べ、ページ内アンカーと混ざって11行の壁になっていた。
+フッターは行き先を並べる場所で、そのページが何かは着いてから読ませる。
+現在は `Guides` 見出しで区切り、ラベルはナビ長に短縮——ただし
+**主要語（Grammarly / Apple Intelligence）は残す**。アンカーテキストがクエリを
+運ぶため、そこまで削ると失うものがある。日本語・簡体中文のフッターは未変更。
+
+このとき見つかった実バグ3件（すべて修正済み）: `mac-doc__relatedTitle` が
+インライン `span` で兄弟の `margin-top` が効かず「…in every appComparisons」と
+連結描画されていた／`Footer` に `Nav` と同じ `home` prop が無く、
+**全ドキュメントページで `#how` 等がどこにも飛ばなかった**／
+グリッドの row gap とツール自身の `margin-top` が二重になっていた。
+
 ## 前提の修正（2026-08-16 その2）— 敬語は「くさび」であって「カテゴリ」ではない
 
 **このドキュメントは2026-08-16まで、製品を敬語ツールとして記述していた。誤り。**
@@ -114,8 +149,14 @@ Polish の説明は "Fix grammar and read like a native writer"。
 
 1日1,000表示は、この測定値では **上位10位のクエリが約250件**必要。現在28件。
 くさびだけでは到達しない（A+B群を全部1位にしても1日100〜300が上限）。
-必要なのは3本柱: ①くさび（維持・CVは高い）②カテゴリ（未着手）
-③場面別ロングテール（74〜95位に滞留、ボリュームは実在）。
+必要なのは3本柱: ①くさび（維持・CVは高い）②カテゴリ ③場面別ロングテール。
+
+②は **英語側のみ2026-08-17に着手済み**（§英語クラスタ、5ページ）。
+**日本語側のカテゴリは依然0枚**——「Mac AI 文章」「ChatGPT ショートカット Mac」
+「Apple Intelligence 日本語」「AI 文章校正」「議事録 要約 AI」等。
+買い手は敬語クラスタと同一人物で、クエリ面はこちらのほうが桁で広い。**次はここ。**
+③は74〜95位に滞留したまま。ボリュームは実在する（マイナビ・タウンワーク・Indeed・
+求人ボックスが投資している＝金がある）ので、権威と本数が付けば最も太くなる層。
 
 ## 英語クラスタ（2026-08-16 新設）
 
@@ -160,7 +201,7 @@ Kerlig・FixKey・RewriteBar・Elephas のいずれも iOS キーボードを持
 sitemap・`llms.txt`（`### English pages`）・`llms-full.txt`（英語全文）に自動連動。
 `hreflang` は付けない——日本語側に対応ページが存在しないため（`lib/alternates.ts` の既存方針）。
 
-### 無料ツール `/en/rewrite`（2026-08-17 実装、**デプロイ待ち**）
+### 無料ツール `/en/rewrite`（2026-08-17 実装、**2026-08-18 デプロイ済み・本番確認済み**）
 
 日本語側で順位が付いているのは記事ではなくツール3本なので、英語にも同じ層を作った。
 4モード（Natural / Grammar / Professional / Shorter）×候補2件、1日5回・300字、登録不要。
@@ -171,28 +212,38 @@ sitemap・`llms.txt`（`### English pages`）・`llms-full.txt`（英語全文�
 `systemInstructions` の別分岐——日本語側の末尾が「入力が日本語以外の場合も、出力は
 日本語にしてください。」なので、共用すると英語入力に日本語で答える。
 
-> **⚠ 未デプロイ。デプロイするまで英語ツールは動かない。**
-> 本番実測（2026-08-17）: `mode: "en_natural"` を投げると
-> `body.mode in MODES` の検証に落ちて `"keigo"` にフォールバックし、
-> **英語入力に日本語で返した**（「来週の会議のスケジュールについて…」）。
-> 対策として `EnRewriter` はレスポンスの `mode` をリクエストと突き合わせ、
-> 不一致なら候補を描画せずエラー表示に落とす。よってWeb先行デプロイでも
-> 日本語が英語話者に表示されることはないが、**ツールは動かない**。
+**デプロイ済み（version 6、`verify_jwt: false` 維持）。本番で確認した結果:**
+
+| 確認項目 | 結果 |
+|---|---|
+| `mode: "en_natural"` | `"mode":"en_natural"` を返し、候補は英語。1つ目が素直、2つ目がより丁寧 |
+| `mode: "en_grammar"` | 「you are feedback」→「your feedback」、「its ready」→「they're ready」。文構造は保持 |
+| `mode: "keigo"`（回帰確認） | 日本語のまま。**日本語4モードに影響なし** |
+
+デプロイ前に `mcp__supabase__get_edge_function` で本番ソースとリポジトリを突き合わせ、
+ダッシュボード側の差分が無いことを確認してから上書きした（差分があれば黙って巻き戻る）。
+
+> **デプロイ手順。** `supabase login` はブラウザ認証だが `--token` があるので
+> SSH からでも通る。プロジェクトは `.temp/project-ref` で既にリンク済み。
 >
 > ```bash
+> read -rsp 'Supabase PAT: ' SUPABASE_ACCESS_TOKEN; export SUPABASE_ACCESS_TOKEN
 > cd Japanese/supabase
-> supabase login          # ブラウザ認証（対話）。CI/エージェントからは実行できない
 > supabase functions deploy web-rewrite --no-verify-jwt
 > ```
 >
-> 確認:
+> 確認（`"mode"` が投げた値で返り、候補が英語であること。`"keigo"` が返ったら
+> 未デプロイ）:
 > ```bash
 > curl -s -X POST https://eercsucvxnszqletxued.supabase.co/functions/v1/web-rewrite \
 >   -H 'Content-Type: application/json' -H 'Origin: https://keigobutton.com' \
 >   -d '{"text":"i want to ask about next week meeting","mode":"en_natural"}'
 > ```
-> レスポンスの `"mode"` が `"en_natural"` で返り、候補が英語であること。
-> `"keigo"` が返ってきたらデプロイされていない。
+
+**`EnRewriter` はレスポンスの `mode` をリクエストと突き合わせている。**不一致なら
+候補を描画せずエラー表示に落とす。デプロイ順が前後しても英語話者に日本語が
+表示されることはない。この防御は残すこと——`web-rewrite` は日本語ツールと共用で、
+将来モードを増やすときに同じフォールバックを踏む。
 
 **このクラスタの難易度は高い**（`paraphrasing tool` 系は QuillBot・Grammarly が固定）。
 ツールページの一次目的は順位より **①滞在・再訪・被リンク ②使わせてから入れさせる導線**
@@ -451,16 +502,22 @@ LLMが答えるとき、敬語ボタンが候補に入ること。**なぜこの
   Search Console でも「検出 - インデックス未登録」で、失うものが無い状態だった。
   sitemap・ホームのナビ・`llms.txt` からも削除（参照は3箇所だった）
 
-### ページ（新規19本）
+### ページ（sitemap 40 URL・2026-08-18 時点）
 
 | 種別 | パス | 主ターゲット |
 |---|---|---|
+| 製品 | `/` | ブランド＋Mac版（`敬語ボタン`） |
+| 製品 | `/iphone` | iPhone版（旧 `/mobile`、308で統合） |
 | ツール | `/keigo-henkan` | 敬語変換（AI・1日5回無料） |
 | ツール | `/keigo-check` | 敬語チェック（ルールベース29件・**送信なし**） |
 | ツール | `/keigo-test` | 敬語テスト20問 |
 | ハブ | `/reibun` `/blog` | 例文集・記事一覧 |
 | 記事 | `/blog/*` 6本 | 比較3本・使い方2本・知識1本 |
 | 例文 | `/reibun/*` 10本 | 場面別ロングテール |
+| **英語・製品** | `/en` | `ai writing assistant mac` 系（カテゴリ） |
+| **英語・ツール** | `/en/rewrite` | `english rewriter` 系。**英語側の内部リンク集約点** |
+| **英語・記事** | `/en/*` 4本 | 比較3本・機構1本（§英語クラスタ） |
+| 简体中文 | `/zh` ＋ spine 3本 | 日本で働く中国語話者 |
 
 ### バックエンド
 
@@ -543,10 +600,27 @@ SERPに出ていたのはGoogleの既定の地球儀プレースホルダー。�
 
 ## 未実施 / 次のアクション
 
-0. **`/iphone` `/en` `/zh` のインデックス登録リクエストを手動で投げる（最優先）**。
-   3本ともGoogleが一度も取得していない（2026-08-16 実測）。sitemapには入っており、
-   内部リンクも復旧済みなので、あとはクロールを待つか手で促すかだけ。UIから投げる
-   （URL Inspection APIは読み取り専用、§2参照）。
+0. **インデックス登録リクエストを手で投げる（最優先・残っている唯一の手作業）**。
+   2026-08-18 時点で **sitemap 40件中インデックス24件**（前回2026-08-06は25件中19件）。
+   増えた15件は全部新規URLなので、率が76%→60%に見えるのは分母の増加であって後退ではない。
+   **未登録14件が対象。** 優先順: `/en/rewrite` → `/en/grammarly-alternative-mac` →
+   `/iphone` → `/en` → `/en/ai-writing-apps-mac` → `/en/rewrite-text-any-app-mac` →
+   `/en/apple-intelligence-writing-tools-alternative` → `/zh` → `/reibun/*` 残り3本。
+   UIから1日10〜12件が上限（**URL Inspection APIは読み取り専用、Indexing APIは
+   `JobPosting` / `BroadcastEvent` 専用**。§2参照）。
+
+   **sitemap の再送信はAPIで打てる**（`webmasters` スコープでPUT）。2026-08-18 に実行し、
+   Googleは**1.4秒後にダウンロード**、40件・エラー0・警告0で読み込んだ。
+   新規URLの発見はこれで足りており、英語5本は当日中に「検出 - インデックス未登録」まで
+   到達している。**登録**まではUIの手作業が要る、というのが両者の分かれ目。
+
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS=~/.config/keigobutton/gsc.json
+   export GSC_SITE_URL=sc-domain:keigobutton.com
+   cd web && python3 scripts/gsc-weekly.py    # 全URL＋前回スナップショットとの差分
+   ```
+   スナップショットは `web/scripts/gsc-snapshots/<date>.json`。
+   **2026-08-18 のものがデプロイ後のベースライン**なので、次回はここと比較すること。
 1. ~~**Vercelのプライマリドメインを apex に変更**~~ **完了（2026-07-28 実測）**。
    apex が直接 200 を返し、canonical がリダイレクトしないURLを指すことを確認。
    vercel.app→apex も308。**残課題**: www→apex は Vercel プラットフォーム層の
