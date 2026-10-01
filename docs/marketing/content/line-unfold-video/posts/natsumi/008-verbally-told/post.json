@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "008-verbally-told",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "私は指示通りにやりました。メールも残ってます。納得できません。",
+      "result": "今回の件、私の確認が足りませんでした。次から認識のずれが出ないよう、指示は文面でいただけると助かります。お客様には私からお詫びします。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "謝罪文を書かされてる",
+          "time": "14:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何かミスした",
+          "time": "14:20"
+        },
+        {
+          "side": "me",
+          "text": "してない",
+          "time": "14:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "14:21"
+        },
+        {
+          "side": "me",
+          "text": "上司の指示通りにやった",
+          "time": "14:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "じゃあ何で",
+          "time": "14:23"
+        },
+        {
+          "side": "me",
+          "text": "先方が怒った",
+          "time": "14:23",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "上司が「彼女の確認不足です」って",
+          "time": "14:24",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "その場で？",
+          "time": "14:25"
+        },
+        {
+          "side": "me",
+          "text": "先方の前で",
+          "time": "14:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "14:26"
+        },
+        {
+          "side": "me",
+          "text": "指示のメール、残ってる",
+          "time": "14:26",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "other",
+          "text": "出せばいいじゃん",
+          "time": "14:27"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "14:28"
+        },
+        {
+          "side": "me",
+          "text": "上司は「口頭で補足したよね」って言うと思う",
+          "time": "14:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "言いそう",
+          "time": "14:29"
+        },
+        {
+          "side": "other",
+          "text": "それ、出したら終わりだよ",
+          "time": "14:30"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "14:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "14:31"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "14:31",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "14:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "上司の反応",
+          "time": "14:33"
+        },
+        {
+          "side": "me",
+          "text": "既読だけ",
+          "time": "14:33",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "30分後",
+          "time": "14:34",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「助かる」",
+          "time": "14:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それだけ？",
+          "time": "14:35"
+        },
+        {
+          "side": "me",
+          "text": "それだけ",
+          "time": "14:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "そのあと同期からDM",
+          "time": "14:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「私も去年、同じことされた」",
+          "time": "14:37",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "14:38"
+        },
+        {
+          "side": "me",
+          "text": "「同じ文面で謝らされた」",
+          "time": "14:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "同じ文面？",
+          "time": "14:39"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "指示通りにやったのに謝らされた",
+    "hashtags": [
+      "#職場あるある",
+      "#上司",
+      "#理不尽",
+      "#社会人",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

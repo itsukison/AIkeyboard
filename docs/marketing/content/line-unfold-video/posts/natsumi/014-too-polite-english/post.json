@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "014-too-polite-english",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "英訳",
+      "draft": "至急ご確認をお願いします。期限は明日です。よろしくお願いします。",
+      "result": "Could you take a look at this by tomorrow? Sorry for the short notice — happy to walk you through it if that helps."
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "英語のメールで怒らせた",
+          "time": "13:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰を",
+          "time": "13:50"
+        },
+        {
+          "side": "me",
+          "text": "海外の取引先",
+          "time": "13:51",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何て書いたの",
+          "time": "13:51"
+        },
+        {
+          "side": "me",
+          "text": "「至急ご確認をお願いします」",
+          "time": "13:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "普通",
+          "time": "13:53"
+        },
+        {
+          "side": "me",
+          "text": "を、そのまま英語にした",
+          "time": "13:53",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "13:54"
+        },
+        {
+          "side": "me",
+          "text": "Please confirm immediately.",
+          "time": "13:55",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "強い",
+          "time": "13:55"
+        },
+        {
+          "side": "me",
+          "text": "翻訳としては合ってる",
+          "time": "13:56",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "でも命令文だ",
+          "time": "13:56"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "先方から返ってきた",
+          "time": "13:57",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "心配されてる",
+          "time": "13:58"
+        },
+        {
+          "side": "me",
+          "text": "怒ってはない",
+          "time": "13:58",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "でも空気は変わった",
+          "time": "13:59",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "難しいね",
+          "time": "14:00"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "14:00",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "14:01"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "14:01",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "14:02",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "反応",
+          "time": "14:03"
+        },
+        {
+          "side": "me",
+          "text": "すぐ返信きた",
+          "time": "14:03",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「Of course!」",
+          "time": "14:04",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "全然ちがう",
+          "time": "14:05"
+        },
+        {
+          "side": "me",
+          "text": "続きがあって",
+          "time": "14:05",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「日本の方のメール、いつも丁寧すぎて」",
+          "time": "14:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "14:06"
+        },
+        {
+          "side": "me",
+          "text": "「怒ってるのか分からないんです」",
+          "time": "14:07",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "14:08"
+        },
+        {
+          "side": "me",
+          "text": "「今のがちょうどいい」",
+          "time": "14:08",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "丁寧が一番失礼だったってこと",
+          "time": "14:09"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "英語のメールが丁寧すぎて怒られた",
+    "hashtags": [
+      "#英語",
+      "#翻訳",
+      "#取引先",
+      "#職場あるある",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

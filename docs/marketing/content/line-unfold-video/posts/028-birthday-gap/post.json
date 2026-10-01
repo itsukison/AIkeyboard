@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "028-birthday-gap",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1105,
+      "command": "自然に",
+      "draft": "金額の話するのやめて。私だって考えて選んだのに",
+      "result": "金額のことじゃないって分かってる。ちゃんと同じだけ考えて選べてなかったと思う。今からでも埋め合わせたいから、来週の予定あけておいてほしい。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "地雷踏んだ",
+          "time": "20:05",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何した",
+          "time": "20:05"
+        },
+        {
+          "side": "me",
+          "text": "誕生日",
+          "time": "20:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "祝ったんでしょ",
+          "time": "20:06"
+        },
+        {
+          "side": "me",
+          "text": "マフラー買った",
+          "time": "20:07",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いいじゃん",
+          "time": "20:08"
+        },
+        {
+          "side": "me",
+          "text": "5千円の",
+          "time": "20:08",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん？",
+          "time": "20:09"
+        },
+        {
+          "side": "me",
+          "text": "彼がくれたの、3万のバッグ",
+          "time": "20:10",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "20:10"
+        },
+        {
+          "side": "me",
+          "text": "「金額の話じゃないんだけど」って言われた",
+          "time": "20:11",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ一番きついやつ",
+          "time": "20:11"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "続きがあって",
+          "time": "20:12",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "覚えてない",
+          "time": "20:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "20:13"
+        },
+        {
+          "side": "me",
+          "text": "ほんとに覚えてない",
+          "time": "20:14",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは怒られる",
+          "time": "20:15"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 407,
+          "time": "20:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "20:16"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "20:16",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "20:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返信",
+          "time": "20:18"
+        },
+        {
+          "side": "me",
+          "text": "「埋め合わせはいらない」",
+          "time": "20:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "怒ってる？",
+          "time": "20:19"
+        },
+        {
+          "side": "me",
+          "text": "まだ続く",
+          "time": "20:20",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「覚えててほしかっただけ」",
+          "time": "20:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…",
+          "time": "20:21"
+        },
+        {
+          "side": "me",
+          "text": "去年の写真フォルダ見てる",
+          "time": "20:21",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "その日の写真がない",
+          "time": "20:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "ない？",
+          "time": "20:23"
+        },
+        {
+          "side": "me",
+          "text": "私、去年の誕生日",
+          "time": "20:23",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "会ってすらないかも",
+          "time": "20:24",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "誕生日プレゼントの金額を言われた",
+    "hashtags": [
+      "#誕生日",
+      "#プレゼント",
+      "#カップル",
+      "#恋愛",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

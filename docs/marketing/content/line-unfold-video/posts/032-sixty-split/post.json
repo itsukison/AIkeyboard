@@ -1,0 +1,231 @@
+{
+  "version": 2,
+  "slug": "032-sixty-split",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "収入で割るのおかしくない？親孝行に金額の差つけるの？",
+      "result": "割り方のことなんだけど、私は頭割りだと思ってた。収入で分けるのが変とは思わないけど、それだと親への気持ちに差があるみたいで嫌だった。もう一度話したい。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "兄と揉めてる",
+          "time": "20:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "珍しい",
+          "time": "20:40"
+        },
+        {
+          "side": "me",
+          "text": "父の還暦",
+          "time": "20:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "お祝いするんだ",
+          "time": "20:41"
+        },
+        {
+          "side": "me",
+          "text": "旅行、20万",
+          "time": "20:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いい話じゃん",
+          "time": "20:43"
+        },
+        {
+          "side": "me",
+          "text": "兄が「収入で割ろう」って",
+          "time": "20:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "ん",
+          "time": "20:44"
+        },
+        {
+          "side": "me",
+          "text": "私4万、兄12万、母4万",
+          "time": "20:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "兄が多く出すってこと？",
+          "time": "20:45"
+        },
+        {
+          "side": "me",
+          "text": "そう",
+          "time": "20:46",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え、優しくない？",
+          "time": "20:46"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "私もそう思ったけど",
+          "time": "20:47",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "兄が続けて言った",
+          "time": "20:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は？",
+          "time": "20:48"
+        },
+        {
+          "side": "me",
+          "text": "「実家に帰る回数も」って",
+          "time": "20:49",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは違う話でしょ",
+          "time": "20:50"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "20:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "20:51"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "20:51",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "20:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "既読",
+          "time": "20:53"
+        },
+        {
+          "side": "me",
+          "text": "ついた",
+          "time": "20:53",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "返ってこない",
+          "time": "20:54",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "30分後",
+          "time": "20:55",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「去年の父さんの入院費」",
+          "time": "20:55",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "20:56"
+        },
+        {
+          "side": "me",
+          "text": "「全部俺が出してる」",
+          "time": "20:56",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…知ってた？",
+          "time": "20:57"
+        },
+        {
+          "side": "me",
+          "text": "知らなかった",
+          "time": "20:58",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "母にも聞いてない",
+          "time": "20:58",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "何も言えてない",
+          "time": "20:59",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "親の還暦祝いを兄と割る",
+    "hashtags": [
+      "#家族",
+      "#兄弟",
+      "#お金",
+      "#還暦",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "027-rent-split",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1105,
+      "command": "自然に",
+      "draft": "やっぱ折半おかしいと思う。私の部屋の方が狭いし",
+      "result": "家賃のこと、もう一度話したい。折半でいいって言ったのは私だし、そこは変えたくない。ただ部屋の広さの分だけ、光熱費の持ち方を相談させてほしい。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "家賃のことで揉めてる",
+          "time": "22:10",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "折半にしたんだよね",
+          "time": "22:10"
+        },
+        {
+          "side": "me",
+          "text": "私がそう言った",
+          "time": "22:11",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "じゃあ何が問題",
+          "time": "22:11"
+        },
+        {
+          "side": "me",
+          "text": "部屋見た？",
+          "time": "22:12",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "見てない",
+          "time": "22:13"
+        },
+        {
+          "side": "me",
+          "text": "彼の部屋、私の倍ある",
+          "time": "22:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "22:14"
+        },
+        {
+          "side": "me",
+          "text": "9万を4万5千ずつ",
+          "time": "22:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "22:15"
+        },
+        {
+          "side": "me",
+          "text": "私、寝るとこしかない",
+          "time": "22:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "でも折半って言ったのは",
+          "time": "22:16"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "光熱費も半分",
+          "time": "22:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは言っていい",
+          "time": "22:18"
+        },
+        {
+          "side": "me",
+          "text": "トイレットペーパーも私が買ってる",
+          "time": "22:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "そこまで数える？",
+          "time": "22:19"
+        },
+        {
+          "side": "me",
+          "text": "数えたくないから言えなかった",
+          "time": "22:20",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 407,
+          "time": "22:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "22:21"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "22:21",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "22:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "怒った？",
+          "time": "22:23"
+        },
+        {
+          "side": "me",
+          "text": "電話きた",
+          "time": "22:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "22:24"
+        },
+        {
+          "side": "me",
+          "text": "「なんで今まで言わなかったの」",
+          "time": "22:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それはこっちの台詞",
+          "time": "22:25"
+        },
+        {
+          "side": "me",
+          "text": "でも続きがあって",
+          "time": "22:26",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「俺、10万の部屋に一人で住むつもりだった」",
+          "time": "22:26",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「君に合わせて9万にした」",
+          "time": "22:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…",
+          "time": "22:28"
+        },
+        {
+          "side": "other",
+          "text": "それ先に言う？",
+          "time": "22:28"
+        },
+        {
+          "side": "me",
+          "text": "今、無言になってる",
+          "time": "22:29",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "同棲の家賃を折半にした結果",
+    "hashtags": [
+      "#同棲",
+      "#家賃",
+      "#カップル",
+      "#お金",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

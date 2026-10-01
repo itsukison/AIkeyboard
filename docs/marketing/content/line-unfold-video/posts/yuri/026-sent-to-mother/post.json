@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "026-sent-to-mother",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "今の無視して！！！友達に送るやつだった！！！忘れて！！！",
+      "result": "さっきのは友達に送るつもりのメッセージでした。読ませてしまってごめん。あとで自分から話すから、今は聞かなかったことにしてほしい。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "母に送った",
+          "time": "22:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何を",
+          "time": "22:50"
+        },
+        {
+          "side": "me",
+          "text": "彼氏の愚痴",
+          "time": "22:51",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "22:51"
+        },
+        {
+          "side": "me",
+          "text": "友達に送るつもりだった",
+          "time": "22:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "内容は",
+          "time": "22:53"
+        },
+        {
+          "side": "me",
+          "text": "「もう無理かもしれない」",
+          "time": "22:53",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "重いな",
+          "time": "22:54"
+        },
+        {
+          "side": "me",
+          "text": "既読ついた",
+          "time": "22:55",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "早いね",
+          "time": "22:55"
+        },
+        {
+          "side": "me",
+          "text": "母、既読だけは早い",
+          "time": "22:56",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "分かる",
+          "time": "22:56"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "取り消そうとした",
+          "time": "22:57",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "母の方が先に返してきた",
+          "time": "22:58",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "その子",
+          "time": "22:58"
+        },
+        {
+          "side": "me",
+          "text": "母は会ったことない",
+          "time": "22:59",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "23:00"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "23:00",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "23:01"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "23:01",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "23:02",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返事",
+          "time": "23:03"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "23:03",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「分かった」",
+          "time": "23:04",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "物分かりいい",
+          "time": "23:05"
+        },
+        {
+          "side": "me",
+          "text": "まだある",
+          "time": "23:05",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「でも先週、うちに来たよ」",
+          "time": "23:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は",
+          "time": "23:06"
+        },
+        {
+          "side": "me",
+          "text": "「挨拶に来たいって連絡があって」",
+          "time": "23:07",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "23:08"
+        },
+        {
+          "side": "me",
+          "text": "「あなたには内緒だって」",
+          "time": "23:08",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "23:09"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "彼氏の愚痴を母に送っていた",
+    "hashtags": [
+      "#誤爆",
+      "#家族",
+      "#母",
+      "#恋愛",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

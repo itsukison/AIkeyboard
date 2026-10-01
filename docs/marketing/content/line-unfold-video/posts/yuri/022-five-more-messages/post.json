@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "022-five-more-messages",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "返事ないってことはそういうことだよね。分かった、もういい",
+      "result": "長い文を急に送ってごめん。返事はいつでもいいし、今すぐじゃなくていい。返ってこないことを勝手に答えだと思うのは、やめようと思った。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "長文送った",
+          "time": "00:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰に",
+          "time": "00:20"
+        },
+        {
+          "side": "me",
+          "text": "彼",
+          "time": "00:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "内容",
+          "time": "00:21"
+        },
+        {
+          "side": "me",
+          "text": "別れ話に近いやつ",
+          "time": "00:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "00:23"
+        },
+        {
+          "side": "me",
+          "text": "ずっと言えなかったこと全部",
+          "time": "00:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何文字",
+          "time": "00:24"
+        },
+        {
+          "side": "me",
+          "text": "800字くらい",
+          "time": "00:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "重い",
+          "time": "00:25"
+        },
+        {
+          "side": "me",
+          "text": "既読ついた",
+          "time": "00:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "で？",
+          "time": "00:26"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "返ってこない",
+          "time": "00:27",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "5通追撃した",
+          "time": "00:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "5通",
+          "time": "00:28"
+        },
+        {
+          "side": "me",
+          "text": "全部既読",
+          "time": "00:29",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "落ち着け",
+          "time": "00:30"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "00:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "00:31"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "00:31",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "こっち送った",
+          "time": "00:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "偉い",
+          "time": "00:33"
+        },
+        {
+          "side": "me",
+          "text": "既読",
+          "time": "00:33",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "入力中",
+          "time": "00:34",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "長い",
+          "time": "00:35",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "00:35",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「まだ全部読んでない」",
+          "time": "00:36",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "00:36"
+        },
+        {
+          "side": "me",
+          "text": "「今、職場のトイレで開いた」",
+          "time": "00:37",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "00:38"
+        },
+        {
+          "side": "me",
+          "text": "「今日、俺の父さんが入院した」",
+          "time": "00:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "00:39"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "既読だけついて返事がこない",
+    "hashtags": [
+      "#既読",
+      "#恋愛",
+      "#LINE",
+      "#別れ話",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

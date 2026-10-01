@@ -33,7 +33,17 @@ const CANDIDATE_COUNT = 2;
 const DAILY_LIMIT = 5;
 const MAX_OUTPUT_TOKENS = 500;
 
-type Mode = "keigo" | "mail" | "natural" | "reply";
+// The Japanese modes are the original four and their instructions are unchanged.
+// The `en_*` modes were added 2026-08-17 for the English tool at /en/rewrite; they
+// are a separate branch in `systemInstructions` rather than a translation, because
+// the Japanese system prompt ends with "出力は日本語にしてください" and an English
+// tool sharing it would answer English input in Japanese.
+type JaMode = "keigo" | "mail" | "natural" | "reply";
+type EnMode = "en_natural" | "en_grammar" | "en_formal" | "en_short";
+type Mode = JaMode | EnMode;
+
+const EN_MODES = new Set<string>(["en_natural", "en_grammar", "en_formal", "en_short"]);
+const isEnMode = (mode: Mode): mode is EnMode => EN_MODES.has(mode);
 
 const MODES: Record<Mode, { label: string; instruction: string }> = {
   keigo: {
@@ -55,6 +65,27 @@ const MODES: Record<Mode, { label: string; instruction: string }> = {
     label: "返信文",
     instruction:
       "入力文は「受け取ったメッセージ」です。これに対する返信の本文を、日本語のビジネス敬語で作成してください。受け取ったメッセージを引用せず、返信本文だけを出力してください。",
+  },
+
+  en_natural: {
+    label: "Natural",
+    instruction:
+      "Rewrite the input so it reads the way a fluent native speaker would have written it. Fix anything that sounds translated, stiff or unidiomatic, and keep the writer's meaning and level of warmth exactly as it is.",
+  },
+  en_grammar: {
+    label: "Grammar",
+    instruction:
+      "Correct grammar, spelling, punctuation and word choice in the input. Change as little as possible: keep the writer's voice, sentence structure and register, and do not restyle sentences that are already correct.",
+  },
+  en_formal: {
+    label: "Professional",
+    instruction:
+      "Rewrite the input so it is appropriate to send to a manager, a client or someone you do not know well. Keep it warm and direct rather than stiff or corporate, and turn blunt instructions into polite requests.",
+  },
+  en_short: {
+    label: "Shorter",
+    instruction:
+      "Rewrite the input so it says the same thing in noticeably fewer words. Lead with the point or the ask, cut hedging and filler, and keep every concrete detail — names, numbers, dates and deadlines.",
   },
 };
 
@@ -89,7 +120,11 @@ const rewriteSchema = {
     candidates: {
       type: "array",
       items: { type: "string" },
-      description: "書き直した候補文",
+      // Kept bilingual rather than switched to English. Under a strict schema the
+      // description is part of what the model conditions on, and the Japanese modes
+      // are verified working with this wording — so the Japanese cue stays and the
+      // English one is added beside it.
+      description: "書き直した候補文 / the rewritten candidate sentences",
     },
   },
 } as const;
@@ -142,6 +177,20 @@ async function reserveDailyUsage(
 }
 
 function systemInstructions(mode: Mode): string {
+  if (isEnMode(mode)) {
+    return [
+      "You are an editor who improves other people's written English.",
+      MODES[mode].instruction,
+      "Follow these rules strictly:",
+      "- Never change the meaning or the intent. Leave proper nouns, numbers, dates and URLs exactly as written.",
+      "- Never add a fact, a reason or a commitment that is not in the original.",
+      "- Output no commentary, no preamble, no markdown and no surrounding quotation marks.",
+      `- Always return exactly ${CANDIDATE_COUNT} candidates. The first is the straightforward version; the second is a little more polished or more formal.`,
+      "- The two candidates must not be near-identical sentences.",
+      "- Write in English regardless of the language of the input.",
+      "Return only JSON that strictly follows the schema.",
+    ].join("\n");
+  }
   return [
     "あなたは日本語のビジネス文章を整える編集者です。",
     MODES[mode].instruction,

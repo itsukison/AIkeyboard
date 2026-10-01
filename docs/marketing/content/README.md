@@ -72,10 +72,17 @@ existing upload helper.
 ```
 line-unfold-video/
 ├── README.md                  format and rendering contract
+├── CONTENT-BANK.md            Saya anthology + shared story contract
+├── BANK-YURI.md             yuri_keigo serial storyline
 ├── build.py                   renders reveal states and assembles MP4
 ├── template/line-unfold.html  deterministic 1080 × 1920 frame
+├── bgm/                       cleared tracks mixed into the master
 └── posts/NNN-slug/post.json   message geometry, timing, and placeholder copy
 ```
+
+**One bank per account** (split 2026-08-06). The anthology tests scenarios on
+Saya; the serial builds a following on yuri_keigo. Episodes never move between
+them, and each bank has its own `posts/` subtree and numbering.
 
 This format is a vertical video rather than Photo Mode. Empty bubble silhouettes
 establish the full conversation rhythm, then fill with text one at a time. It is

@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "012-after-ten-pm",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "22時は業務時間外です。翌朝に返すのが普通だと思うのですが。",
+      "result": "昨夜のご連絡、朝の対応になりすみません。急ぎの場合は判断できるよう、お手数ですが件名に「至急」と入れていただけると助かります。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "怒られた",
+          "time": "09:10",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何で",
+          "time": "09:10"
+        },
+        {
+          "side": "me",
+          "text": "返信が遅いって",
+          "time": "09:11",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どれくらい遅れたの",
+          "time": "09:11"
+        },
+        {
+          "side": "me",
+          "text": "翌朝返した",
+          "time": "09:12",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いつ来たやつ",
+          "time": "09:13"
+        },
+        {
+          "side": "me",
+          "text": "22時",
+          "time": "09:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "夜じゃん",
+          "time": "09:14"
+        },
+        {
+          "side": "me",
+          "text": "私もそう思ってる",
+          "time": "09:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何て言われたの",
+          "time": "09:15"
+        },
+        {
+          "side": "me",
+          "text": "「見てたよね、既読ついてたし」",
+          "time": "09:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "既読つけたんだ",
+          "time": "09:16"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "寝る前に開いただけ",
+          "time": "09:17",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "内容は急ぎじゃなかった",
+          "time": "09:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "明日って書いてある",
+          "time": "09:18"
+        },
+        {
+          "side": "me",
+          "text": "そう",
+          "time": "09:19",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "その一文で終わるよ、いろいろ",
+          "time": "09:20"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "09:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "09:21"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "09:21",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "09:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "上司は",
+          "time": "09:23"
+        },
+        {
+          "side": "me",
+          "text": "「そうだね」",
+          "time": "09:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あっさり",
+          "time": "09:24"
+        },
+        {
+          "side": "me",
+          "text": "そのあと続いた",
+          "time": "09:25",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「俺も上に同じこと言われてる」",
+          "time": "09:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "09:26"
+        },
+        {
+          "side": "me",
+          "text": "「深夜に返さないと遅いって」",
+          "time": "09:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "09:27"
+        },
+        {
+          "side": "me",
+          "text": "「だから下にも言ってた」",
+          "time": "09:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ、どこで止めるの",
+          "time": "09:28"
+        },
+        {
+          "side": "me",
+          "text": "分からない",
+          "time": "09:29",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "22時のメッセージに翌朝返した",
+    "hashtags": [
+      "#職場あるある",
+      "#時間外",
+      "#上司",
+      "#社会人",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

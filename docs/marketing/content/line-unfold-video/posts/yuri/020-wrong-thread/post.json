@@ -1,0 +1,229 @@
+{
+  "version": 2,
+  "slug": "020-wrong-thread",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "今の誤送信です！！！別の人の話です！！本当にすみません！！！",
+      "result": "先ほどのメッセージ、送り先を間違えました。ただ、内容について言い訳をするつもりはありません。直接お詫びさせてください。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送り先間違えた",
+          "time": "12:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰に",
+          "time": "12:40"
+        },
+        {
+          "side": "me",
+          "text": "本人",
+          "time": "12:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何の本人",
+          "time": "12:41"
+        },
+        {
+          "side": "me",
+          "text": "愚痴ってた相手",
+          "time": "12:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "12:43"
+        },
+        {
+          "side": "me",
+          "text": "グループに送るつもりだった",
+          "time": "12:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "内容は",
+          "time": "12:44"
+        },
+        {
+          "side": "me",
+          "text": "「あの人、何も分かってないよね」",
+          "time": "12:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…",
+          "time": "12:45"
+        },
+        {
+          "side": "me",
+          "text": "既読、3秒でついた",
+          "time": "12:46",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "早い",
+          "time": "12:46"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "取り消した",
+          "time": "12:47",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "セーフ",
+          "time": "12:48"
+        },
+        {
+          "side": "other",
+          "text": "それ一番残るやつ",
+          "time": "12:48"
+        },
+        {
+          "side": "me",
+          "text": "余計まずい",
+          "time": "12:49",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何か送るしかない",
+          "time": "12:50"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "12:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "12:51"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "12:51",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "12:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返事",
+          "time": "12:53"
+        },
+        {
+          "side": "me",
+          "text": "こない",
+          "time": "12:53",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "10分",
+          "time": "12:54",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "12:55",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「気にしてない」",
+          "time": "12:55",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "優しい",
+          "time": "12:56"
+        },
+        {
+          "side": "me",
+          "text": "まだある",
+          "time": "12:56",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「私も同じこと思ってたから」",
+          "time": "12:57",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "12:58"
+        },
+        {
+          "side": "me",
+          "text": "「誰のこと言ってるかも分かってる」",
+          "time": "12:58",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ誰の話だったの",
+          "time": "12:59"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "愚痴をグループじゃなく本人に送った",
+    "hashtags": [
+      "#誤爆",
+      "#職場",
+      "#LINE",
+      "#人間関係",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

@@ -1,0 +1,231 @@
+{
+  "version": 2,
+  "slug": "030-one-yen-split",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1105,
+      "command": "自然に",
+      "draft": "1円単位はさすがに神経質すぎない？そこまでする？",
+      "result": "細かく出してくれてありがとう、助かった。ひとつだけ、7円まで割ると受け取る側が気にしちゃうかもしれないから、次は百円単位でも大丈夫だよって伝えたかった。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "通知が止まらない",
+          "time": "23:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何の",
+          "time": "23:15"
+        },
+        {
+          "side": "me",
+          "text": "割り勘アプリ",
+          "time": "23:16",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "旅行の？",
+          "time": "23:16"
+        },
+        {
+          "side": "me",
+          "text": "幹事のリカが全部入力してる",
+          "time": "23:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "偉いじゃん",
+          "time": "23:18"
+        },
+        {
+          "side": "me",
+          "text": "1円単位で",
+          "time": "23:18",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "1円",
+          "time": "23:19"
+        },
+        {
+          "side": "me",
+          "text": "「高速代 3,287円 ÷ 4」",
+          "time": "23:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "23:20"
+        },
+        {
+          "side": "me",
+          "text": "「コンビニ 821円 ÷ 4」",
+          "time": "23:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "コンビニまで",
+          "time": "23:21"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "さっき来たのが",
+          "time": "23:22",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "笑えない",
+          "time": "23:23",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "グループ全員に見えてる",
+          "time": "23:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "でもさ",
+          "time": "23:24"
+        },
+        {
+          "side": "other",
+          "text": "誰かが立て替えてるんだよね",
+          "time": "23:25"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 407,
+          "time": "23:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "23:26"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "23:26",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "23:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "リカは",
+          "time": "23:28"
+        },
+        {
+          "side": "me",
+          "text": "既読つかない",
+          "time": "23:28",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "5分たった",
+          "time": "23:29",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "ついた",
+          "time": "23:30",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「ごめん、うざかったよね」",
+          "time": "23:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "謝らせちゃった",
+          "time": "23:31"
+        },
+        {
+          "side": "me",
+          "text": "まだ続く",
+          "time": "23:31",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「先に10万立て替えてて」",
+          "time": "23:32",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「戻ってこないのが怖くて数えてた」",
+          "time": "23:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…",
+          "time": "23:33"
+        },
+        {
+          "side": "me",
+          "text": "7円って打ってたの、そういうことか",
+          "time": "23:34",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "旅行の割り勘が1円単位できた",
+    "hashtags": [
+      "#旅行",
+      "#割り勘",
+      "#友達",
+      "#お金",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

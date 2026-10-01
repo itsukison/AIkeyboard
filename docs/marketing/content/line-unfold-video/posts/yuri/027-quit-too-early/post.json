@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "slug": "027-quit-too-early",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "部長にはまだ言ってないので、みんなには黙っててもらえますか！！",
+      "result": "退職の件、部長より先に皆さんにお伝えする形になってしまいました。順番として私の落ち度です。改めて、私からきちんとご報告します。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "順番を間違えた",
+          "time": "18:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何の",
+          "time": "18:30"
+        },
+        {
+          "side": "me",
+          "text": "辞めること",
+          "time": "18:31",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "言ったんだ",
+          "time": "18:31"
+        },
+        {
+          "side": "me",
+          "text": "同期に一人だけ",
+          "time": "18:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "18:33"
+        },
+        {
+          "side": "me",
+          "text": "昨日の飲みで",
+          "time": "18:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "で？",
+          "time": "18:34"
+        },
+        {
+          "side": "me",
+          "text": "今朝",
+          "time": "18:35",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "フロア全員が知ってた",
+          "time": "18:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "早い",
+          "time": "18:36"
+        },
+        {
+          "side": "me",
+          "text": "一晩で",
+          "time": "18:36",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "部長にはまだ言ってない",
+          "time": "18:37",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "さっき目が合った",
+          "time": "18:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "知ってる顔？",
+          "time": "18:38"
+        },
+        {
+          "side": "me",
+          "text": "たぶん知ってる",
+          "time": "18:39",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "見せて",
+          "time": "18:40"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "18:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "18:41"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "18:41",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "部長に送った",
+          "time": "18:42",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "同期じゃなく？",
+          "time": "18:43"
+        },
+        {
+          "side": "me",
+          "text": "先に部長",
+          "time": "18:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "正しい",
+          "time": "18:44"
+        },
+        {
+          "side": "me",
+          "text": "既読",
+          "time": "18:45",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「知ってた」",
+          "time": "18:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "だよね",
+          "time": "18:46"
+        },
+        {
+          "side": "me",
+          "text": "続きがある",
+          "time": "18:46",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「実は俺も今月で辞める」",
+          "time": "18:47",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "18:48"
+        },
+        {
+          "side": "me",
+          "text": "「先に言われたな」",
+          "time": "18:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どっちが先に言うべきだったの",
+          "time": "18:49"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "辞めることを言う順番を間違えた",
+    "hashtags": [
+      "#退職",
+      "#社会人",
+      "#職場",
+      "#人間関係",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

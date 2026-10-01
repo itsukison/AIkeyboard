@@ -1,0 +1,228 @@
+{
+  "version": 2,
+  "slug": "015-farewell-board",
+  "duration": 45,
+  "bgm": "dating3.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "敬語",
+      "draft": "正直あまり話したことがないので、何を書けばいいか分かりません。",
+      "result": "短い間でしたが、資料の作り方を教えていただいたこと、よく覚えています。ゆっくり休まれてください。戻られたらまた教えてください。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "寄せ書きが回ってきた",
+          "time": "17:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰の",
+          "time": "17:20"
+        },
+        {
+          "side": "me",
+          "text": "産休に入る先輩",
+          "time": "17:21",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "書けばいいじゃん",
+          "time": "17:21"
+        },
+        {
+          "side": "me",
+          "text": "話したことがほぼない",
+          "time": "17:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何回くらい",
+          "time": "17:23"
+        },
+        {
+          "side": "me",
+          "text": "3回",
+          "time": "17:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "3回か",
+          "time": "17:24"
+        },
+        {
+          "side": "me",
+          "text": "しかも一言",
+          "time": "17:25",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うーん",
+          "time": "17:25"
+        },
+        {
+          "side": "me",
+          "text": "あと、一人千円集められた",
+          "time": "17:26",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それは別で腹立つ",
+          "time": "17:26"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "欄が大きいの",
+          "time": "17:27",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "圧",
+          "time": "17:28"
+        },
+        {
+          "side": "me",
+          "text": "私、2行で止まってる",
+          "time": "17:28",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "正直に書けば",
+          "time": "17:29"
+        },
+        {
+          "side": "other",
+          "text": "それ本人読むよ",
+          "time": "17:30"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "17:30",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "17:31"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "17:31",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "書いて出した",
+          "time": "17:32",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どうだった",
+          "time": "17:33"
+        },
+        {
+          "side": "me",
+          "text": "今日、先輩に呼ばれた",
+          "time": "17:33",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "17:34"
+        },
+        {
+          "side": "me",
+          "text": "「あの文、覚えてる」",
+          "time": "17:35",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "いい話じゃん",
+          "time": "17:35"
+        },
+        {
+          "side": "me",
+          "text": "続きがある",
+          "time": "17:36",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「資料の作り方、教えたの私じゃない」",
+          "time": "17:36",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "は",
+          "time": "17:37"
+        },
+        {
+          "side": "me",
+          "text": "「隣の席の田中さん」",
+          "time": "17:38",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "17:38"
+        },
+        {
+          "side": "me",
+          "text": "一年間、名前を間違えてた",
+          "time": "17:39",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "産休の先輩への寄せ書きが回ってきた",
+    "hashtags": [
+      "#産休",
+      "#寄せ書き",
+      "#職場あるある",
+      "#社会人",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "version": 2,
+  "slug": "026-all-paid-for",
+  "duration": 45,
+  "bgm": "dating.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1105,
+      "command": "自然に",
+      "draft": "ごめん全部返す。もう会わない方がいいよね",
+      "result": "言ってくれてありがとう。甘えてたと思う。今までの分は返させてほしいし、これからは半分ずつにしたい。会わない方がいいって話にはしたくない。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "詰められてる",
+          "time": "21:40",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "誰に",
+          "time": "21:40"
+        },
+        {
+          "side": "me",
+          "text": "彼氏",
+          "time": "21:41",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何した",
+          "time": "21:41"
+        },
+        {
+          "side": "me",
+          "text": "何もしてない",
+          "time": "21:42",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "それが問題らしい",
+          "time": "21:43",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どういうこと",
+          "time": "21:43"
+        },
+        {
+          "side": "me",
+          "text": "「今日ちょっと話したい」って来て",
+          "time": "21:44",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "これ送られてきた",
+          "time": "21:45",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「温泉、12万俺が出したよね」",
+          "time": "21:45",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "21:46"
+        },
+        {
+          "side": "me",
+          "text": "「それは全然いいの」\n「でも一回も財布出さないの、気になってる」",
+          "time": "21:46",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "other",
+          "text": "アイスまで言うんだ",
+          "time": "21:47"
+        },
+        {
+          "side": "me",
+          "text": "でも半年、私ほんとに一回も出してない",
+          "time": "21:48",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…それは言われるわ",
+          "time": "21:48"
+        },
+        {
+          "side": "me",
+          "text": "「ごめん全部返す。もう会わない方がいいよね」",
+          "time": "21:49",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ別れ話になるって",
+          "time": "21:50"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 407,
+          "time": "21:50",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "21:51"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "21:51",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "21:52",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "既読は",
+          "time": "21:53"
+        },
+        {
+          "side": "me",
+          "text": "すぐついた",
+          "time": "21:53",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "入力中のまま止まってる",
+          "time": "21:54",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "21:55",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「ありがとう。言ってよかった」",
+          "time": "21:55",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "よかったじゃん",
+          "time": "21:56"
+        },
+        {
+          "side": "me",
+          "text": "まだ続いてる",
+          "time": "21:56",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「来月から給料下がるんだ」",
+          "time": "21:57",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「それもあって言えなかった」",
+          "time": "21:58",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "…先に言ってよ",
+          "time": "21:58"
+        },
+        {
+          "side": "me",
+          "text": "私、なんて返せばいいの",
+          "time": "21:59",
+          "read": "既読"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "ずっと奢られてた私が言われたこと",
+    "hashtags": [
+      "#恋愛",
+      "#お金",
+      "#奢る",
+      "#カップル",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}

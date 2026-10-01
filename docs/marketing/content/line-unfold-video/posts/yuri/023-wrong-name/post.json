@@ -1,0 +1,228 @@
+{
+  "version": 2,
+  "slug": "023-wrong-name",
+  "duration": 45,
+  "bgm": "dating2.m4a",
+  "productAssets": [
+    {
+      "type": "productResult",
+      "output": "assets/result.png",
+      "cropTop": 1060,
+      "command": "自然に",
+      "draft": "ごめん今の間違い！！！違う人に送るつもりだった！！！",
+      "result": "今の、宛先を間違えて送った。中身を見てどう思ったかは想像がつくし、言い訳もしない。ただ、間違えたことだけは先に言っておきたかった。"
+    }
+  ],
+  "pages": [
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "名前が並んでるの、ほんとやめてほしい",
+          "time": "01:05",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何の話",
+          "time": "01:05"
+        },
+        {
+          "side": "me",
+          "text": "LINEのトーク一覧",
+          "time": "01:06",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "うん",
+          "time": "01:06"
+        },
+        {
+          "side": "me",
+          "text": "元カレと今カレ",
+          "time": "01:07",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "並んでるんだ",
+          "time": "01:08"
+        },
+        {
+          "side": "me",
+          "text": "名前の頭文字が同じ",
+          "time": "01:08",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "あー",
+          "time": "01:09"
+        },
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "01:10",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "どっちに",
+          "time": "01:10"
+        },
+        {
+          "side": "me",
+          "text": "今カレに",
+          "time": "01:11",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "内容",
+          "time": "01:11"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "other",
+          "text": "うわ",
+          "time": "01:12"
+        },
+        {
+          "side": "me",
+          "text": "元カレに送るつもりだった",
+          "time": "01:13",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それも大概だけど",
+          "time": "01:13"
+        },
+        {
+          "side": "me",
+          "text": "既読、1秒",
+          "time": "01:14",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "見てたんだ",
+          "time": "01:15"
+        },
+        {
+          "side": "me",
+          "type": "image",
+          "src": "assets/result.png",
+          "width": 540,
+          "height": 430,
+          "time": "01:15",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "何これ",
+          "time": "01:16"
+        },
+        {
+          "side": "me",
+          "text": "敬語ボタン",
+          "time": "01:16",
+          "read": "既読"
+        }
+      ]
+    },
+    {
+      "duration": 15,
+      "messages": [
+        {
+          "side": "me",
+          "text": "送った",
+          "time": "01:17",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "返事",
+          "time": "01:18"
+        },
+        {
+          "side": "me",
+          "text": "きた",
+          "time": "01:18",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「これ、俺宛でも合ってる？」",
+          "time": "01:19",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "……",
+          "time": "01:20"
+        },
+        {
+          "side": "me",
+          "text": "どういう意味",
+          "time": "01:20",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "分かるでしょ",
+          "time": "01:21"
+        },
+        {
+          "side": "me",
+          "text": "続きがある",
+          "time": "01:21",
+          "read": "既読"
+        },
+        {
+          "side": "me",
+          "text": "「先月、同じ内容を俺も打った」",
+          "time": "01:22",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "え",
+          "time": "01:23"
+        },
+        {
+          "side": "me",
+          "text": "「送らなかったけど」",
+          "time": "01:23",
+          "read": "既読"
+        },
+        {
+          "side": "other",
+          "text": "それ誰宛だったの",
+          "time": "01:24"
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "title": "元カレに送るはずが今カレに送った",
+    "hashtags": [
+      "#誤爆",
+      "#元カレ",
+      "#恋愛",
+      "#修羅場",
+      "#敬語ボタン"
+    ]
+  },
+  "approval": {
+    "status": "draft",
+    "visualQA": false,
+    "resultCopy": "fiction — story content, not a shipping-app claim (see CONTENT-BANK.md product-image rule)"
+  }
+}
