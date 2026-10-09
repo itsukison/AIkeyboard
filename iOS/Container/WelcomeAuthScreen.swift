@@ -145,7 +145,7 @@ private struct AuthChoicePage: View {
     let onSignIn: () -> Void
     var onClose: (() -> Void)? = nil
 
-    @State private var appleError: String?
+    @State private var authError: String?
 
     var body: some View {
         OnboardingScaffold(
@@ -176,9 +176,19 @@ private struct AuthChoicePage: View {
                 }
 
                 VStack(spacing: 10) {
-                    AppleSignInButton(onError: { appleError = $0 })
-                    if let appleError {
-                        Text(appleError)
+                    HStack(spacing: 18) {
+                        AppleSignInButton(
+                            onStart: { authError = nil },
+                            onError: { authError = $0 }
+                        )
+                        GoogleSignInButton(
+                            onStart: { authError = nil },
+                            onError: { authError = $0 }
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
+                    if let authError {
+                        Text(authError)
                             .font(.system(size: 13, weight: .regular))
                             .foregroundStyle(OnboardingPalette.danger)
                             .multilineTextAlignment(.center)
@@ -257,10 +267,11 @@ private struct AuthBenefitCard: View {
 /// dismisses automatically once the user signs in.
 private struct GuestAuthCover: ViewModifier {
     @Binding var isPresented: Bool
+    let onDismiss: () -> Void
     @EnvironmentObject private var session: UserSession
 
     func body(content: Content) -> some View {
-        content.fullScreenCover(isPresented: $isPresented) {
+        content.fullScreenCover(isPresented: $isPresented, onDismiss: onDismiss) {
             AuthChoiceScreen(onClose: { isPresented = false })
                 .onChange(of: session.state) { state in
                     if case .signedIn = state { isPresented = false }
@@ -270,8 +281,8 @@ private struct GuestAuthCover: ViewModifier {
 }
 
 extension View {
-    func guestAuthCover(isPresented: Binding<Bool>) -> some View {
-        modifier(GuestAuthCover(isPresented: isPresented))
+    func guestAuthCover(isPresented: Binding<Bool>, onDismiss: @escaping () -> Void = {}) -> some View {
+        modifier(GuestAuthCover(isPresented: isPresented, onDismiss: onDismiss))
     }
 }
 

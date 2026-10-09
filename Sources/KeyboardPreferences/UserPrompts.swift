@@ -36,6 +36,10 @@ public struct OnboardingGeneratedPractice: Codable, Equatable, Sendable {
     }
 }
 
+public enum ButtonPurpose: String, Codable, Sendable {
+    case keigo, email, casual, translate, proofread, summarize, custom
+}
+
 public struct UserPrompt: Codable, Equatable, Identifiable, Sendable {
     public enum Slot: String, Codable, Sendable {
         case main
@@ -50,6 +54,7 @@ public struct UserPrompt: Codable, Equatable, Identifiable, Sendable {
     public var isEnabled: Bool
     public var sortOrder: Int
     public var origin: PromptOrigin
+    public var purpose: ButtonPurpose?
     public let createdAt: Date
     public var updatedAt: Date
 
@@ -62,6 +67,7 @@ public struct UserPrompt: Codable, Equatable, Identifiable, Sendable {
         isEnabled: Bool = true,
         sortOrder: Int = 0,
         origin: PromptOrigin? = nil,
+        purpose: ButtonPurpose? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -73,6 +79,7 @@ public struct UserPrompt: Codable, Equatable, Identifiable, Sendable {
         self.isEnabled = isEnabled
         self.sortOrder = sortOrder
         self.origin = origin ?? Self.inferredOrigin(builtinKey: builtinKey)
+        self.purpose = purpose
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -91,6 +98,7 @@ public struct UserPrompt: Codable, Equatable, Identifiable, Sendable {
         sortOrder = try container.decode(Int.self, forKey: .sortOrder)
         origin = try container.decodeIfPresent(PromptOrigin.self, forKey: .origin)
             ?? Self.inferredOrigin(builtinKey: builtinKey)
+        purpose = try container.decodeIfPresent(ButtonPurpose.self, forKey: .purpose)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }

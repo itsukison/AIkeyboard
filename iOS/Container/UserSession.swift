@@ -1,6 +1,8 @@
+import AuthenticationServices
 import Foundation
 import KeyboardPreferences
 import Supabase
+import UIKit
 
 @MainActor
 final class UserSession: ObservableObject {
@@ -18,6 +20,9 @@ final class UserSession: ObservableObject {
     }
 
     @Published private(set) var state: State
+    @Published private(set) var bootstrapFailed = false
+    private var observingAuthChanges = false
+    private var googleAuthenticationSession: ASWebAuthenticationSession?
 
     init(initialState: State = .loading) {
         self.state = initialState
@@ -33,6 +38,7 @@ final class UserSession: ObservableObject {
     }
 
     func bootstrap() async {
+        bootstrapFailed = false
         do {
             let session = try await supabase.auth.session
             let profile = try await loadProfile(for: session.user)
@@ -41,13 +47,21 @@ final class UserSession: ObservableObject {
             // Lowercased to match the edge function's distinct_id (Supabase's canonical
         // form) — uppercase `uuidString` split every user into two PostHog persons.
         AppAnalytics.identify(profile.id.uuidString.lowercased(), userProperties: identifyProperties(for: profile))
+            // Retry a carry-up that failed at sign-in: without this, one failed
+            // request loses an authored button permanently.
+            await mergePendingOnboardingButtons(for: profile.id)
             try? await refreshUserPromptsCache(for: profile.id)
-        } catch {
+        } catch let error as AuthError where AIAuthFailure.requiresSignIn(code: error.errorCode.rawValue) {
             clearTokens()
             UserPromptStore.writeEntries(UserPromptDefaults.seedEntries())
             state = .signedOut
+        } catch {
+            bootstrapFailed = true
+            return
         }
 
+        guard !observingAuthChanges else { return }
+        observingAuthChanges = true
         Task { [weak self] in
             for await (event, session) in supabase.auth.authStateChanges {
                 guard let self else { return }
@@ -69,6 +83,20 @@ final class UserSession: ObservableObject {
                     break
                 }
             }
+        }
+    }
+
+    /// Explicit keyboard recovery also republishes a valid container session.
+    func recoverKeyboardSession() async throws -> Bool {
+        guard profile != nil else { return false }
+        do {
+            let refreshed = try await supabase.auth.refreshSession()
+            persistTokens(from: refreshed)
+            return true
+        } catch let error as AuthError where AIAuthFailure.requiresSignIn(code: error.errorCode.rawValue) {
+            clearTokens()
+            state = .signedOut
+            return false
         }
     }
 
@@ -152,12 +180,77 @@ final class UserSession: ObservableObject {
             await applyPendingOnboardingPrompts(for: profile.id)
         } else {
             AppAnalytics.capture("signed_in", properties: ["auth_provider": "apple"])
-            // Existing account: its saved prompts win, so discard any onboarding edit
-            // rather than clobber the server set.
-            KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
-            KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
+            await mergePendingOnboardingButtons(for: profile.id)
         }
         try? await refreshUserPromptsCache(for: profile.id)
+    }
+
+    func signInWithGoogle() async throws {
+        let session = try await supabase.auth.signInWithOAuth(
+            provider: .google,
+            redirectTo: SupabaseConfig.oauthRedirectURL
+        ) { [weak self] authorizationURL in
+            guard let self else { throw CancellationError() }
+            return try await self.authenticateWithGoogle(
+                at: SupabaseConfig.brandedAuthURL(from: authorizationURL)
+            )
+        }
+        let user = session.user
+        let googleName = ["full_name", "name", "display_name"]
+            .compactMap { user.userMetadata[$0]?.stringValue?.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty }
+
+        if isNewlyCreated(user), let googleName {
+            try? await supabase
+                .from("profiles")
+                .update(["display_name": googleName])
+                .eq("id", value: user.id)
+                .execute()
+        }
+
+        let profile = try await loadProfile(for: user, fallbackName: googleName)
+        AppAnalytics.identify(
+            profile.id.uuidString.lowercased(),
+            userProperties: identifyProperties(for: profile)
+        )
+        state = .signedIn(profile)
+        await syncCommercialConsent(for: profile.id)
+
+        if isNewlyCreated(user) {
+            AppAnalytics.capture("signed_up", properties: ["auth_provider": "google"])
+            await applyPendingOnboardingPrompts(for: profile.id)
+        } else {
+            AppAnalytics.capture("signed_in", properties: ["auth_provider": "google"])
+            await mergePendingOnboardingButtons(for: profile.id)
+        }
+        try? await refreshUserPromptsCache(for: profile.id)
+    }
+
+    private func authenticateWithGoogle(at url: URL) async throws -> URL {
+        try await withCheckedThrowingContinuation { continuation in
+            let authenticationSession = ASWebAuthenticationSession(
+                url: url,
+                callbackURLScheme: SupabaseConfig.oauthRedirectURL.scheme
+            ) { [weak self] callbackURL, error in
+                Task { @MainActor in
+                    self?.googleAuthenticationSession = nil
+                }
+                if let callbackURL {
+                    continuation.resume(returning: callbackURL)
+                } else {
+                    continuation.resume(throwing: error ?? URLError(.cancelled))
+                }
+            }
+            authenticationSession.presentationContextProvider = OAuthPresentationContextProvider.shared
+            authenticationSession.prefersEphemeralWebBrowserSession = false
+            googleAuthenticationSession = authenticationSession
+
+            guard authenticationSession.start() else {
+                googleAuthenticationSession = nil
+                continuation.resume(throwing: URLError(.cannotLoadFromNetwork))
+                return
+            }
+        }
     }
 
     /// A just-created account signs in within a moment of creation; a returning
@@ -176,10 +269,7 @@ final class UserSession: ObservableObject {
         AppAnalytics.capture("signed_in", properties: ["auth_provider": "email"])
         state = .signedIn(profile)
         await syncCommercialConsent(for: profile.id)
-        // Existing account: its saved prompts win, so discard any onboarding edit
-        // rather than clobber the server set.
-        KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
-        KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
+        await mergePendingOnboardingButtons(for: profile.id)
         try? await refreshUserPromptsCache(for: profile.id)
     }
 
@@ -204,6 +294,32 @@ final class UserSession: ObservableObject {
         }
     }
 
+    /// Signing in to an account that already exists: its saved prompts win, so a
+    /// 敬語 edit made during onboarding is still discarded — the account's own main
+    /// is the one that user has been typing with. A button the builder made is not
+    /// an edit: it exists only on this device, and dropping it deleted work the
+    /// user had just authored. Append it as a sub button instead.
+    private func mergePendingOnboardingButtons(for userId: UUID) async {
+        KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
+        guard let pending = KeyboardSettingsStore.readPendingOnboardingPromptEntries() else { return }
+        let built = pending.filter { $0.origin == .onboardingBuilder }
+        guard !built.isEmpty else {
+            KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
+            return
+        }
+        do {
+            try await UserPromptRemoteStore.appendMissing(built, userId: userId)
+            KeyboardSettingsStore.clearPendingOnboardingPromptEntries()
+            AppAnalytics.capture("onboarding_buttons_merged", properties: [
+                "count": built.count,
+                "onboarding_version": InteractiveOnboardingState.version,
+            ])
+        } catch {
+            // Leave it pending; `bootstrap()` retries on the next launch rather
+            // than losing an authored button to one failed request.
+        }
+    }
+
     /// Applies an onboarding-time 敬語 edit to the new account's main prompt row.
     /// No-op when nothing is pending or the server hasn't seeded a main row.
     private func applyPendingOnboardingMainPrompt(for userId: UUID) async {
@@ -217,6 +333,7 @@ final class UserSession: ObservableObject {
                 prompt: pending.prompt,
                 isEnabled: true,
                 sortOrder: main.sortOrder,
+                purpose: main.purpose,
                 userId: userId
             )
             KeyboardSettingsStore.clearPendingOnboardingMainPrompt()
@@ -309,5 +426,17 @@ final class UserSession: ObservableObject {
     private func refreshUserPromptsCache(for userId: UUID) async throws {
         let entries = try await UserPromptRemoteStore.fetchEntries(for: userId)
         UserPromptStore.writeEntries(entries)
+    }
+}
+
+@MainActor
+private final class OAuthPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = OAuthPresentationContextProvider()
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+        return windows.first(where: \.isKeyWindow) ?? windows.first ?? ASPresentationAnchor()
     }
 }

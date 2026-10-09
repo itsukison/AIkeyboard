@@ -75,6 +75,7 @@ struct KeigoButtonApp: App {
                 .onAppear {
                     KeyboardSettingsStore.writeCloudAIEnabled(true)
                     AppAnalytics.cacheAppInstanceId()
+                    AppAnalytics.flushKeyboardDiagnostics()
                     flushKeyboardUsageDays()
                     reportZenzaiAutoDisableIfPending()
                     reportKeyboardEnabledIfNeeded()
@@ -82,6 +83,7 @@ struct KeigoButtonApp: App {
                 }
                 .onChange(of: scenePhase) { phase in
                     if phase == .active {
+                        AppAnalytics.flushKeyboardDiagnostics()
                         reportKeyboardEnabledIfNeeded()
                         reportFullAccessGrantedIfNeeded()
                     }
@@ -134,8 +136,11 @@ struct KeigoButtonApp: App {
     private func reportFullAccessGrantedIfNeeded() {
         let reportedKey = "analytics.fullAccessGrantedReported"
         guard !UserDefaults.standard.bool(forKey: reportedKey) else { return }
-        guard KeyboardSettingsStore.readLastKnownFullAccessEnabled() else { return }
-        AppAnalytics.capture("full_access_granted")
+        let status = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
+        guard status.isFullAccessEnabled || KeyboardSettingsStore.readLastKnownFullAccessEnabled() else { return }
+        AppAnalytics.capture("full_access_granted", properties: [
+            "detection_source": status.isFullAccessEnabled ? "system_input_modes" : "last_known_extension_state",
+        ])
         UserDefaults.standard.set(true, forKey: reportedKey)
     }
 

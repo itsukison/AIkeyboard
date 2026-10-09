@@ -13,6 +13,7 @@ enum InteractiveOnboardingState {
     static let pageIndexKey = "aikJP.interactiveOnboardingPageIndex"
 
     static func markStarted(defaults: UserDefaults = .standard) {
+        OnboardingDiagnostics.startAttempt()
         defaults.set(true, forKey: startedKey)
         defaults.set(version, forKey: "aikJP.onboardingVersion")
         defaults.set(false, forKey: authRequiredKey)
@@ -222,6 +223,7 @@ struct InteractiveOnboardingFlow: View {
     @State private var isAddingAnother = false
 
     private static let totalPages = 11
+    @State private var lastTrackedPage: Int?
 
     init(onFinish: @escaping () -> Void) {
         self.onFinish = onFinish
@@ -338,7 +340,7 @@ struct InteractiveOnboardingFlow: View {
                     style: selectedStyle,
                     onBack: goBack,
                     onSkip: { skip("keyboard_switch_practice") },
-                    onContinue: advance
+                    onContinue: continuePractice
                 )
             case 7:
                 RewritePracticePage(
@@ -347,14 +349,14 @@ struct InteractiveOnboardingFlow: View {
                     prompt: OnboardingPromptSetup.load().first ?? UserPromptDefaults.seedEntries()[0],
                     onBack: goBack,
                     onSkip: { skip("rewrite_practice") },
-                    onContinue: advance
+                    onContinue: continuePractice
                 )
             case 8:
                 ReplyPracticePage(
                     progress: progress(for: 8),
                     onBack: goBack,
                     onSkip: { skip("reply_practice") },
-                    onContinue: advance
+                    onContinue: continuePractice
                 )
             case 9:
                 OnboardingSourcePage(
@@ -389,10 +391,27 @@ struct InteractiveOnboardingFlow: View {
         .transition(.opacity.combined(with: .scale(scale: 0.995)))
         .onAppear {
             configurePractice(for: pageIndex)
+            trackPageEntry()
         }
         .onChange(of: pageIndex) { index in
             configurePractice(for: index)
+            trackPageEntry()
         }
+    }
+
+    private var stepName: String {
+        ["input_style", "keyboard_setup", "use_case", "builder_slots", "builder_result", "prompt_setup",
+         "keyboard_switch_practice", "rewrite_practice", "reply_practice", "source", "consent"][pageIndex]
+    }
+
+    private func trackPageEntry() {
+        guard lastTrackedPage != pageIndex else { return }
+        lastTrackedPage = pageIndex
+        OnboardingDiagnostics.enter(stepName)
+    }
+
+    private func continuePractice(_ detected: Bool) {
+        advance(outcome: detected ? "completed" : "timeout_bypass", detected: detected)
     }
 
     private func persistSelectedStyle() {
@@ -408,10 +427,11 @@ struct InteractiveOnboardingFlow: View {
             "step": step,
             "onboarding_version": InteractiveOnboardingState.version,
         ])
-        advance()
+        advance(outcome: "explicit_skip")
     }
 
     private func completePreAuth(consentGranted: Bool, commercialOptIn: Bool, skipped: Bool) {
+        OnboardingDiagnostics.exit(skipped ? "explicit_skip" : consentGranted ? "completed" : "declined")
         seenReplyFeature = true
         seenFlickFeature = true
         seenPromptsFeature = true
@@ -432,10 +452,20 @@ struct InteractiveOnboardingFlow: View {
             "onboarding_version": InteractiveOnboardingState.version,
         ])
         InteractiveOnboardingState.markAuthRequired()
+        OnboardingDiagnostics.enter("authentication")
         onFinish()
     }
 
-    private func advance() {
+    private func advance() { advance(outcome: "completed") }
+
+    private func advance(outcome: String, detected: Bool? = nil) {
+        if pageIndex == 1 {
+            let status = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
+            let setupComplete = status.isKeyboardEnabled && status.isFullAccessEnabled
+            OnboardingDiagnostics.exit(outcome == "explicit_skip" ? outcome : setupComplete ? "completed" : "continued_unconfirmed", detected: status.isKeyboardEnabled)
+        } else {
+            OnboardingDiagnostics.exit(outcome, detected: detected)
+        }
         let nextPage = min(Self.totalPages - 1, pageIndex + 1)
         InteractiveOnboardingState.writePageIndex(nextPage)
         withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
@@ -444,6 +474,7 @@ struct InteractiveOnboardingFlow: View {
     }
 
     private func goBack() {
+        OnboardingDiagnostics.exit("back")
         let previousPage = max(0, pageIndex - 1)
         InteractiveOnboardingState.writePageIndex(previousPage)
         withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
@@ -489,7 +520,8 @@ struct InteractiveOnboardingFlow: View {
         }
     }
 
-    private func jump(to page: Int) {
+    private func jump(to page: Int, outcome: String = "completed") {
+        OnboardingDiagnostics.exit(outcome)
         let target = min(Self.totalPages - 1, max(0, page))
         InteractiveOnboardingState.writePageIndex(target)
         withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
@@ -507,7 +539,7 @@ struct InteractiveOnboardingFlow: View {
             "onboarding_version": InteractiveOnboardingState.version,
         ])
         isAddingAnother = false
-        jump(to: 5)
+        jump(to: 5, outcome: "explicit_skip")
     }
 
     /// Replays the use-case page for an extra button. Back to page 2 rather than
@@ -587,7 +619,7 @@ private struct KeyboardSwitchPracticePage: View {
     let style: KeyboardPreferences.KeyboardStyle
     let onBack: () -> Void
     let onSkip: () -> Void
-    let onContinue: () -> Void
+    let onContinue: (Bool) -> Void
 
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
@@ -633,7 +665,7 @@ private struct KeyboardSwitchPracticePage: View {
                     "detected": isComplete,
                     "onboarding_version": InteractiveOnboardingState.version,
                 ])
-                onContinue()
+                onContinue(isComplete)
             },
             ctaAvoidsKeyboard: true
         ) {
@@ -863,7 +895,7 @@ private struct RewritePracticePage: View {
     let prompt: UserPrompt
     let onBack: () -> Void
     let onSkip: () -> Void
-    let onContinue: () -> Void
+    let onContinue: (Bool) -> Void
 
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -884,7 +916,7 @@ private struct RewritePracticePage: View {
         prompt: UserPrompt,
         onBack: @escaping () -> Void,
         onSkip: @escaping () -> Void,
-        onContinue: @escaping () -> Void
+        onContinue: @escaping (Bool) -> Void
     ) {
         self.progress = progress
         self.style = style
@@ -1061,7 +1093,7 @@ private struct RewritePracticePage: View {
     private func handleCTA() {
         if canAdvance {
             isEditorFocused = false
-            onContinue()
+            onContinue(didAcceptRewrite)
             return
         }
         isEditorFocused = false
@@ -1080,7 +1112,7 @@ private struct ReplyPracticePage: View {
     let progress: Double
     let onBack: () -> Void
     let onSkip: () -> Void
-    let onContinue: () -> Void
+    let onContinue: (Bool) -> Void
 
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -1263,7 +1295,7 @@ private struct ReplyPracticePage: View {
     private func handleCTA() {
         if canAdvance {
             isEditorFocused = false
-            onContinue()
+            onContinue(didAcceptReply)
             return
         }
         isEditorFocused = false
@@ -1386,16 +1418,16 @@ private struct OnboardingPracticeStatus: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(text)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(OnboardingPalette.ink)
-                    .lineSpacing(2)
+                    .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let hint {
                     Text(hint)
-                        .font(.system(size: 13, weight: .regular))
+                        .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(OnboardingPalette.subInk)
-                        .lineSpacing(2)
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

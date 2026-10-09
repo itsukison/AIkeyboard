@@ -253,6 +253,7 @@ struct PromptsScreen: View {
                     prompt: trimmedPrompt,
                     isEnabled: isEnabled,
                     sortOrder: entry.sortOrder,
+                    purpose: trimmedPrompt == entry.prompt ? entry.purpose : nil,
                     userId: profile.id
                 )
                 AppAnalytics.capture("prompt_updated", properties: [

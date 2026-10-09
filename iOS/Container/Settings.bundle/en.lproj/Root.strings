@@ -1,0 +1,5 @@
+"ACTIVATION_TITLE" = "ENABLE THE KEYBOARD";
+"ACTIVATION_STEPS" = "How to enable the keyboard:\n1. Tap Keyboards.\n2. Turn on Keigo Button.\n3. Turn on Allow Full Access.";
+"FULL_ACCESS_TITLE" = "Full Access";
+"FULL_ACCESS_VALUE" = "Only for AI actions";
+"PRIVACY_FOOTER" = "Text is sent securely only when you tap an AI button. Your normal typing and keystrokes are never sent automatically.";

@@ -53,6 +53,15 @@ enum AppTab: String, CaseIterable, Hashable {
 struct RootContainerView: View {
     @State private var selectedTab: AppTab = .home
     @State private var profileShowsAbout = false
+    @State private var profileShowsAuth = false
+    @State private var recoveryVisit = false
+    @State private var waitingForRecoverySheetDismissal = false
+    @State private var waitingForRecoveryAuthDismissal = false
+    @State private var loginRecoveryTask: Task<Void, Never>?
+    @State private var loginRecoveryID: UUID?
+    @State private var updateRequestID: UUID?
+    @State private var loginRecoveryFailed = false
+    @State private var keyboardRecoveryComplete = false
     @State private var pendingProfileDeepLink: ProfileDeepLink?
     @StateObject private var stats = ConversionStats.shared
     @StateObject private var overlay = AppOverlay()
@@ -90,6 +99,8 @@ struct RootContainerView: View {
     private enum ProfileDeepLink {
         case about
         case consent
+        case login
+        case settings
     }
 
     private enum WhatsNewSheet: String, Identifiable {
@@ -125,6 +136,7 @@ struct RootContainerView: View {
                         hasCompletedFirstRun = true
                         InteractiveOnboardingState.markAuthenticated()
                         if completedInteractiveOnboarding {
+                            OnboardingDiagnostics.exit("completed")
                             AppAnalytics.capture("onboarding_completed", properties: [
                                 "onboarding_version": InteractiveOnboardingState.version,
                                 "stage": "post_auth",
@@ -143,15 +155,32 @@ struct RootContainerView: View {
         .onChange(of: scenePhase) { phase in
             if phase == .active {
                 stats.refresh()
-                maybeRequestReview()
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 700_000_000)
+                    guard scenePhase == .active, !Task.isCancelled else { return }
+                    maybeRequestReview()
+                }
                 // Also re-check on foregrounding: the app can stay resident for
                 // days without a cold launch. The 24h throttle inside guards it.
                 Task { await maybeCheckForUpdate() }
                 applyPendingProfileDeepLinkIfReady()
             }
         }
-        .onChange(of: session.state) { _ in
+        .onChange(of: session.state) { state in
+            if case .signedIn = state { profileShowsAuth = false }
             applyPendingProfileDeepLinkIfReady()
+        }
+        .onChange(of: hasCompletedFirstRun) { _ in applyPendingProfileDeepLinkIfReady() }
+        .alert("通信に失敗しました", isPresented: $loginRecoveryFailed) {
+            Button("再試行") { openProfileDeepLink(.login) }
+            Button("閉じる", role: .cancel) {}
+        } message: {
+            Text("ログイン状態は変更していません。通信環境を確認して、もう一度お試しください。")
+        }
+        .alert("ログイン状態を確認しました", isPresented: $keyboardRecoveryComplete) {
+            Button("閉じる", role: .cancel) {}
+        } message: {
+            Text("元のアプリに戻り、AIボタンをもう一度押してください。未完了の設定があればキーボードに表示されます。")
         }
         .onOpenURL { url in
             guard url.scheme == "keigobutton" || url.scheme == "aikeyboard" else { return }
@@ -160,21 +189,46 @@ struct RootContainerView: View {
                 openProfileDeepLink(.about)
             case "consent":
                 openProfileDeepLink(.consent)
+            case "login":
+                openProfileDeepLink(.login)
+            case "settings":
+                openProfileDeepLink(.settings)
             case "update":
                 // Arriving from the keyboard's update pill: the user explicitly
                 // asked, so bypass the daily throttle and the あとで dismissal.
+                recoveryVisit = true
+                whatsNewSheet = nil
+                loginRecoveryTask?.cancel()
+                loginRecoveryID = nil
+                profileShowsAuth = false
+                overlay.dismiss()
+                let id = UUID()
+                updateRequestID = id
                 Task {
-                    guard let info = await AppUpdateChecker.check() else { return }
+                    guard let info = await AppUpdateChecker.check(), updateRequestID == id else { return }
                     updateInfo = info
                 }
                 return
             default:
-                selectedTab = .profile
+                break
             }
         }
     }
 
     private func openProfileDeepLink(_ destination: ProfileDeepLink) {
+        if destination == .login && (profileShowsAuth || loginRecoveryID != nil) { return }
+        waitingForRecoverySheetDismissal = waitingForRecoverySheetDismissal || whatsNewSheet != nil
+        waitingForRecoveryAuthDismissal = waitingForRecoveryAuthDismissal || profileShowsAuth
+        recoveryVisit = true
+        updateRequestID = nil
+        profileShowsAuth = false
+        overlay.dismiss()
+        whatsNewSheet = nil
+        updateInfo = nil
+        keyboardRecoveryComplete = false
+        loginRecoveryFailed = false
+        loginRecoveryTask?.cancel()
+        loginRecoveryID = nil
         pendingProfileDeepLink = destination
         selectedTab = .profile
         DispatchQueue.main.async {
@@ -184,13 +238,40 @@ struct RootContainerView: View {
 
     private func applyPendingProfileDeepLinkIfReady() {
         guard selectedTab == .profile,
+              !waitingForRecoverySheetDismissal, !waitingForRecoveryAuthDismissal,
               let destination = pendingProfileDeepLink,
               session.state != .loading,
               hasCompletedFirstRun || session.profile != nil else { return }
         pendingProfileDeepLink = nil
-        profileShowsAbout = true
-        if destination == .consent {
+        switch destination {
+        case .about:
+            profileShowsAbout = true
+        case .consent:
+            profileShowsAbout = true
             overlay.present(.aiConsent)
+        case .settings:
+            profileShowsAbout = false
+        case .login:
+            profileShowsAbout = false
+            overlay.dismiss()
+            guard session.profile != nil else {
+                profileShowsAuth = true
+                return
+            }
+            let id = UUID()
+            loginRecoveryID = id
+            loginRecoveryTask = Task { @MainActor in
+                do {
+                    let recovered = try await session.recoverKeyboardSession()
+                    guard !Task.isCancelled, loginRecoveryID == id else { return }
+                    profileShowsAuth = !recovered
+                    keyboardRecoveryComplete = recovered
+                } catch {
+                    guard !Task.isCancelled, loginRecoveryID == id else { return }
+                    loginRecoveryFailed = true
+                }
+                loginRecoveryID = nil
+            }
         }
     }
 
@@ -204,7 +285,7 @@ struct RootContainerView: View {
     /// exercises themselves record a conversion — without it the first Settings
     /// round-trip mid-onboarding would foreground into this prompt.
     private func maybeRequestReview() {
-        guard hasCompletedFirstRun,
+        guard !recoveryVisit, hasCompletedFirstRun,
               stats.conversionsTotal >= 1, whatsNewSheet == nil, updateInfo == nil else { return }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         guard !version.isEmpty, version != lastReviewPromptVersion else { return }
@@ -216,8 +297,17 @@ struct RootContainerView: View {
     private var loadingBody: some View {
         ZStack {
             AppColor.background.ignoresSafeArea()
-            ProgressView()
-                .tint(AppColor.ink)
+            if session.bootstrapFailed {
+                VStack(spacing: 16) {
+                    Text("ログイン状態を確認できませんでした。通信環境を確認してください。")
+                        .multilineTextAlignment(.center)
+                    Button("再試行") { Task { await session.bootstrap() } }
+                }
+                .foregroundStyle(AppColor.ink)
+                .padding()
+            } else {
+                ProgressView().tint(AppColor.ink)
+            }
         }
     }
 
@@ -235,7 +325,10 @@ struct RootContainerView: View {
                     case .prompts:
                         PromptsScreen()
                     case .profile:
-                        ProfileScreen(showAbout: $profileShowsAbout)
+                        ProfileScreen(showAbout: $profileShowsAbout, showAuth: $profileShowsAuth, onAuthDismiss: {
+                            waitingForRecoveryAuthDismissal = false
+                            applyPendingProfileDeepLinkIfReady()
+                        })
                     }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
@@ -276,7 +369,10 @@ struct RootContainerView: View {
             .animation(.easeOut(duration: 0.18), value: overlay.modal)
             .animation(.easeOut(duration: 0.18), value: updateInfo)
         }
-        .sheet(item: $whatsNewSheet) { sheet in
+        .sheet(item: $whatsNewSheet, onDismiss: {
+            waitingForRecoverySheetDismissal = false
+            applyPendingProfileDeepLinkIfReady()
+        }) { sheet in
             Group {
                 switch sheet {
                 case .reply: ReplyFeatureSheet()
@@ -302,6 +398,7 @@ struct RootContainerView: View {
             // jumped versions sees the reply sheet now and the flick sheet on the
             // next launch, rather than both at once.
             try? await Task.sleep(nanoseconds: 700_000_000)
+            guard !Task.isCancelled, !recoveryVisit, pendingProfileDeepLink == nil else { return }
             if !seenReplyFeature {
                 seenReplyFeature = true
                 whatsNewSheet = .reply
@@ -352,7 +449,7 @@ struct RootContainerView: View {
     /// never on top of a what's-new sheet, and never re-nags a version the user has
     /// already dismissed with "あとで".
     private func maybeCheckForUpdate() async {
-        guard whatsNewSheet == nil else { return }
+        guard !recoveryVisit, whatsNewSheet == nil else { return }
         let now = Date().timeIntervalSince1970
         guard now - lastUpdateCheckAt > 24 * 60 * 60 else { return }
         lastUpdateCheckAt = now
@@ -360,7 +457,7 @@ struct RootContainerView: View {
         // Relay to the keyboard so its update pill can show; the pill self-clears
         // once the installed version catches up (see AppUpdateNudge).
         AppUpdateNudge.writeAvailableVersion(info.latestVersion)
-        guard info.latestVersion != dismissedUpdateVersion else { return }
+        guard !recoveryVisit, info.latestVersion != dismissedUpdateVersion else { return }
         updateInfo = info
     }
 

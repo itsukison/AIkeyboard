@@ -5,7 +5,7 @@ enum UserPromptRemoteStore {
     static func fetchEntries(for userId: UUID) async throws -> [UserPrompt] {
         let rows: [Row] = try await supabase
             .from("user_prompts")
-            .select("id, user_id, slot, builtin_key, origin, title, prompt, is_enabled, sort_order, created_at, updated_at")
+            .select("id, user_id, slot, builtin_key, origin, purpose, title, prompt, is_enabled, sort_order, created_at, updated_at")
             .eq("user_id", value: userId)
             .order("slot", ascending: true)
             .order("sort_order", ascending: true)
@@ -21,11 +21,13 @@ enum UserPromptRemoteStore {
         prompt: String,
         isEnabled: Bool,
         sortOrder: Int,
+        purpose: ButtonPurpose?,
         userId: UUID
     ) async throws {
         let row = UpdateRow(
             title: title,
             prompt: prompt,
+            purpose: purpose?.rawValue,
             is_enabled: isEnabled,
             sort_order: sortOrder
         )
@@ -48,6 +50,7 @@ enum UserPromptRemoteStore {
             slot: "sub",
             builtin_key: nil,
             origin: PromptOrigin.userAuthored.rawValue,
+            purpose: nil,
             title: title,
             prompt: prompt,
             is_enabled: true,
@@ -56,7 +59,7 @@ enum UserPromptRemoteStore {
         let inserted: Row = try await supabase
             .from("user_prompts")
             .insert(row)
-            .select("id, user_id, slot, builtin_key, origin, title, prompt, is_enabled, sort_order, created_at, updated_at")
+            .select("id, user_id, slot, builtin_key, origin, purpose, title, prompt, is_enabled, sort_order, created_at, updated_at")
             .single()
             .execute()
             .value
@@ -99,14 +102,47 @@ enum UserPromptRemoteStore {
             .execute()
         let rows = entries.map { entry in
             InsertRow(
+                id: entry.id,
                 user_id: userId,
                 slot: entry.slot.rawValue,
                 builtin_key: entry.builtinKey,
                 origin: entry.origin.rawValue,
+                purpose: entry.purpose?.rawValue,
                 title: entry.title,
                 prompt: entry.prompt,
                 is_enabled: entry.isEnabled,
                 sort_order: entry.sortOrder
+            )
+        }
+        try await supabase
+            .from("user_prompts")
+            .insert(rows)
+            .execute()
+    }
+
+    /// Appends `entries` as sub buttons after the account's existing ones,
+    /// skipping any title the account already uses. Used when onboarding-built
+    /// buttons meet an account that already has a saved set: the account's own
+    /// buttons (and its main) stay untouched, and a button the user authored on
+    /// this device — which exists nowhere else — is added instead of dropped.
+    static func appendMissing(_ entries: [UserPrompt], userId: UUID) async throws {
+        let existing = try await fetchEntries(for: userId)
+        let takenTitles = Set(existing.map(\.title))
+        let additions = entries.filter { !takenTitles.contains($0.title) }
+        guard !additions.isEmpty else { return }
+        let firstSortOrder = (existing.filter { $0.slot == .sub }.map(\.sortOrder).max() ?? -1) + 1
+        let rows = additions.enumerated().map { index, entry in
+            InsertRow(
+                id: entry.id,
+                user_id: userId,
+                slot: "sub",
+                builtin_key: entry.builtinKey,
+                origin: entry.origin.rawValue,
+                purpose: entry.purpose?.rawValue,
+                title: entry.title,
+                prompt: entry.prompt,
+                is_enabled: true,
+                sort_order: firstSortOrder + index
             )
         }
         try await supabase
@@ -123,10 +159,12 @@ enum UserPromptRemoteStore {
             .execute()
         let rows = UserPromptDefaults.seedEntries().map { entry in
             InsertRow(
+                id: entry.id,
                 user_id: userId,
                 slot: entry.slot.rawValue,
                 builtin_key: entry.builtinKey,
                 origin: entry.origin.rawValue,
+                purpose: entry.purpose?.rawValue,
                 title: entry.title,
                 prompt: entry.prompt,
                 is_enabled: true,
@@ -146,6 +184,7 @@ private struct Row: Decodable {
     let slot: String
     let builtin_key: String?
     let origin: String?
+    let purpose: String?
     let title: String
     let prompt: String
     let is_enabled: Bool
@@ -163,6 +202,7 @@ private struct Row: Decodable {
             isEnabled: is_enabled,
             sortOrder: sort_order,
             origin: origin.flatMap(PromptOrigin.init(rawValue:)),
+            purpose: purpose.flatMap(ButtonPurpose.init(rawValue:)),
             createdAt: created_at,
             updatedAt: updated_at
         )
@@ -172,15 +212,29 @@ private struct Row: Decodable {
 private struct UpdateRow: Encodable {
     let title: String
     let prompt: String
+    let purpose: String?
     let is_enabled: Bool
     let sort_order: Int
+
+    enum CodingKeys: String, CodingKey { case title, prompt, purpose, is_enabled, sort_order }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(title, forKey: .title)
+        try container.encode(prompt, forKey: .prompt)
+        try container.encode(purpose, forKey: .purpose)
+        try container.encode(is_enabled, forKey: .is_enabled)
+        try container.encode(sort_order, forKey: .sort_order)
+    }
 }
 
 private struct InsertRow: Encodable {
+    var id: UUID = UUID()
     let user_id: UUID
     let slot: String
     let builtin_key: String?
     let origin: String
+    let purpose: String?
     let title: String
     let prompt: String
     let is_enabled: Bool

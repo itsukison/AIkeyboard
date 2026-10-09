@@ -11,6 +11,7 @@ struct AboutScreen: View {
     private var consentGranted = false
     @State private var activeURL: IdentifiedURL?
     @State private var showFeedback = false
+    @State private var showFullAccessGuide = false
     @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
 
     var body: some View {
@@ -34,7 +35,7 @@ struct AboutScreen: View {
                             trailing: keyboardStatus.isFullAccessEnabled ? Text("オン") : Text("オフ"),
                             highlight: !keyboardStatus.isFullAccessEnabled
                         ) {
-                            openSystemSettings()
+                            showFullAccessGuide = true
                         },
                         AboutRowModel(icon: "questionmark.circle", title: "サポート") {
                             activeURL = IdentifiedURL(url: LegalLinks.support)
@@ -54,6 +55,11 @@ struct AboutScreen: View {
                     ]
                 )
                 .padding(.top, BikeyMetrics.Spacing.l)
+
+                Text("フルアクセスの設定方法：設定 → 一般 → キーボード → キーボード → AIキーボード → フルアクセスを許可。上のフルアクセスを押すと、動画付きの設定ガイドを開きます。")
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+                    .padding(.top, BikeyMetrics.Spacing.m)
 
                 Text("© 2026 敬語ボタン")
                     .bikeyFont(11, weight: .regular, relativeTo: .caption)
@@ -108,6 +114,9 @@ struct AboutScreen: View {
                 BikeyNavigationBackButton { dismiss() }
             }
         }
+        .navigationDestination(isPresented: $showFullAccessGuide) {
+            FullAccessGuideScreen()
+        }
         .sheet(item: $activeURL) { SafariView(url: $0.url) }
         .navigationDestination(isPresented: $showFeedback) {
             FeedbackScreen()
@@ -122,9 +131,81 @@ struct AboutScreen: View {
         }
     }
 
+}
+
+private struct FullAccessGuideScreen: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var video = KeyboardSetupGuideVideoCoordinator()
+    @State private var settingsOpenFailed = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: BikeyMetrics.Spacing.l) {
+                Text("AI機能を使うには、フルアクセスを許可してください。一度許可すれば、オフにしない限り再設定は不要です。")
+                    .bikeyFont(16, weight: .regular, relativeTo: .body)
+
+                if video.isAvailable {
+                    KeyboardSetupGuideVideoView(coordinator: video)
+                        .aspectRatio(666.0 / 990.0, contentMode: .fit)
+                        .frame(maxHeight: 280)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityLabel("フルアクセスを許可する手順の動画。手順は下の説明でも確認できます。")
+                }
+
+                Text("1. 下のボタンでアプリの設定を開く\n2. 「キーボード」をタップ\n3. 「フルアクセスを許可」をオン\n4. 確認画面で「許可」をタップ")
+                    .bikeyFont(16, weight: .regular, relativeTo: .body)
+
+                Text("通常の文字入力やログインだけなら、フルアクセスは不要です。AIへの送信は、AIボタンを押したときだけ行います。")
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+
+                BikeyPrimaryButton(title: localizedAppString(video.isAvailable ? "動画を見ながら設定を開く" : "設定を開く")) {
+                    video.openSettingsWithPictureInPicture(openSystemSettings)
+                }
+
+                Text("対応端末では、設定アプリに移動しても小さな動画で手順を確認できます。動画が表示されない場合は、上の手順に沿って設定してください。")
+                    .bikeyFont(13, weight: .regular, relativeTo: .footnote)
+                    .foregroundStyle(AppColor.muted)
+
+                Text("設定後は元のアプリに戻り、AIボタンをもう一度押してください。")
+                    .bikeyFont(14, weight: .regular, relativeTo: .body)
+            }
+            .padding(BikeyMetrics.Sizing.screenHorizontalInset)
+            .padding(.bottom, 84)
+        }
+        .foregroundStyle(AppColor.ink)
+        .background(AppColor.background.ignoresSafeArea())
+        .navigationTitle("フルアクセス")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                BikeyNavigationBackButton { dismiss() }
+            }
+        }
+        .alert("設定を開けませんでした", isPresented: $settingsOpenFailed) {
+            Button("閉じる", role: .cancel) {}
+        } message: {
+            Text("ホーム画面から設定を開き、一般 → キーボード → キーボード → AIキーボードへ進んでください。")
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                video.stopPictureInPicture()
+                video.play()
+            }
+        }
+        .onDisappear { video.stop() }
+    }
+
     private func openSystemSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
+        UIApplication.shared.open(url) { accepted in
+            Task { @MainActor in
+                settingsOpenFailed = !accepted
+                if !accepted { video.stopPictureInPicture() }
+            }
+        }
     }
 }
 

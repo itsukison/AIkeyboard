@@ -12,7 +12,8 @@ struct ProfileScreen: View {
     @State private var keyboardStyle: KeyboardPreferences.KeyboardStyle = KeyboardSettingsStore.readKeyboardStyle()
     @State private var promptCount: Int = UserPromptStore.readEntries().count
     @Binding var showAbout: Bool
-    @State private var showAuth = false
+    @Binding var showAuth: Bool
+    let onAuthDismiss: () -> Void
     #if DEBUG
     // Verification hook for the Zenzai latency gate: inflates the keyboard's
     // latency samples so the gate trips without real slowness. Turning it OFF
@@ -21,8 +22,11 @@ struct ProfileScreen: View {
     private var debugZenzaiForceSlow = false
     #endif
 
-    init(showAbout: Binding<Bool> = .constant(false)) {
+    init(showAbout: Binding<Bool> = .constant(false), showAuth: Binding<Bool> = .constant(false),
+         onAuthDismiss: @escaping () -> Void = {}) {
         _showAbout = showAbout
+        _showAuth = showAuth
+        self.onAuthDismiss = onAuthDismiss
     }
 
     private var keyboardSettingsDisplayName: LocalizedStringKey {
@@ -101,7 +105,7 @@ struct ProfileScreen: View {
                 KeyboardSettingsStore.writeCloudAIEnabled(true)
                 promptCount = UserPromptStore.readEntries().count
             }
-            .guestAuthCover(isPresented: $showAuth)
+            .guestAuthCover(isPresented: $showAuth, onDismiss: onAuthDismiss)
         }
     }
 
@@ -1257,11 +1261,8 @@ private struct KeyboardSettingsView: View {
     @Binding var selection: KeyboardPreferences.KeyboardStyle
     @AppStorage(KeyboardSettingsStore.keyClickSoundEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
     private var keyClickSoundEnabled = true
-    // Off by default, like the system keyboard's own haptic setting. iOS gives
-    // an extension no way to read that preference (or the ring switch), so this
-    // toggle is the only control — it belongs next to the key-click sound.
     @AppStorage(KeyboardSettingsStore.hapticsEnabledKey, store: KeyboardSettingsStore.sharedDefaults)
-    private var hapticsEnabled = false
+    private var hapticsEnabled = true
 
     // NOTE: The key-size slider + live keyboard preview are deferred. The
     // rendering plumbing (KeyboardKeySizeObserver, the views' keySizeObserver
@@ -1322,22 +1323,19 @@ private struct KeyboardSettingsView: View {
         }
     }
 
-    /// Haptics need Full Access (the Taptic Engine call is unavailable without
-    /// it), so turning the toggle on re-checks and explains rather than silently
-    /// storing a preference that can't take effect.
+    /// Keep the preference on while explaining why feedback needs Full Access.
     private var hapticsBinding: Binding<Bool> {
         Binding(
             get: { hapticsEnabled },
             set: { enabled in
+                hapticsEnabled = enabled
                 if enabled {
                     keyboardStatus.refresh()
                     guard keyboardStatus.isFullAccessEnabled else {
-                        hapticsEnabled = false
                         overlay.present(.hapticsFullAccessRequired)
                         return
                     }
                 }
-                hapticsEnabled = enabled
             }
         )
     }

@@ -266,6 +266,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         configureJapaneseKeyboardBehavior()
         syncFullAccessStatus()
         aiKeyboardController.refreshPrompts()
+        aiKeyboardController.refreshRecoveryState(onAppearance: true)
         aiKeyboardController.refreshReplyAvailabilityOnAppear()
         aiKeyboardController.refreshUpdateNudgeOnAppear()
         KeyboardUsageDailyStore.recordKeyboardOpen()
@@ -308,7 +309,6 @@ final class KeyboardViewController: KeyboardInputViewController {
         InputLatencyProbe.stopSampling()
         #endif
         aiKeyboardController.stopClipboardMonitoring()
-        aiKeyboardController.markClipboardSeenOnDisappear()
         if let appearedAt = keyboardAppearedAt {
             let elapsed = Int(Date().timeIntervalSince(appearedAt))
             if elapsed > 0 && elapsed < 3600 {
@@ -628,10 +628,8 @@ final class KeyboardViewController: KeyboardInputViewController {
             context.keyboardType = .alphabetic
         }
         // iOS's keyboard haptic preference is private to UIKit and unreadable
-        // from a keyboard extension, so users opt in through our setting —
-        // which defaults off, like the system keyboard's own haptic setting.
-        // (UIFeedbackGenerator is not muted by the ring switch either, so an
-        // on-by-default keyboard buzzes in silent mode where native doesn't.)
+        // from a keyboard extension, so our setting controls feedback and
+        // defaults on unless the user explicitly disables it.
         // We fire haptics in JapaneseActionHandler because custom-composed keys
         // return before KeyboardKit's standard feedback path. The preference
         // is runtime-gated on Full Access below; we never persist a downgrade
@@ -673,6 +671,10 @@ final class KeyboardViewController: KeyboardInputViewController {
         guard lastSyncedFullAccessStatus != hasFullAccess else { return }
         lastSyncedFullAccessStatus = hasFullAccess
         KeyboardSettingsStore.writeLastKnownFullAccessEnabled(hasFullAccess)
+        KeyboardDiagnosticStore.record("keyboard_permission_observed", properties: [
+            "full_access": String(hasFullAccess),
+            "app_version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
+        ])
     }
 
 }

@@ -3,6 +3,7 @@ import JapaneseKeyboardUI
 import SwiftUI
 
 struct AIResultOverlayView: View {
+    @Environment(\.openURL) private var openURL
     @ObservedObject var aiController: AIKeyboardController
     let onTriggerHaptic: () -> Void
     let onSelectionHaptic: () -> Void
@@ -12,8 +13,55 @@ struct AIResultOverlayView: View {
     // reused across `.generating ↔ .result`, preserving carousel identity
     // and scroll offset across the skeleton → real-card swap.
     var body: some View {
-        if let model = panelModel {
+        if let help = aiController.recoveryNavigation.help {
+            recoveryPanel(help)
+        } else if let model = panelModel {
             panel(model: model)
+        }
+    }
+
+    private func recoveryPanel(_ help: AIRecoveryHelp) -> some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: KeyboardChromeMetrics.toolbarHeight).allowsHitTesting(false)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(help.reason == .openingRejected ? String(localized: "アプリを開けませんでした") : String(localized: "フルアクセスを許可"))
+                        .font(.headline)
+                    Text(manualInstructions(help.reason == .fullAccessDisabled ? .fullaccess : help.destination))
+                    HStack {
+                        if help.reason == .openingRejected {
+                            Button("もう一度開く") {
+                                aiController.openDestination(help.destination) { url, completion in
+                                    openURL(url, completion: completion)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Button("閉じる") { aiController.close() }
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .font(.subheadline)
+                .foregroundStyle(KeyboardPalette.ink)
+                .padding(12)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(KeyboardPalette.surface)
+        }
+    }
+
+    private func manualInstructions(_ destination: AIRecoveryDestination) -> String {
+        switch destination {
+        case .fullaccess:
+            return String(localized: "設定で「敬語ボタン」を検索 → キーボード →「フルアクセスを許可」をオン")
+        case .login:
+            return String(localized: "敬語ボタンを開く → 設定 → サインイン / アカウントを作成")
+        case .consent:
+            return String(localized: "敬語ボタンを開く → 設定 → 敬語ボタンについて → AI変換とプライバシー")
+        case .settings:
+            return String(localized: "敬語ボタンを開く → 設定")
+        case .update:
+            return String(localized: "App Storeで「敬語ボタン」を検索してアップデート")
         }
     }
 
@@ -134,6 +182,22 @@ struct AIResultOverlayView: View {
                         onTriggerHaptic()
                         aiController.refine(intent)
                     }
+                }
+                if !aiController.isPracticeModeActive {
+                    Menu {
+                        Button("役に立った") { aiController.submitUsefulness("useful") }
+                        Button("言い回しが不自然") { aiController.submitUsefulness("wording") }
+                        Button("意味が変わった") { aiController.submitUsefulness("meaning") }
+                        Button("待ち時間が長い") { aiController.submitUsefulness("latency") }
+                        Button("置き換えがうまくいかない") { aiController.submitUsefulness("replacement") }
+                    } label: {
+                        Label("感想を送る", systemImage: "bubble.left")
+                            .font(.system(size: 13))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(KeyboardPalette.surface, in: Capsule())
+                    }
+                    .accessibilityLabel("この候補の感想を送る")
                 }
             }
             .padding(.horizontal, 12)

@@ -15,7 +15,13 @@ struct AIKeyboardToolbarView: View {
 
     var body: some View {
         Group {
-            if let isOverflow = mainBarMode {
+            if let help = aiController.recoveryNavigation.help {
+                HStack {
+                    Text(help.reason == .fullAccessDisabled || help.destination == .fullaccess ? String(localized: "フルアクセス") : String(localized: "AIの設定")).font(.system(size: 14))
+                    Spacer()
+                    closeButton(side: KeyboardChromeMetrics.toolbarHeight)
+                }.padding(.horizontal, 12)
+            } else if let isOverflow = mainBarMode {
                 mainBar(isOverflow: isOverflow)
             } else {
                 otherStatesBar
@@ -47,6 +53,8 @@ struct AIKeyboardToolbarView: View {
             consentRequiredBar
         case .fullAccessRequired:
             fullAccessRequiredBar
+        case .signInRequired, .cloudDisabled:
+            recoveryMainBar
         case .hidden, .overflow:
             EmptyView()
         }
@@ -58,14 +66,24 @@ struct AIKeyboardToolbarView: View {
     private func mainBar(isOverflow: Bool) -> some View {
         // Practice mode (onboarding) presents the real buttons before sign-in;
         // taps are answered locally, so no auth is needed yet.
-        if !aiController.isSignedInForAI() && !aiController.isPracticeModeActive {
-            signedOutBar
+        if aiController.readiness != .ready {
+            recoveryMainBar
         } else {
             signedInMainBar(isOverflow: isOverflow)
         }
     }
 
-    private var signedOutBar: some View {
+    private var recoveryAction: (String, AIRecoveryDestination) {
+        switch aiController.readiness {
+        case .fullAccessRequired: return (String(localized: "フルアクセスを許可"), .fullaccess)
+        case .signInRequired: return (aiController.needsReauthentication ? String(localized: "再ログイン") : String(localized: "ログイン"), .login)
+        case .consentRequired: return (String(localized: "プライバシーを確認"), .consent)
+        case .cloudDisabled: return (String(localized: "AIの設定"), .settings)
+        case .ready: return (String(localized: "AIの設定"), .settings)
+        }
+    }
+
+    private var recoveryMainBar: some View {
         HStack(spacing: 0) {
             if aiController.updateAvailable {
                 updatePill()
@@ -74,8 +92,7 @@ struct AIKeyboardToolbarView: View {
                     .frame(width: 6)
             }
 
-            pillLink(label: "ログイン", url: AIKeyboardController.loginURL)
-            .accessibilityLabel("ログインまたは登録")
+            pillLink(label: recoveryAction.0, url: recoveryAction.1.url)
 
             Spacer()
                 .frame(width: 8)
@@ -215,25 +232,7 @@ struct AIKeyboardToolbarView: View {
     /// as `replyPill`). Opens the container, which forces the App Store check
     /// and presents its update modal; dismissal there hides this pill too.
     private func updatePill() -> some View {
-        Link(destination: AIKeyboardController.updateURL) {
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.down.circle")
-                    .font(.system(size: 12, weight: .semibold))
-                Text("アップデート")
-                    .font(.system(size: 14, weight: .medium))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(KeyboardPalette.accent)
-            .padding(.horizontal, 11)
-            .frame(height: KeyboardChromeMetrics.toolbarButtonHeight)
-            .background(
-                KeyboardPalette.pillBackground,
-                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-            )
-        }
-        .buttonStyle(.plain)
-        .simultaneousGesture(TapGesture().onEnded { onTriggerHaptic() })
-        .accessibilityLabel("アプリの新しいバージョンがあります")
+        pillLink(label: "アップデート", url: AIKeyboardController.updateURL)
     }
 
     private func commandPill(prompt: UserPrompt) -> some View {
@@ -318,7 +317,7 @@ struct AIKeyboardToolbarView: View {
 
             Spacer(minLength: 4)
 
-            pillLink(label: "プライバシーを確認", url: AIKeyboardController.consentURL)
+            pillLink(label: String(localized: "プライバシーを確認"), url: AIKeyboardController.consentURL)
             .accessibilityLabel("アプリでプライバシーを確認する")
 
             closeButton(side: KeyboardChromeMetrics.toolbarButtonHeight)
@@ -339,8 +338,8 @@ struct AIKeyboardToolbarView: View {
 
             Spacer(minLength: 4)
 
-            pillLink(label: "フルアクセスを開く", url: AIKeyboardController.fullAccessURL)
-            .accessibilityLabel("アプリでフルアクセスを有効にする")
+            pillLink(label: String(localized: "設定方法"), url: AIKeyboardController.fullAccessURL)
+            .accessibilityLabel("フルアクセスの設定方法を見る")
 
             closeButton(side: KeyboardChromeMetrics.toolbarButtonHeight)
         }
@@ -357,24 +356,25 @@ struct AIKeyboardToolbarView: View {
         .buttonStyle(.plain)
     }
 
-    /// A pill that opens a container-app URL. The URL still goes through
-    /// SwiftUI's supported openURL path, but the tap is detected from raw UIKit
-    /// touches because SwiftUI controls can drop toolbar presses on iOS 26.
+    private func openDestination(_ url: URL) {
+        guard let host = url.host, let destination = AIRecoveryDestination(rawValue: host) else { return }
+        onTriggerHaptic()
+        aiController.openDestination(destination) { url, completion in
+            openURL(url, completion: completion)
+        }
+    }
+
     private func pillLink(label: String, url: URL) -> some View {
         pillLabel(label, isSelected: false)
             .contentShape(Rectangle())
             .overlay {
-                KeyboardToolbarTapSurface(label: "url-\(label)") {
-                    onTriggerHaptic()
-                    // Temporary diagnostics (same investigation as the candidate
-                    // expander): separates "tap never fired" from "openURL was
-                    // rejected" when reading a device log.
-                    openURL(url) { accepted in
-                        NSLog("%@", "🔗 [url-\(label)] openURL accepted=\(accepted)")
-                    }
-                }
+                KeyboardToolbarTapSurface(label: label) { openDestination(url) }
+                    .accessibilityHidden(true)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label)
             .accessibilityAddTraits(.isButton)
+            .accessibilityAction { openDestination(url) }
     }
 
     /// The ✕ close control. Same raw-touch tap surface as `pillLink`: a SwiftUI
@@ -389,10 +389,11 @@ struct AIKeyboardToolbarView: View {
                 KeyboardToolbarTapSurface(label: "close") {
                     onTriggerHaptic()
                     aiController.close()
-                }
+                }.accessibilityHidden(true)
             }
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel("閉じる")
+            .accessibilityAction { aiController.close() }
     }
 
     private struct KeyboardToolbarTapSurface: UIViewRepresentable {

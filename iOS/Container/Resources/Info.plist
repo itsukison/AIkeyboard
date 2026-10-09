@@ -23,9 +23,9 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.18</string>
+    <string>1.0.20</string>
     <key>CFBundleVersion</key>
-    <string>21</string>
+    <string>23</string>
     <key>POSTHOG_PROJECT_TOKEN</key>
     <string>$(POSTHOG_PROJECT_TOKEN)</string>
     <key>POSTHOG_HOST</key>
@@ -58,6 +58,10 @@
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
     </dict>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UIRequiredDeviceCapabilities</key>

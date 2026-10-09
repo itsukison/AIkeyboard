@@ -1,0 +1,5 @@
+"ACTIVATION_TITLE" = "启用键盘";
+"ACTIVATION_STEPS" = "启用步骤：\n1. 点击“键盘”。\n2. 开启“敬語ボタン”。\n3. 开启“允许完全访问”。";
+"FULL_ACCESS_TITLE" = "完全访问";
+"FULL_ACCESS_VALUE" = "仅用于 AI 功能";
+"PRIVACY_FOOTER" = "只有在你点击 AI 按钮时，当前文本才会被安全发送。普通输入内容和按键记录绝不会被自动发送。";

@@ -26,6 +26,45 @@ final class AIKeyboardController: ObservableObject {
     /// App Group (the extension itself never checks the network for this).
     @Published private(set) var updateAvailable: Bool = false
 
+    @Published private(set) var readiness: AIReadiness = .ready
+    @Published private(set) var recoveryNavigation = AIRecoveryNavigation()
+    private var rejectedAccessToken: String?
+
+    var hasFullAccess: Bool { controller?.hasFullAccess == true }
+    var needsReauthentication: Bool { rejectedAccessToken != nil }
+
+    func refreshRecoveryState(onAppearance: Bool = false) {
+        if onAppearance { recoveryNavigation.dismiss() }
+        let token = AIAuthStore.readAccessToken()
+        if token != rejectedAccessToken { rejectedAccessToken = nil }
+        readiness = AIReadiness.evaluate(
+            practice: isPracticeModeActive, fullAccess: hasFullAccess,
+            hasToken: token != nil, sessionRejected: rejectedAccessToken != nil,
+            consent: KeyboardSettingsStore.readAIConsentGranted(),
+            cloudEnabled: KeyboardSettingsStore.readCloudAIEnabled()
+        )
+        if recoveryNavigation.help?.reason == .fullAccessDisabled && hasFullAccess {
+            recoveryNavigation.dismiss()
+        }
+        switch state {
+        case .signInRequired, .consentRequired, .fullAccessRequired, .cloudDisabled:
+            state = .hidden
+        default: break
+        }
+    }
+
+    func openDestination(_ destination: AIRecoveryDestination,
+                         using open: (URL, @escaping (Bool) -> Void) -> Void) {
+        refreshRecoveryState()
+        inputManager.collapseCandidateList()
+        guard let id = recoveryNavigation.begin(destination, fullAccess: hasFullAccess) else { return }
+        open(destination.url) { [weak self] accepted in
+            Task { @MainActor in
+                self?.recoveryNavigation.complete(id, destination: destination, accepted: accepted)
+            }
+        }
+    }
+
     private weak var controller: KeyboardViewController?
     private let fallbackInputManager: InputManager
     private var inputManager: InputManager {
@@ -50,10 +89,12 @@ final class AIKeyboardController: ObservableObject {
     /// Maps the combined candidate list back to the rewrite event that produced
     /// each segment (start index → event id), so an accepted candidate is
     /// reported to the right event. Reset when a fresh generation begins.
-    private var generationSegments: [(eventId: String, start: Int)] = []
+    private var generationSegments: [(eventId: String, start: Int, attempt: RewriteAttemptMetadata)] = []
     /// When the current result was first shown, for action latency (how long the
     /// user considered the candidates before regenerating or dismissing).
     private var resultShownAt: Date?
+    private var attempt: RewriteAttemptMetadata?
+    private var firstCandidateShown = false
     /// The copied message for the active reply session. Set on `runReply`, reused
     /// by `regenerate`, cleared by `runFresh` and `close`.
     private var replyContext: String?
@@ -61,10 +102,21 @@ final class AIKeyboardController: ObservableObject {
     /// notification when another app copies, so a freshly copied message would
     /// otherwise not surface the 返信 pill until the next text/selection change.
     private var clipboardMonitor: Timer?
+    /// When the keyboard last appeared, and the change count the pill was last
+    /// raised for. Process-wide rather than per-instance because iOS can deliver
+    /// a second appearance callback for one presentation — possibly onto a fresh
+    /// controller — and the pill has to survive that without it counting as the
+    /// user reopening the keyboard.
+    private static var lastAppearedAt: Date?
+    private static var lastPromotedChangeCount: Int?
+    /// Appearance callbacks this close together are one presentation. Anything
+    /// later is the user having closed and reopened the keyboard.
+    private static let samePresentationWindow: TimeInterval = 2
 
     init(controller: KeyboardViewController, inputManager: InputManager) {
         self.controller = controller
         self.fallbackInputManager = inputManager
+        refreshRecoveryState()
     }
 
     var isActive: Bool {
@@ -97,9 +149,13 @@ final class AIKeyboardController: ObservableObject {
         KeyboardSettingsStore.readOnboardingPracticeActive()
     }
 
-    func close() {
-        if case .result = state {
-            reportAction("dismissed")
+    func close(reason: String = "explicit_dismissal") {
+        recoveryNavigation.dismiss()
+        if case .result(_, _, _, let selectedIndex) = state {
+            reportAction("dismissed", selectedIndex: selectedIndex)
+            recordResultClose(reason, selectedIndex: selectedIndex)
+        } else if case .generating = state {
+            recordDiagnostic("ai_rewrite_generation_cancelled", extra: ["close_reason": reason])
         }
         rewriteTask?.cancel()
         rewriteTask = nil
@@ -109,13 +165,18 @@ final class AIKeyboardController: ObservableObject {
         state = .hidden
     }
 
-    /// Re-evaluates the reply pill on keyboard appearance: a fresh copy since the
-    /// keyboard last disappeared shows the pill, a stale clipboard hides it. Also
-    /// starts polling so a copy made while the keyboard stays open surfaces the
-    /// pill. Safe to call repeatedly within one presentation.
+    /// Re-evaluates the reply pill on keyboard appearance: a copy the pill has
+    /// not been raised for yet shows it, an already-offered clipboard hides it.
+    /// Also starts polling so a copy made while the keyboard stays open surfaces
+    /// the pill. Safe to call repeatedly within one presentation.
     func refreshReplyAvailabilityOnAppear() {
+        let now = Date()
+        let isSamePresentation = Self.lastAppearedAt.map {
+            now.timeIntervalSince($0) < Self.samePresentationWindow
+        } ?? false
+        Self.lastAppearedAt = now
         replyAvailable = false
-        promoteReplyIfFreshCopy()
+        promoteReplyIfFreshCopy(rePromotingLastCopy: isSamePresentation)
         startClipboardMonitoring()
     }
 
@@ -146,34 +207,35 @@ final class AIKeyboardController: ObservableObject {
 
     /// Detects a freshly copied message using pasteboard metadata only
     /// (`changeCount` / `hasStrings`) — no content access, so iOS shows no paste
-    /// banner. Detection is pure: the stored count moves only on disappearance
-    /// (`markClipboardSeenOnDisappear`), never here. Consuming it at first sight
-    /// lost the pill whenever iOS delivered a second appearance callback for the
-    /// same presentation — the re-run reset `replyAvailable` and then found the
-    /// count already seen, so a copy made before the keyboard came up (the
-    /// copy-then-focus flow) could never raise the pill.
-    private func promoteReplyIfFreshCopy() {
+    /// banner. The count is consumed here, the moment the pill is raised: one
+    /// copy earns one offer, so closing and reopening the keyboard hides the pill
+    /// again. Consuming it on disappearance instead left the pill stuck forever
+    /// whenever the extension went away without `viewWillDisappear` running to
+    /// completion (host backgrounded, jetsam, the App Group write dying with the
+    /// process) — nothing else ever lowers the pill.
+    ///
+    /// `rePromotingLastCopy` covers the one case that must not consume: iOS
+    /// delivering a second appearance callback for the same presentation. That
+    /// re-run resets `replyAvailable`, and without re-promotion the copy-then-
+    /// focus flow (copy, then tap the field) could never raise the pill.
+    private func promoteReplyIfFreshCopy(rePromotingLastCopy: Bool = false) {
         guard !replyAvailable else { return }
         let pasteboard = UIPasteboard.general
         let current = pasteboard.changeCount
-        guard current != KeyboardSettingsStore.readLastSeenPasteboardChangeCount() else { return }
+        let isFreshCopy = current != KeyboardSettingsStore.readLastSeenPasteboardChangeCount()
+        guard isFreshCopy || (rePromotingLastCopy && current == Self.lastPromotedChangeCount) else { return }
         let hasStrings = pasteboard.hasStrings
         #if DEBUG
-        NSLog("%@", "📋 [reply-pill] changeCount=\(current) hasStrings=\(hasStrings)")
+        NSLog("%@", "📋 [reply-pill] changeCount=\(current) hasStrings=\(hasStrings) fresh=\(isFreshCopy)")
         #endif
         // A cold-launching extension can report the copy's changeCount before the
         // item itself is readable; the poll retries until `hasStrings` is true.
         guard hasStrings else { return }
+        Self.lastPromotedChangeCount = current
+        KeyboardSettingsStore.writeLastSeenPasteboardChangeCount(current)
         withAnimation(.easeInOut(duration: 0.28)) {
             replyAvailable = true
         }
-    }
-
-    /// Called on keyboard disappearance: whatever is on the clipboard now —
-    /// replied to or ignored — is stale for the next session, so the pill
-    /// starts hidden until something new is copied.
-    func markClipboardSeenOnDisappear() {
-        KeyboardSettingsStore.writeLastSeenPasteboardChangeCount(UIPasteboard.general.changeCount)
     }
 
     /// Reads the clipboard and starts a reply. Reading `UIPasteboard.general.string`
@@ -194,8 +256,10 @@ final class AIKeyboardController: ObservableObject {
     /// system paste control). Empty text surfaces a Japanese error.
     func runReply(withCopiedText text: String) {
         guard let controller else { return }
+        beginAttempt()
         let copied = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !copied.isEmpty else {
+            failAttempt("reply_source_empty")
             state = .error(prompt: UserPromptDefaults.replyPrompt(), message: "返信元のメッセージをコピーしてください")
             return
         }
@@ -208,9 +272,11 @@ final class AIKeyboardController: ObservableObject {
         do {
             capture = try InputCapture.captureForReply(from: controller.textDocumentProxy.ai)
         } catch WholeInputCaptureError.tooLong {
+            failAttempt("input_too_long")
             state = .error(prompt: UserPromptDefaults.replyPrompt(), message: "入力が長すぎます")
             return
         } catch {
+            failAttempt("capture_unavailable")
             state = .error(prompt: UserPromptDefaults.replyPrompt(), message: "返信を作成できませんでした")
             return
         }
@@ -271,6 +337,7 @@ final class AIKeyboardController: ObservableObject {
     func regenerate() {
         guard case .result(let prompt, let capture, let candidates, _) = state else { return }
         reportAction("regenerated")
+        beginAttempt(kind: "regenerate", parent: generationSegments.last)
         fire(prompt: prompt, capture: capture, inputText: capture.targetText, refinement: nil, existing: candidates, replyTo: replyContext)
     }
 
@@ -278,6 +345,7 @@ final class AIKeyboardController: ObservableObject {
         guard case .result(let prompt, let capture, let candidates, let selectedIndex) = state else { return }
         guard candidates.indices.contains(selectedIndex) else { return }
         let focused = candidates[selectedIndex].replacement
+        beginAttempt(kind: "refine", parent: generationSegments.last(where: { $0.start <= selectedIndex }))
         // Refinement operates on the chosen candidate as a plain rewrite, so it
         // does not re-reply (no `replyTo`).
         fire(prompt: prompt, capture: capture, inputText: focused, refinement: intent, existing: candidates)
@@ -313,7 +381,8 @@ final class AIKeyboardController: ObservableObject {
                 } catch {
                     self?.isMovingCursorInternally = false
                     self?.replaceTask = nil
-                    self?.reportAction("replace_failed")
+                    self?.reportAction("replace_failed", selectedIndex: selectedIndex)
+                    self?.recordReplacement("failed", selectedIndex: selectedIndex)
                     self?.state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")
                 }
             }
@@ -332,7 +401,8 @@ final class AIKeyboardController: ObservableObject {
             submitSelectionFeedback(for: selectedIndex)
             state = .hidden
         } catch {
-            reportAction("replace_failed")
+            reportAction("replace_failed", selectedIndex: selectedIndex)
+            recordReplacement("failed", selectedIndex: selectedIndex)
             state = .error(prompt: nil, message: "入力が変わりました。もう一度実行してください")
         }
     }
@@ -349,6 +419,7 @@ final class AIKeyboardController: ObservableObject {
     /// Reports the accepted candidate back to its originating rewrite event.
     /// Fire-and-forget so the replace UI never waits on the network.
     private func submitSelectionFeedback(for selectedIndex: Int) {
+        recordReplacement("accepted", selectedIndex: selectedIndex)
         guard let segment = generationSegments.last(where: { $0.start <= selectedIndex }) else { return }
         let eventId = segment.eventId
         let localIndex = selectedIndex - segment.start
@@ -360,8 +431,10 @@ final class AIKeyboardController: ObservableObject {
 
     /// Reports a lifecycle action (regenerated / dismissed) on the current
     /// result to its latest rewrite event. Fire-and-forget.
-    private func reportAction(_ action: String) {
-        guard let eventId = generationSegments.last?.eventId else { return }
+    private func reportAction(_ action: String, selectedIndex: Int? = nil) {
+        let segment = selectedIndex.flatMap { index in generationSegments.last(where: { $0.start <= index }) }
+            ?? generationSegments.last
+        guard let eventId = segment?.eventId else { return }
         let latencyMs = resultShownAt.map { Int(Date().timeIntervalSince($0) * 1000) }
         let service = CloudRewriteService(configuration: CloudRewriteConfiguration(appVersion: Self.appVersion))
         Task.detached {
@@ -379,7 +452,7 @@ final class AIKeyboardController: ObservableObject {
         switch state {
         case .generating(_, let capture, _, _, _), .result(_, let capture, _, _):
             if capture.documentIdentifierString != current {
-                close()
+                close(reason: "document_changed")
             }
         default:
             break
@@ -388,6 +461,7 @@ final class AIKeyboardController: ObservableObject {
 
     private func runFresh(prompt: UserPrompt) {
         guard let controller else { return }
+        beginAttempt()
         replyContext = nil
 
         // Selection mode: rewrite only the highlighted text. Checked before the
@@ -401,9 +475,11 @@ final class AIKeyboardController: ObservableObject {
             do {
                 capture = try InputCapture.captureSelection(from: controller.textDocumentProxy.ai)
             } catch WholeInputCaptureError.tooLong {
+                failAttempt("input_too_long")
                 state = .error(prompt: prompt, message: "入力が長すぎます")
                 return
             } catch {
+                failAttempt("input_empty_or_unavailable")
                 state = .error(prompt: prompt, message: "入力してからAIを使えます")
                 return
             }
@@ -423,9 +499,11 @@ final class AIKeyboardController: ObservableObject {
         do {
             windowCapture = try InputCapture.capture(from: controller.textDocumentProxy.ai)
         } catch WholeInputCaptureError.tooLong {
+            failAttempt("input_too_long")
             state = .error(prompt: prompt, message: "入力が長すぎます")
             return
         } catch {
+            failAttempt("input_empty_or_unavailable")
             state = .error(prompt: prompt, message: "入力してからAIを使えます")
             return
         }
@@ -457,6 +535,7 @@ final class AIKeyboardController: ObservableObject {
             switch result {
             case .tooLong:
                 self.rewriteTask = nil
+                self.failAttempt("input_too_long")
                 self.state = .error(prompt: prompt, message: "入力が長すぎます")
                 return
             case .failed:
@@ -494,23 +573,15 @@ final class AIKeyboardController: ObservableObject {
         // Practice mode never touches the network, so the consent / cloud /
         // full-access / sign-in gates don't apply to it.
         if isPracticeModeActive { return true }
-        guard KeyboardSettingsStore.readAIConsentGranted() else {
-            state = .consentRequired(prompt: prompt)
-            return false
+        refreshRecoveryState()
+        switch readiness {
+        case .ready: return true
+        case .fullAccessRequired: failAttempt("full_access_required"); state = .fullAccessRequired(prompt: prompt)
+        case .signInRequired: failAttempt("sign_in_required"); state = .signInRequired(prompt: prompt)
+        case .consentRequired: failAttempt("consent_required"); state = .consentRequired(prompt: prompt)
+        case .cloudDisabled: failAttempt("cloud_disabled"); state = .cloudDisabled(prompt: prompt)
         }
-        guard KeyboardSettingsStore.readCloudAIEnabled() else {
-            state = .error(prompt: prompt, message: "Cloud AIを設定でオンにしてください")
-            return false
-        }
-        guard controller.state.keyboardContext.hasFullAccess else {
-            state = .fullAccessRequired(prompt: prompt)
-            return false
-        }
-        guard AIAuthStore.readAccessToken() != nil else {
-            state = .error(prompt: prompt, message: "アプリでサインインしてください")
-            return false
-        }
-        return true
+        return false
     }
 
     private func fire(
@@ -545,6 +616,8 @@ final class AIKeyboardController: ObservableObject {
             commandKey: prompt.builtinKey,
             title: prompt.title,
             promptOrigin: prompt.origin.rawValue,
+            buttonId: prompt.id.uuidString.lowercased(),
+            buttonPurpose: prompt.purpose?.rawValue,
             locale: Self.locale(for: prompt),
             appVersion: configuration.appVersion,
             candidateCount: Self.candidateCount,
@@ -553,8 +626,12 @@ final class AIKeyboardController: ObservableObject {
             selection: isSelection,
             selectionContextBefore: isSelection ? String(capture.beforeCursor.suffix(200)) : nil,
             selectionContextAfter: isSelection ? String(capture.afterCursor.prefix(200)) : nil,
-            stream: true
+            stream: true,
+            diagnostics: attempt
         )
+        let generationAttempt = attempt ?? RewriteAttemptMetadata()
+        firstCandidateShown = false
+        recordDiagnostic("ai_rewrite_generation_started")
         let service = CloudRewriteService(configuration: configuration)
         // A new batch starts with the user not having taken over yet.
         generationScrollIndex = nil
@@ -578,6 +655,11 @@ final class AIKeyboardController: ObservableObject {
                 guard case .generating(
                     let statePrompt, let stateCapture, let stateRefinement, let shown, let pending
                 ) = self.state, pending > 0 else { return }
+                guard self.attempt?.attemptId == generationAttempt.attemptId else { return }
+                if !self.firstCandidateShown {
+                    self.firstCandidateShown = true
+                    self.recordDiagnostic("ai_rewrite_first_candidate_shown")
+                }
                 self.state = .generating(
                     prompt: statePrompt,
                     capture: stateCapture,
@@ -599,9 +681,11 @@ final class AIKeyboardController: ObservableObject {
                     ? [RewriteCandidate(replacement: inputText, changed: false)]
                     : result.candidates
                 await MainActor.run {
+                    guard self?.attempt?.attemptId == generationAttempt.attemptId else { return }
                     let combined = existing + newCandidates
                     if let eventId = result.eventId {
-                        self?.generationSegments.append((eventId: eventId, start: existing.count))
+                        self?.generationSegments.append((eventId: eventId, start: existing.count, attempt: generationAttempt))
+                        self?.recordDiagnostic("ai_rewrite_result_shown", extra: ["event_id": eventId])
                     }
                     // Default to the first card of the new batch, but if the user
                     // scrolled while it was streaming in, leave them there — the
@@ -625,10 +709,96 @@ final class AIKeyboardController: ObservableObject {
             } catch {
                 guard !Task.isCancelled else { return }
                 await MainActor.run {
-                    self?.state = .error(prompt: prompt, message: Self.message(for: error))
+                    guard self?.attempt?.attemptId == generationAttempt.attemptId else { return }
+                    self?.recordDiagnostic("ai_rewrite_generation_failed", extra: ["failure_reason": Self.failureCategory(error)])
+                    if error as? CloudRewriteError == .credentialsChanged {
+                        self?.state = .hidden
+                        self?.refreshRecoveryState()
+                    } else if case .sessionRejected(let token) = error as? CloudRewriteError {
+                        if AIAuthStore.readAccessToken() == token {
+                            self?.rejectedAccessToken = token
+                            self?.readiness = .signInRequired
+                            self?.state = .signInRequired(prompt: prompt)
+                        } else {
+                            self?.state = .hidden
+                            self?.refreshRecoveryState()
+                        }
+                    } else if error as? CloudRewriteError == .notSignedIn {
+                        self?.state = .hidden
+                        self?.refreshRecoveryState()
+                        if self?.readiness == .signInRequired {
+                            self?.state = .signInRequired(prompt: prompt)
+                        }
+                    } else {
+                        self?.state = .error(prompt: prompt, message: Self.message(for: error))
+                    }
                     self?.rewriteTask = nil
                 }
             }
+        }
+    }
+
+    private func beginAttempt(kind: String = "fresh", parent: (eventId: String, start: Int, attempt: RewriteAttemptMetadata)? = nil) {
+        if case .generating = state {
+            recordDiagnostic("ai_rewrite_generation_cancelled", extra: ["close_reason": "superseded"])
+        } else if case .result(_, _, _, let selectedIndex) = state, kind == "fresh" {
+            recordResultClose("superseded", selectedIndex: selectedIndex)
+        }
+        attempt = RewriteAttemptMetadata(kind: kind, previous: parent?.attempt, parentGenerationId: parent?.eventId,
+            onboardingAttemptId: KeyboardSettingsStore.sharedDefaults?.string(forKey: KeyboardDiagnosticStore.onboardingAttemptKey),
+            appBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String)
+        recordDiagnostic("ai_rewrite_attempted")
+    }
+
+    private func failAttempt(_ reason: String) {
+        recordDiagnostic("ai_rewrite_attempt_blocked", extra: ["readiness_blocker": reason])
+    }
+
+    private func recordDiagnostic(_ name: String, extra: [String: String] = [:],
+                                  originating: RewriteAttemptMetadata? = nil) {
+        guard let metadata = originating ?? attempt else { return }
+        var values = metadata.properties.merging(extra) { _, new in new }
+        values["context"] = isPracticeModeActive ? "practice" : "live"
+        values["app_version"] = Self.appVersion
+        values["app_build"] = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        if let id = KeyboardSettingsStore.sharedDefaults?.string(forKey: KeyboardDiagnosticStore.onboardingAttemptKey) {
+            values["onboarding_attempt_id"] = id
+        }
+        KeyboardDiagnosticStore.record(name, properties: values)
+    }
+
+    private func recordReplacement(_ outcome: String, selectedIndex: Int) {
+        if let segment = generationSegments.last(where: { $0.start <= selectedIndex }) {
+            recordDiagnostic("ai_rewrite_replacement", extra: ["outcome": outcome, "event_id": segment.eventId,
+                "selected_index": String(selectedIndex - segment.start)], originating: segment.attempt)
+        } else if isPracticeModeActive {
+            recordDiagnostic("ai_rewrite_replacement", extra: ["outcome": outcome])
+        }
+    }
+
+    private func recordResultClose(_ reason: String, selectedIndex: Int) {
+        if let segment = generationSegments.last(where: { $0.start <= selectedIndex }) {
+            recordDiagnostic("ai_rewrite_result_closed", extra: ["close_reason": reason, "event_id": segment.eventId], originating: segment.attempt)
+        } else if isPracticeModeActive {
+            recordDiagnostic("ai_rewrite_result_closed", extra: ["close_reason": reason])
+        }
+    }
+
+    func submitUsefulness(_ reason: String) {
+        guard case .result(_, _, _, let selectedIndex) = state,
+              let segment = generationSegments.last(where: { $0.start <= selectedIndex }) else { return }
+        recordDiagnostic("ai_rewrite_usefulness", extra: ["reason": reason, "event_id": segment.eventId,
+            "selected_index": String(selectedIndex - segment.start)], originating: segment.attempt)
+    }
+
+    private static func failureCategory(_ error: Error) -> String {
+        switch error {
+        case CloudRewriteError.notSignedIn, CloudRewriteError.sessionRejected: return "session_rejected"
+        case CloudRewriteError.credentialsChanged: return "credentials_changed"
+        case CloudRewriteError.temporarilyUnavailable: return "service_unavailable"
+        case CloudRewriteError.invalidResponse: return "invalid_response"
+        case is URLError: return "network_error"
+        default: return "generation_error"
         }
     }
 
@@ -636,6 +806,7 @@ final class AIKeyboardController: ObservableObject {
     /// the container-provided candidates after a short beat, entirely offline.
     /// `generationSegments` stays empty, so selection/action feedback no-ops.
     private func firePractice(prompt: UserPrompt, capture: WholeInputCapture, inputText: String) {
+        recordDiagnostic("ai_rewrite_generation_started")
         let stored = KeyboardSettingsStore.readOnboardingPracticeCandidates()
         let replacements = stored.isEmpty
             ? [
@@ -651,6 +822,7 @@ final class AIKeyboardController: ObservableObject {
             try? await Task.sleep(nanoseconds: 900_000_000)
             guard !Task.isCancelled else { return }
             await MainActor.run {
+                self?.recordDiagnostic("ai_rewrite_result_shown")
                 self?.state = .result(prompt: prompt, capture: capture, candidates: candidates, selectedIndex: 0)
                 self?.resultShownAt = Date()
                 self?.rewriteTask = nil
@@ -670,7 +842,7 @@ final class AIKeyboardController: ObservableObject {
 
     private static func message(for error: Error) -> String {
         switch error {
-        case CloudRewriteError.notSignedIn:
+        case CloudRewriteError.notSignedIn, CloudRewriteError.sessionRejected:
             return "アプリでサインインしてください"
         case CloudRewriteError.backend(let message):
             return message

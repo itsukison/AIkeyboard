@@ -1,0 +1,5 @@
+"ACTIVATION_TITLE" = "キーボードの有効化";
+"ACTIVATION_STEPS" = "有効にする手順：\n1.「キーボード」をタップ\n2.「敬語ボタン」をオン\n3.「フルアクセスを許可」をオン";
+"FULL_ACCESS_TITLE" = "フルアクセス";
+"FULL_ACCESS_VALUE" = "AIボタン利用時のみ";
+"PRIVACY_FOOTER" = "AIボタンを押したときだけ、現在の文章を安全に送信します。通常の入力内容やキー入力を勝手に送信することはありません。";

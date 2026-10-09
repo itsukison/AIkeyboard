@@ -110,14 +110,17 @@ enum OnboardingButtonBuilderService {
     static func capture(
         useCase: OnboardingUseCase,
         source: String,
-        buttonIndex: Int
+        buttonIndex: Int,
+        buttonId: UUID? = nil
     ) {
-        AppAnalytics.capture("onboarding_button_created", properties: [
+        var properties: [String: Any] = [
             "use_case": useCase.rawValue,
             "source": source,
             "button_index": buttonIndex,
             "onboarding_version": InteractiveOnboardingState.version,
-        ])
+        ]
+        if let buttonId { properties["button_id"] = buttonId.uuidString.lowercased() }
+        AppAnalytics.capture("onboarding_button_created", properties: properties)
     }
 
     // MARK: - Committing
@@ -142,6 +145,7 @@ enum OnboardingButtonBuilderService {
             var replaced = entries[index]
             replaced.title = built.spec.title
             replaced.prompt = built.spec.prompt
+            replaced.purpose = ButtonPurpose(rawValue: built.useCase.rawValue)
             replaced.updatedAt = Date()
             entries[index] = replaced
         } else {
@@ -152,7 +156,8 @@ enum OnboardingButtonBuilderService {
                 prompt: built.spec.prompt,
                 isEnabled: true,
                 sortOrder: entries.count,
-                origin: .onboardingBuilder
+                origin: .onboardingBuilder,
+                purpose: ButtonPurpose(rawValue: built.useCase.rawValue)
             )
             id = addition.id
             entries.append(addition)
@@ -164,7 +169,8 @@ enum OnboardingButtonBuilderService {
             capture(
                 useCase: built.useCase,
                 source: built.source,
-                buttonIndex: entries.count - 1
+                buttonIndex: entries.count - 1,
+                buttonId: id
             )
         }
 

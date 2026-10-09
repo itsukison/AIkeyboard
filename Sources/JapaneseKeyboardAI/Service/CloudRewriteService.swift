@@ -24,6 +24,9 @@ public struct CloudRewriteConfiguration: Sendable {
 
 public enum CloudRewriteError: Error, Equatable {
     case notSignedIn
+    case sessionRejected(accessToken: String)
+    case credentialsChanged
+    case temporarilyUnavailable
     case invalidResponse
     case backend(String)
 }
@@ -31,15 +34,21 @@ public enum CloudRewriteError: Error, Equatable {
 public final class CloudRewriteService: RewriteService, @unchecked Sendable {
     private let configuration: CloudRewriteConfiguration
     private let session: URLSession
+    private let defaults: UserDefaults?
 
-    public init(configuration: CloudRewriteConfiguration, session: URLSession = .shared) {
+    public init(configuration: CloudRewriteConfiguration, session: URLSession = .shared,
+                defaults: UserDefaults? = KeyboardSettingsStore.sharedDefaults) {
         self.configuration = configuration
         self.session = session
+        self.defaults = defaults
     }
 
     public func rewrite(_ request: RewriteRequest) async throws -> RewriteResult {
         let accessToken = try await ensureFreshAccessToken()
+        return try await rewrite(request, accessToken: accessToken, canRetry: true)
+    }
 
+    private func rewrite(_ request: RewriteRequest, accessToken: String, canRetry: Bool) async throws -> RewriteResult {
         var urlRequest = URLRequest(url: configuration.endpoint)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -53,6 +62,12 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
             throw CloudRewriteError.invalidResponse
         }
 
+        if http.statusCode == 401 {
+            guard canRetry else { throw authenticationFailure(for: accessToken) }
+            let refreshed = try await tokenAfterUnauthorized(accessToken)
+            return try await rewrite(request, accessToken: refreshed, canRetry: false)
+        }
+        if http.statusCode == 429 || http.statusCode >= 500 { throw CloudRewriteError.temporarilyUnavailable }
         if (200..<300).contains(http.statusCode) {
             return try JSONDecoder().decode(RewriteResult.self, from: data)
         }
@@ -69,7 +84,13 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         onCandidate: @escaping @Sendable (RewriteCandidate) -> Void
     ) async throws -> RewriteResult {
         let accessToken = try await ensureFreshAccessToken()
+        return try await rewriteStreaming(request, accessToken: accessToken, canRetry: true, onCandidate: onCandidate)
+    }
 
+    private func rewriteStreaming(
+        _ request: RewriteRequest, accessToken: String, canRetry: Bool,
+        onCandidate: @escaping @Sendable (RewriteCandidate) -> Void
+    ) async throws -> RewriteResult {
         var urlRequest = URLRequest(url: configuration.endpoint)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -84,6 +105,13 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
             throw CloudRewriteError.invalidResponse
         }
 
+        if http.statusCode == 401 {
+            _ = try await Self.collect(bytes)
+            guard canRetry else { throw authenticationFailure(for: accessToken) }
+            let refreshed = try await tokenAfterUnauthorized(accessToken)
+            return try await rewriteStreaming(request, accessToken: refreshed, canRetry: false, onCandidate: onCandidate)
+        }
+        if http.statusCode == 429 || http.statusCode >= 500 { throw CloudRewriteError.temporarilyUnavailable }
         guard (200..<300).contains(http.statusCode) else {
             let data = try await Self.collect(bytes)
             if let payload = try? JSONDecoder().decode(CloudRewriteErrorPayload.self, from: data) {
@@ -186,21 +214,33 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         _ = try? await session.data(for: urlRequest)
     }
 
+    private func authenticationFailure(for token: String) -> CloudRewriteError {
+        AIAuthStore.readAccessToken(defaults: defaults) == token ? .sessionRejected(accessToken: token) : .credentialsChanged
+    }
+
+    private func tokenAfterUnauthorized(_ rejected: String) async throws -> String {
+        if let latest = AIAuthStore.readAccessToken(defaults: defaults), latest != rejected { return latest }
+        guard let refresh = AIAuthStore.readRefreshToken(defaults: defaults) else {
+            throw authenticationFailure(for: rejected)
+        }
+        return try await refreshAccessToken(refreshToken: refresh)
+    }
+
     private func ensureFreshAccessToken() async throws -> String {
-        guard let accessToken = AIAuthStore.readAccessToken() else {
+        guard let accessToken = AIAuthStore.readAccessToken(defaults: defaults) else {
             throw CloudRewriteError.notSignedIn
         }
-        let expiresAt = AIAuthStore.readExpiresAt() ?? .distantPast
-        if Date().addingTimeInterval(30) < expiresAt {
-            return accessToken
+        let expiresAt = AIAuthStore.readExpiresAt(defaults: defaults) ?? .distantPast
+        if Date().addingTimeInterval(30) < expiresAt { return accessToken }
+        guard let refreshToken = AIAuthStore.readRefreshToken(defaults: defaults) else {
+            if expiresAt > Date() { return accessToken }
+            throw authenticationFailure(for: accessToken)
         }
-        guard let refreshToken = AIAuthStore.readRefreshToken() else {
-            return accessToken
-        }
-        return (try? await refreshAccessToken(refreshToken: refreshToken)) ?? accessToken
+        return try await refreshAccessToken(refreshToken: refreshToken)
     }
 
     private func refreshAccessToken(refreshToken: String) async throws -> String {
+        let originalAccessToken = AIAuthStore.readAccessToken(defaults: defaults)
         let url = configuration.supabaseURL.appendingPathComponent("auth/v1/token")
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "grant_type", value: "refresh_token")]
@@ -213,14 +253,29 @@ public final class CloudRewriteService: RewriteService, @unchecked Sendable {
         req.httpBody = try JSONSerialization.data(withJSONObject: ["refresh_token": refreshToken])
 
         let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw CloudRewriteError.notSignedIn
+        guard AIAuthStore.readAccessToken(defaults: defaults) == originalAccessToken,
+              AIAuthStore.readRefreshToken(defaults: defaults) == refreshToken else {
+            throw CloudRewriteError.credentialsChanged
+        }
+        guard let http = response as? HTTPURLResponse else { throw CloudRewriteError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let failure = try? JSONDecoder().decode(RefreshFailure.self, from: data)
+            if (400..<500).contains(http.statusCode), http.statusCode != 429,
+               AIAuthFailure.requiresSignIn(code: failure?.code ?? failure?.error_code ?? failure?.error ?? "") {
+                guard let originalAccessToken else { throw CloudRewriteError.notSignedIn }
+                throw authenticationFailure(for: originalAccessToken)
+            }
+            throw CloudRewriteError.temporarilyUnavailable
         }
         let payload = try JSONDecoder().decode(RefreshResponse.self, from: data)
+        guard !payload.access_token.isEmpty, !payload.refresh_token.isEmpty, payload.expires_in > 0 else {
+            throw CloudRewriteError.invalidResponse
+        }
         AIAuthStore.writeTokens(
             accessToken: payload.access_token,
             refreshToken: payload.refresh_token,
-            expiresAt: Date().addingTimeInterval(TimeInterval(payload.expires_in))
+            expiresAt: Date().addingTimeInterval(TimeInterval(payload.expires_in)),
+            defaults: defaults
         )
         return payload.access_token
     }
@@ -261,4 +316,10 @@ private struct RefreshResponse: Decodable {
     let access_token: String
     let refresh_token: String
     let expires_in: Int
+}
+
+private struct RefreshFailure: Decodable {
+    let code: String?
+    let error_code: String?
+    let error: String?
 }

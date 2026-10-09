@@ -22,23 +22,38 @@ enum AppleNonce {
     }
 }
 
-/// HIG-compliant "Continue with Apple" button. One button covers both first
-/// sign-up and returning sign-in — `UserSession.signInWithApple` decides which.
+/// One button covers both first sign-up and returning sign-in —
+/// `UserSession.signInWithApple` decides which.
 struct AppleSignInButton: View {
     @EnvironmentObject private var session: UserSession
     @Environment(\.colorScheme) private var colorScheme
+    var onStart: () -> Void = {}
     var onError: (String) -> Void = { _ in }
 
     @State private var currentNonce: String?
 
     var body: some View {
-        SignInWithAppleButton(.continue, onRequest: configure, onCompletion: handle)
-            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-            .frame(height: 52)
-            .clipShape(Capsule())
+        ZStack {
+            Circle()
+                .fill(colorScheme == .dark ? Color.white : Color.black)
+
+            Image(systemName: "apple.logo")
+                .font(.system(size: 25, weight: .medium))
+                .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
+                .allowsHitTesting(false)
+
+            SignInWithAppleButton(.continue, onRequest: configure, onCompletion: handle)
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .opacity(0)
+        }
+        .frame(width: 56, height: 56)
+        .clipShape(Circle())
+        .accessibilityLabel(Text("Appleで続ける"))
+        .accessibilityAddTraits(.isButton)
     }
 
     private func configure(_ request: ASAuthorizationAppleIDRequest) {
+        onStart()
         let nonce = AppleNonce.random()
         currentNonce = nonce
         request.requestedScopes = [.fullName, .email]
@@ -75,6 +90,59 @@ struct AppleSignInButton: View {
             // User-cancelled dismissal is not an error worth surfacing.
             if (error as? ASAuthorizationError)?.code == .canceled { return }
             onError(japaneseAuthErrorMessage(for: error))
+        }
+    }
+}
+
+struct GoogleSignInButton: View {
+    @EnvironmentObject private var session: UserSession
+
+    var onStart: () -> Void = {}
+    var onError: (String) -> Void = { _ in }
+
+    @State private var isLoading = false
+
+    var body: some View {
+        Button(action: authenticate) {
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .tint(Color(red: 31 / 255, green: 31 / 255, blue: 31 / 255))
+                } else {
+                    Image("BrandGoogle")
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 24, height: 24)
+                }
+            }
+            .frame(width: 56, height: 56)
+            .background(Color.white, in: Circle())
+            .overlay(
+                Circle()
+                    .strokeBorder(Color(red: 116 / 255, green: 119 / 255, blue: 117 / 255), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+        .opacity(isLoading ? 0.78 : 1)
+        .accessibilityLabel(Text("Googleで続ける"))
+    }
+
+    private func authenticate() {
+        onStart()
+        isLoading = true
+        Task {
+            defer { isLoading = false }
+            do {
+                try await session.signInWithGoogle()
+            } catch {
+                if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin { return }
+                onError(japaneseAuthErrorMessage(for: error))
+                AppAnalytics.capture("google_sign_in_error", properties: [
+                    "error_message": error.localizedDescription,
+                ])
+            }
         }
     }
 }

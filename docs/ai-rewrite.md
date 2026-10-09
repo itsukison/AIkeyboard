@@ -55,6 +55,15 @@ bridge.
   (`KeyboardSettingsStore.lastSeenPasteboardChangeCount`, in the App Group). If
   it changed and `hasStrings` is true, a context-appearing **返信** pill appears
   in the main bar. This reads pasteboard *metadata only* — no content, no banner.
+  The count is consumed the moment the pill is raised, so one copy earns one
+  offer: closing and reopening the keyboard hides the pill again. It must not be
+  consumed on disappearance instead — the extension can die without
+  `viewWillDisappear` completing (host backgrounded, jetsam), and since nothing
+  else ever lowers the pill it then stayed up for every later session. The one
+  appearance that re-raises an already-consumed copy is iOS delivering a second
+  appearance callback within `samePresentationWindow` (2 s) — that is one
+  presentation, not a reopen, and without it the copy-then-focus flow would
+  never show the pill.
 - **On tap (`runReplyFromClipboard`):** reads `UIPasteboard.general.string` —
   this triggers the iOS paste permission prompt — then calls
   `runReply(withCopiedText:)`, which captures the compose field with

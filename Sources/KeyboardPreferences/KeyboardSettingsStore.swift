@@ -123,7 +123,10 @@ public enum KeyboardSettingsStore {
     }
 
     public static func readHapticsEnabled(defaults: UserDefaults? = sharedDefaults) -> Bool {
-        defaults?.bool(forKey: hapticsEnabledKey) ?? false
+        if let value = defaults?.object(forKey: hapticsEnabledKey) as? Bool {
+            return value
+        }
+        return true
     }
 
     public static func writeHapticsEnabled(

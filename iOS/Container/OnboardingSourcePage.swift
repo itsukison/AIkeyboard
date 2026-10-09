@@ -240,7 +240,7 @@ struct OnboardingTitleBlock: View {
 
             if let subtitle, !isCompact {
                 Text(subtitle)
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundStyle(OnboardingPalette.subInk)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)

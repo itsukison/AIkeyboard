@@ -4,7 +4,8 @@
 engineer joining this codebase. Everything else under `docs/` is reference
 material that this file points to.
 
-Last verified against the code: 2026-06-08.
+Baseline verified against the code: 2026-06-08. AI rewrite rollout status (§4)
+updated 2026-10-05.
 
 ---
 
@@ -39,9 +40,9 @@ them gets users killed by jetsam or rejected by App Review.
   network, and only after the user taps a command. Never send keystrokes,
   never run analytics from the extension.
 - **App Group is the only IPC** between container and extension. Identifier:
-  `group.com.core7.keigobutton`. No URL schemes (except the
-  `aikeyboard://settings` deeplink from the keyboard to the container) and
-  no shared keychain in v1.
+  `group.com.core7.keigobutton`. The keyboard's settings deeplink and the
+  container's `keigobutton://auth-callback` OAuth return are navigation only,
+  never a data channel. There is no shared keychain in v1.
 - **Keyboard surface looks native, container looks Bikey**. Do not put purple
   / Liquid Glass / Bikey design tokens on the keyboard. Do not put the iOS
   system-keyboard look on the container.
@@ -126,14 +127,56 @@ Pipeline, end to end:
    it's within 30 s of expiry.
 5. The Edge Function (`supabase/functions/keyboard-rewrite/index.ts`)
    validates the JWT, enforces abuse-oriented usage limits, calls OpenAI Chat
-   Completions (`gpt-5.6-terra` by default when its key is configured, with
-   Cerebras fallback) with `response_format = json_schema` (strict), and returns
-   `{ candidates, language }`.
+   Completions (`gpt-6.1-sol` for eligible treatment requests; the legacy
+   configuration defaults to `gpt-5.6-terra`, with Cerebras fallback) with
+   `response_format = json_schema` (strict), and returns candidates and language
+   through buffered or streaming responses.
 6. The result card (`AIResultOverlayView`) shows the candidates in a snap
    carousel. The user picks one, taps `置き換え`, and
    `WholeInputReplacementEngine.replace(...)` validates that the proxy
    context still matches what we captured, then performs
    `adjustTextPosition` → `deleteBackward` × N → `insertText(replacement)`.
+
+### Live prompt and model rollout — October 2026
+
+Implementation and launch are complete. `keyboard-rewrite` v61 was activated at
+**2026-10-05T22:44:48Z** (October 5, 6:44:48 p.m. New York). No app update was
+required. This experiment tests the **model and prompt together**:
+
+- Experiment `natural-alternatives-2026-10-v1` assigns 50% of existing accounts
+  deterministically to treatment. All accounts created at or after the fixed
+  launch timestamp receive treatment, using Supabase Auth's creation time.
+- Eligible treatment requests use `gpt-6.1-sol` with low reasoning and the
+  approved `general-v2` / `email-v2` prompts. Alternatives are complete messages
+  respecting the user's preferences; requested candidate counts are preserved.
+- Eligibility requires verified account-owned instructions and an exact match
+  to a recognized standard template. Customized, edited, ambiguous, stale, or
+  unrecognized prompts retain the deployed v53 behavior and legacy model
+  configuration. Titles and origin labels alone never establish eligibility.
+- Control accounts and excluded modes (translation, summarization,
+  proofreading, reply, selected fragments, and non-Japanese) retain legacy
+  behavior. Provider fallback remains available; log the actual returned model.
+- Saved buttons are never rewritten: order, titles, IDs, enabled state,
+  main-button choice, and instructions stay untouched. Do not reset or migrate
+  button lists. Do not change global `OPENAI_MODEL` to implement this experiment.
+- `PROMPT_ROLLOUT_ENABLED=false` restores legacy behavior. Preserve the fixed
+  launch timestamp and experiment ID across rollback and redeployment.
+
+First formal review: **October 19, 2026, 6:44:48 p.m. New York at the earliest**,
+and only after each existing-user arm has at least 200 eligible generations
+from 50 accounts, using the documented 24-hour maturity window. Compare both
+event-level and account-level acceptance, refinements, explicit dismissals,
+errors, latency, and tokens; report new accounts and exclusions separately.
+Feedback/actions join through the rewrite event ID; missing acceptance is not
+automatically rejection. Keep the split if inconclusive; expansion requires a
+separate decision. Confirmed custom-prompt interference, button changes, or
+systematic factual corruption warrants immediate rollback. No automated review
+reminder or monitoring task has been scheduled.
+
+Read [the rollout runbook](docs/projects/mobile-improvements/prompt-lab/ROLLOUT.md)
+before changing or deploying this function. It links the live status, validation
+evidence, and measurement query. The release was assembled from captured v53;
+the local backend contains unrelated changes and must not be deployed wholesale.
 
 ### Auth model (do not confuse with old docs)
 
@@ -141,6 +184,11 @@ Pipeline, end to end:
   Supabase, caches `{accessToken, refreshToken, expiresAt}` in App Group
   (`AIAuthStore`). Keyboard reads the cached token, refreshes if needed,
   sends as bearer.
+- **Providers**: email/password, Apple identity-token exchange, and Google
+  OAuth. Google uses Supabase PKCE through `ASWebAuthenticationSession`, returns
+  to `keigobutton://auth-callback`, and opens the branded
+  `https://auth.keigobutton.com` auth host. REST and Functions stay on the
+  project URL. Do not add Google/Firebase Auth SDKs for this flow.
 - **Old (removed June 2026)**: shared TestFlight token
   `X-AI-Keyboard-Client-Token` + `X-AI-Keyboard-Device-Id`. The
   `AIKeyboardRewriteToken` Info.plist key and `AI_KEYBOARD_REWRITE_TOKEN`
@@ -238,6 +286,12 @@ Critical edge cases (do not regress):
 
 ## 6. Where to read more
 
+Active improvement backlog: [Mobile improvements](docs/projects/mobile-improvements/README.md).
+Start there for the toolbar login/permission regression, default haptics, collaborative
+prompt evaluation, focused PostHog insights, onboarding, and retention investigation.
+Work through the backlog one item per session. Only explicitly marked shipped
+items describe released behavior; the prompt/model rollout is live as noted in §4.
+
 Authoritative docs (other docs in `docs/` should be considered noise):
 
 | File | Purpose |
@@ -245,6 +299,7 @@ Authoritative docs (other docs in `docs/` should be considered noise):
 | `docs/architecture.md` | Module boundaries, state machines, why things live where |
 | `docs/backend.md` | Supabase Edge Function contract, secrets, deployment |
 | `docs/ai-rewrite.md` | Product UX, prompt design, replacement algorithm |
+| `docs/projects/mobile-improvements/prompt-lab/ROLLOUT.md` | Active prompt/model experiment, release evidence, rollback, and October review |
 | `docs/privacy.md` | Privacy promise, App Store nutrition label, auditing checks |
 | `docs/development.md` | Build, test, simulator setup, common gotchas, memory profiling, CI |
 | `docs/archive/` | Historical plans — do not treat as current truth |
@@ -268,7 +323,8 @@ open KeigoButton.xcodeproj
 # inside Xcode)
 swift test
 
-# deploy backend
+# deploy backend ONLY from the reviewed release; read the rollout runbook first
+# do not deploy the dirty local backend wholesale (see §4)
 cd supabase
 supabase functions deploy keyboard-rewrite
 ```
@@ -284,9 +340,6 @@ public launch.
   migration already exists under `supabase/migrations/`).
 - Schedule retention jobs (`delete_ai_rewrite_events_older_than(30)`,
   `delete_old_ai_rewrite_usage_buckets(48, 35)`) via `pg_cron`.
-- Add a feedback endpoint to record `selected_index` into `ai_rewrite_events`
-  (the keyboard already knows the selected candidate; it just doesn't POST
-  it back yet).
 - Environment-specific Supabase URL + publishable key (currently hard-
   coded as defaults in `CloudRewriteConfiguration`). Should read from
   Info.plist via xcconfig so dev/staging/prod can diverge.
