@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// User-selected UI language for the container app. `.system` follows the device
-/// language; the others override it. Container-only — the keyboard extension is
-/// not localized, so this lives in standard `UserDefaults` (not the App Group).
+/// language; the others override it. Container-only — keyboard recovery help
+/// follows the system language, so this preference uses standard `UserDefaults`.
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system
     case ja

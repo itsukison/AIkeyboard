@@ -8,6 +8,8 @@ public enum AIKeyboardState: Equatable {
     case generating(prompt: UserPrompt, capture: WholeInputCapture, refinement: RefinementIntent?, existing: [RewriteCandidate], pending: Int)
     case result(prompt: UserPrompt, capture: WholeInputCapture, candidates: [RewriteCandidate], selectedIndex: Int)
     case error(prompt: UserPrompt?, message: String)
+    case signInRequired(prompt: UserPrompt?)
+    case cloudDisabled(prompt: UserPrompt?)
     case consentRequired(prompt: UserPrompt?)
     case fullAccessRequired(prompt: UserPrompt?)
 }

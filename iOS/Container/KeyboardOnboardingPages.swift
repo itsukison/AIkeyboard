@@ -59,8 +59,20 @@ struct KeyboardSetupPage: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var keyboardStatus = KeyboardStatusContext(bundleId: "com.core7.keigobutton.keyboard")
+    @StateObject private var video = KeyboardSetupGuideVideoCoordinator(purpose: .enablement)
     @State private var didOpenSettings = false
     @State private var showNotEnabledHint = false
+    @State private var settingsOpenFailed = false
+
+    private var isSetupComplete: Bool {
+        keyboardStatus.isKeyboardEnabled && keyboardStatus.isFullAccessEnabled
+    }
+
+    private var setupHint: LocalizedStringKey {
+        keyboardStatus.isKeyboardEnabled
+            ? "キーボードは追加できました。AI機能を使うには「フルアクセスを許可」をオンにして、確認画面で「許可」をタップしてください。"
+            : "「設定を開く」→「キーボード」から「敬語ボタン」と「フルアクセスを許可」をオンにしてください。"
+    }
 
     var body: some View {
         OnboardingScaffold(
@@ -68,8 +80,8 @@ struct KeyboardSetupPage: View {
             canGoBack: onBack != nil,
             onBack: onBack,
             onSkip: onSkip,
-            ctaTitle: "設定を開く",
-            isCtaEnabled: true,
+            ctaTitle: video.isAvailable ? "動画を見ながら設定を開く" : "設定を開く",
+            isCtaEnabled: !video.isOpeningSettings,
             onCta: openSettings
         ) {
             ScrollView(.vertical, showsIndicators: false) {
@@ -80,11 +92,32 @@ struct KeyboardSetupPage: View {
                     )
                     .padding(.top, 24)
 
-                    SettingsMockCard()
-                        .padding(.top, 4)
+                    if video.isAvailable {
+                        KeyboardSetupGuideVideoView(coordinator: video)
+                            .aspectRatio(666.0 / 990.0, contentMode: .fit)
+                            .frame(maxHeight: 280)
+                            .frame(maxWidth: .infinity)
+                            .accessibilityLabel("キーボードとフルアクセスを有効にする手順の動画。手順は下の説明でも確認できます。")
+                    } else {
+                        SettingsMockCard()
+                            .padding(.top, 4)
+                    }
+
+                    Text("1. 「設定を開く」→「キーボード」\n2. 「敬語ボタン」をオン\n3. 「フルアクセスを許可」をオン→「許可」\n4. このアプリに戻って練習")
+                        .font(.system(size: 15))
+                        .foregroundStyle(OnboardingPalette.ink)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text("通常の文字入力やログインだけなら、フルアクセスは不要です。AIへの送信は、AIボタンを押したときだけ行います。")
+                        .font(.system(size: 13))
+                        .foregroundStyle(OnboardingPalette.ink.opacity(0.7))
+
+                    Text("対応端末では、設定アプリに移動しても小さな動画で手順を確認できます。動画が表示されない場合は、上の手順に沿って設定してください。")
+                        .font(.system(size: 13))
+                        .foregroundStyle(OnboardingPalette.ink.opacity(0.7))
 
                     if showNotEnabledHint {
-                        Text("まだ追加されていないようです。「設定を開く」→「キーボード」から「敬語ボタン」をオンにしてください。")
+                        Text(setupHint)
                             .font(.system(size: 13, weight: .regular))
                             .foregroundStyle(OnboardingPalette.danger)
                             .multilineTextAlignment(.center)
@@ -94,12 +127,17 @@ struct KeyboardSetupPage: View {
                     }
 
                     Button {
+                        keyboardStatus.refresh()
+                        OnboardingDiagnostics.capture("keyboard_setup_rechecked", properties: [
+                            "detected": keyboardStatus.isKeyboardEnabled,
+                            "setup_complete": isSetupComplete,
+                        ])
                         onContinue()
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 12, weight: .semibold))
-                            Text("追加済みなので次へ")
+                            Text("設定済みなので次へ")
                         }
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(OnboardingPalette.ink.opacity(0.82))
@@ -118,13 +156,26 @@ struct KeyboardSetupPage: View {
                 .padding(.bottom, 16)
             }
         }
+        .onAppear { keyboardStatus.refresh() }
+        .onDisappear { video.stop() }
+        .alert("設定を開けませんでした", isPresented: $settingsOpenFailed) {
+            Button("閉じる", role: .cancel) {}
+        } message: {
+            Text("ホーム画面から設定を開き、「敬語ボタン」を探して「キーボード」へ進みます。「敬語ボタン」と「フルアクセスを許可」をオンにして、確認画面で「許可」をタップしてください。")
+        }
         .onChange(of: scenePhase) { phase in
             // Only react after the user actually went to Settings, so an
             // unrelated backgrounding (call, app switch) can't jump the page.
             guard phase == .active, didOpenSettings else { return }
+            video.stopPictureInPicture()
+            video.play()
+            didOpenSettings = false
             keyboardStatus.refresh()
-            if keyboardStatus.isKeyboardEnabled {
-                didOpenSettings = false
+            OnboardingDiagnostics.capture("keyboard_setup_settings_returned", properties: [
+                "detected": keyboardStatus.isKeyboardEnabled,
+                "setup_complete": isSetupComplete,
+            ])
+            if isSetupComplete {
                 onContinue()
             } else {
                 showNotEnabledHint = true
@@ -133,9 +184,16 @@ struct KeyboardSetupPage: View {
     }
 
     private func openSettings() {
-        didOpenSettings = true
-        if let url = URL(string: UIApplication.openSettingsURLString) {
-            openURL(url)
+        video.openSettingsWithPictureInPicture {
+            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+            openURL(url) { accepted in
+                didOpenSettings = accepted
+                OnboardingDiagnostics.capture("keyboard_setup_settings_opened", properties: ["accepted": accepted])
+                if !accepted {
+                    video.stopPictureInPicture()
+                    settingsOpenFailed = true
+                }
+            }
         }
     }
 }
@@ -818,7 +876,9 @@ private struct OnboardingPromptEditorSheet: View {
                 Button("これにする") {
                     var updated = entry
                     updated.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                    updated.prompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let editedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if editedPrompt != updated.prompt { updated.purpose = nil }
+                    updated.prompt = editedPrompt
                     updated.updatedAt = Date()
                     onSave(updated)
                 }

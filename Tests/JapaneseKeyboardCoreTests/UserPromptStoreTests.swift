@@ -82,4 +82,23 @@ final class UserPromptStoreTests: XCTestCase {
         let entry = UserPromptStore.readEntries(defaults: defaults).first
         XCTAssertEqual(entry, custom)
     }
+
+    func testButtonPurposeSurvivesStorageAndRename() throws {
+        var button = UserPrompt(slot: .main, title: "翻訳", prompt: "Translate", purpose: .translate)
+        button.title = "My renamed button"
+        UserPromptStore.writeEntries([button], defaults: defaults)
+        let restored = try XCTUnwrap(UserPromptStore.readEntries(defaults: defaults).first)
+        XCTAssertEqual(restored.purpose, .translate)
+        XCTAssertEqual(restored.id, button.id)
+    }
+
+    func testLegacyButtonsDecodeWithoutInventingPurpose() throws {
+        let button = UserPrompt(slot: .main, builtinKey: "polite", title: "敬語", prompt: "Custom instruction")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(button)) as? [String: Any])
+        json.removeValue(forKey: "purpose")
+        let restored = try JSONDecoder().decode(UserPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertNil(restored.purpose)
+        XCTAssertEqual(restored.id, button.id)
+    }
+
 }

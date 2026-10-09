@@ -65,6 +65,36 @@ final class KeyboardSettingsStoreTests: XCTestCase {
         XCTAssertTrue(KeyboardSettingsStore.readKeyClickSoundEnabled(defaults: defaults))
     }
 
+    func testHapticsEnabledDefaultsToTrue() {
+        XCTAssertTrue(KeyboardSettingsStore.readHapticsEnabled(defaults: defaults))
+    }
+
+    func testHapticsEnabledPreservesStoredFalse() {
+        KeyboardSettingsStore.writeHapticsEnabled(false, defaults: defaults)
+
+        XCTAssertFalse(KeyboardSettingsStore.readHapticsEnabled(defaults: defaults))
+        XCTAssertEqual(defaults.object(forKey: KeyboardSettingsStore.hapticsEnabledKey) as? Bool, false)
+    }
+
+    func testHapticsEnabledPreservesStoredTrue() {
+        KeyboardSettingsStore.writeHapticsEnabled(true, defaults: defaults)
+
+        XCTAssertTrue(KeyboardSettingsStore.readHapticsEnabled(defaults: defaults))
+        XCTAssertEqual(defaults.object(forKey: KeyboardSettingsStore.hapticsEnabledKey) as? Bool, true)
+    }
+
+    func testHapticsEnabledDefaultsToTrueWithoutDefaults() {
+        XCTAssertTrue(KeyboardSettingsStore.readHapticsEnabled(defaults: nil))
+    }
+
+    func testReadingHapticsDefaultDoesNotPersistPreference() {
+        XCTAssertNil(defaults.object(forKey: KeyboardSettingsStore.hapticsEnabledKey))
+
+        XCTAssertTrue(KeyboardSettingsStore.readHapticsEnabled(defaults: defaults))
+
+        XCTAssertNil(defaults.object(forKey: KeyboardSettingsStore.hapticsEnabledKey))
+    }
+
     func testKeyClickSoundEnabledRoundTrip() {
         KeyboardSettingsStore.writeKeyClickSoundEnabled(false, defaults: defaults)
         XCTAssertFalse(KeyboardSettingsStore.readKeyClickSoundEnabled(defaults: defaults))

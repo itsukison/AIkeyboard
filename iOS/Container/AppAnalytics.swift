@@ -1,4 +1,5 @@
 import FirebaseAnalytics
+import Foundation
 import KeyboardPreferences
 import PostHog
 
@@ -8,12 +9,20 @@ enum AppAnalytics {
     /// later. PostHog accepts it; Firebase has no equivalent on `logEvent`,
     /// so the Google mirror stays stamped at relay time.
     static func capture(_ name: String, properties: [String: Any] = [:], timestamp: Date? = nil) {
-        PostHogSDK.shared.capture(name, properties: properties, timestamp: timestamp)
-        Analytics.logEvent(googleEventName(for: name), parameters: googleParameters(properties))
+        var values = properties
+        values["app_version"] = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        values["app_build"] = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        values["occurred_at"] = ISO8601DateFormatter().string(from: timestamp ?? Date())
+        if name.hasPrefix("onboarding_") || name == "signed_up" || name == "ai_consent_decision" {
+            values = OnboardingDiagnostics.context.merging(values) { _, new in new }
+        }
+        PostHogSDK.shared.capture(name, properties: values, timestamp: timestamp)
+        Analytics.logEvent(googleEventName(for: name), parameters: googleParameters(values))
     }
 
     static func identify(_ userId: String, userProperties: [String: Any]) {
         PostHogSDK.shared.identify(userId, userProperties: userProperties)
+        cacheDiagnosticIdentity()
         Analytics.setUserID(userId)
         Analytics.setUserProperty(
             userProperties["acquisition_source"] as? String,
@@ -23,13 +32,36 @@ enum AppAnalytics {
 
     static func reset() {
         PostHogSDK.shared.reset()
+        cacheDiagnosticIdentity()
         Analytics.setUserID(nil)
         Analytics.setUserProperty(nil, forName: "acquisition_source")
     }
 
     static func cacheAppInstanceId() {
+        cacheDiagnosticIdentity()
         guard let identifier = Analytics.appInstanceID() else { return }
         KeyboardSettingsStore.writeAnalyticsAppInstanceId(identifier)
+    }
+
+    static func cacheDiagnosticIdentity() {
+        KeyboardSettingsStore.sharedDefaults?.set(PostHogSDK.shared.getDistinctId(), forKey: KeyboardDiagnosticStore.identityKey)
+    }
+
+    static func flushKeyboardDiagnostics() {
+        for event in KeyboardDiagnosticStore.pending() {
+            // An event without a captured identity must never be assigned to a
+            // different account that happened to reopen the app later.
+            if let distinctId = event.distinctId {
+                var values: [String: Any] = event.properties
+                values["$insert_id"] = event.id
+                values["occurred_at"] = ISO8601DateFormatter().string(from: event.occurredAt)
+                values["relayed_at"] = ISO8601DateFormatter().string(from: Date())
+                values["relay_delay_ms"] = Int(max(0, Date().timeIntervalSince(event.occurredAt)) * 1000)
+                values["source"] = "app_group_relay"
+                PostHogSDK.shared.capture(event.name, distinctId: distinctId, properties: values, timestamp: event.occurredAt)
+            }
+            KeyboardDiagnosticStore.acknowledge(event)
+        }
     }
 
     private static func googleEventName(for name: String) -> String {

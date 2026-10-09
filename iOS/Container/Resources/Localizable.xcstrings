@@ -1,6 +1,74 @@
 {
   "sourceLanguage" : "ja",
   "strings" : {
+    "キーボードは追加できました。AI機能を使うには「フルアクセスを許可」をオンにして、確認画面で「許可」をタップしてください。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The keyboard is added. To use AI features, turn on Allow Full Access and tap Allow in the confirmation."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘已添加。要使用 AI 功能，请开启“允许完全访问”，然后在确认窗口中轻点“允许”。"
+          }
+        }
+      }
+    },
+    "キーボードとフルアクセスを有効にする手順の動画。手順は下の説明でも確認できます。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video showing how to enable the keyboard and Full Access. Written steps are also shown below."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用键盘和完全访问的操作视频。下方也提供文字步骤。"
+          }
+        }
+      }
+    },
+    "1. 「設定を開く」→「キーボード」\n2. 「敬語ボタン」をオン\n3. 「フルアクセスを許可」をオン→「許可」\n4. このアプリに戻って練習": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Open Settings → Keyboards\n2. Turn on “敬語ボタン”\n3. Turn on Allow Full Access → Allow\n4. Return to this app to practice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. 打开设置 → 键盘\n2. 开启“敬語ボタン”\n3. 开启“允许完全访问”→“允许”\n4. 返回本应用练习"
+          }
+        }
+      }
+    },
+    "ホーム画面から設定を開き、「敬語ボタン」を探して「キーボード」へ進みます。「敬語ボタン」と「フルアクセスを許可」をオンにして、確認画面で「許可」をタップしてください。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings from the Home Screen, find 敬語ボタン, then go to Keyboards. Turn on 敬語ボタン and Allow Full Access, then tap Allow in the confirmation."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请从主屏幕打开设置，找到“敬語ボタン”并进入“键盘”。开启“敬語ボタン”和“允许完全访问”，然后在确认窗口中轻点“允许”。"
+          }
+        }
+      }
+    },
     "" : {
 
     },
@@ -137,6 +205,9 @@
     },
     "© 2026 敬語ボタン" : {
       "shouldTranslate" : false
+    },
+    "1. 下のボタンでアプリの設定を開く\n2. 「キーボード」をタップ\n3. 「フルアクセスを許可」をオン\n4. 確認画面で「許可」をタップ" : {
+
     },
     "10キー入力" : {
       "localizations" : {
@@ -429,6 +500,9 @@
         }
       }
     },
+    "AI機能を使うには、フルアクセスを許可してください。一度許可すれば、オフにしない限り再設定は不要です。" : {
+
+    },
     "App Store" : {
       "shouldTranslate" : false
     },
@@ -448,11 +522,43 @@
         }
       }
     },
+    "Appleで続ける" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Apple"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Apple 继续"
+          }
+        }
+      }
+    },
     "ChatGPT" : {
       "shouldTranslate" : false
     },
     "Google" : {
       "shouldTranslate" : false
+    },
+    "Googleで続ける" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Google"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Google 继续"
+          }
+        }
+      }
     },
     "Instagram" : {
       "shouldTranslate" : false
@@ -2169,6 +2275,9 @@
         }
       }
     },
+    "フルアクセスの設定方法：設定 → 一般 → キーボード → キーボード → AIキーボード → フルアクセスを許可。上のフルアクセスを押すと、動画付きの設定ガイドを開きます。" : {
+
+    },
     "フルアクセスを許可" : {
       "localizations" : {
         "en" : {
@@ -2184,6 +2293,9 @@
           }
         }
       }
+    },
+    "フルアクセスを許可する手順の動画。手順は下の説明でも確認できます。" : {
+
     },
     "プロンプト" : {
       "localizations" : {
@@ -2330,6 +2442,9 @@
         }
       }
     },
+    "ホーム画面から設定を開き、一般 → キーボード → キーボード → AIキーボードへ進んでください。" : {
+
+    },
     "ボタンが\nできました" : {
 
     },
@@ -2468,18 +2583,18 @@
         }
       }
     },
-    "まだ追加されていないようです。「設定を開く」→「キーボード」から「敬語ボタン」をオンにしてください。" : {
+    "「設定を開く」→「キーボード」から「敬語ボタン」と「フルアクセスを許可」をオンにしてください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "It looks like it hasn't been added yet. Tap “Open Settings” → “Keyboards” and turn on 敬語ボタン."
+            "value" : "Open Settings → Keyboards, then turn on 敬語ボタン and Allow Full Access."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "似乎还没有添加。请点按“打开设置”→“键盘”，然后开启“敬語ボタン”。"
+            "value" : "请打开设置→键盘，然后开启“敬語ボタン”和“允许完全访问”。"
           }
         }
       }
@@ -2750,6 +2865,15 @@
           }
         }
       }
+    },
+    "ログイン状態は変更していません。通信環境を確認して、もう一度お試しください。" : {
+
+    },
+    "ログイン状態を確認しました" : {
+
+    },
+    "ログイン状態を確認できませんでした。通信環境を確認してください。" : {
+
     },
     "一度追加すると、LINEやメールの入力中にいつでも切り替えられます。" : {
       "localizations" : {
@@ -3273,6 +3397,9 @@
         }
       }
     },
+    "元のアプリに戻り、AIボタンをもう一度押してください。未完了の設定があればキーボードに表示されます。" : {
+
+    },
     "先にキーボードの追加が必要です。「設定を開く」から追加してください。" : {
       "localizations" : {
         "en" : {
@@ -3550,6 +3677,9 @@
         }
       }
     },
+    "再試行" : {
+
+    },
     "最初の4つに戻す" : {
       "localizations" : {
         "en" : {
@@ -3662,6 +3792,9 @@
           }
         }
       }
+    },
+    "動画を見ながら設定を開く" : {
+
     },
     "友人・知人" : {
       "localizations" : {
@@ -3858,6 +3991,9 @@
           }
         }
       }
+    },
+    "対応端末では、設定アプリに移動しても小さな動画で手順を確認できます。動画が表示されない場合は、上の手順に沿って設定してください。" : {
+
     },
     "将来的に変換精度の改善につながる可能性" : {
       "localizations" : {
@@ -4990,6 +5126,12 @@
         }
       }
     },
+    "設定を開けませんでした" : {
+
+    },
+    "設定後は元のアプリに戻り、AIボタンをもう一度押してください。" : {
+
+    },
     "試してみる" : {
       "localizations" : {
         "en" : {
@@ -5138,18 +5280,18 @@
         }
       }
     },
-    "追加済みなので次へ" : {
+    "設定済みなので次へ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Already added — next"
+            "value" : "Already set up — continue"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已添加，下一步"
+            "value" : "已完成设置，继续"
           }
         }
       }
@@ -5343,6 +5485,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "发生网络错误，请检查网络连接。"
+          }
+        }
+      }
+    },
+    "通信に失敗しました" : {
+
+    },
+    "通常の文字入力やログインだけなら、フルアクセスは不要です。AIへの送信は、AIボタンを押したときだけ行います。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Access is not needed for ordinary typing or signing in. Text is sent to AI only when you tap an AI button."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "普通文字输入和登录不需要完全访问。只有轻点 AI 按钮时，才会将文字发送给 AI。"
           }
         }
       }

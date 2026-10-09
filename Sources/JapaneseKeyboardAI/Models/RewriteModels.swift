@@ -37,6 +37,8 @@ public struct RewriteRequest: Codable, Sendable {
     /// built during onboarding from one they wrote later — and those two predict
     /// retention very differently.
     public let promptOrigin: String?
+    public let buttonId: String?
+    public let buttonPurpose: String?
     public let locale: String
     public let appVersion: String
     public let candidateCount: Int
@@ -52,6 +54,7 @@ public struct RewriteRequest: Codable, Sendable {
     /// Asks the backend to deliver candidates over Server-Sent Events as each
     /// one finishes, rather than buffering all of them into one response.
     public let stream: Bool
+    public let diagnostics: RewriteAttemptMetadata?
 
     public init(
         prompt: String,
@@ -60,6 +63,8 @@ public struct RewriteRequest: Codable, Sendable {
         commandKey: String? = nil,
         title: String? = nil,
         promptOrigin: String? = nil,
+        buttonId: String? = nil,
+        buttonPurpose: String? = nil,
         locale: String,
         appVersion: String,
         candidateCount: Int = 3,
@@ -68,7 +73,8 @@ public struct RewriteRequest: Codable, Sendable {
         selection: Bool = false,
         selectionContextBefore: String? = nil,
         selectionContextAfter: String? = nil,
-        stream: Bool = false
+        stream: Bool = false,
+        diagnostics: RewriteAttemptMetadata? = nil
     ) {
         self.prompt = prompt
         self.text = text
@@ -76,6 +82,8 @@ public struct RewriteRequest: Codable, Sendable {
         self.commandKey = commandKey
         self.title = title
         self.promptOrigin = promptOrigin
+        self.buttonId = buttonId
+        self.buttonPurpose = buttonPurpose
         self.locale = locale
         self.appVersion = appVersion
         self.candidateCount = candidateCount
@@ -85,6 +93,7 @@ public struct RewriteRequest: Codable, Sendable {
         self.selectionContextBefore = selectionContextBefore
         self.selectionContextAfter = selectionContextAfter
         self.stream = stream
+        self.diagnostics = diagnostics
     }
 }
 
